@@ -5,10 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CosmWasm/wasmd/x/wasm"
-	tmtypes "github.com/cometbft/cometbft/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-
 	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -31,9 +27,7 @@ func TestMVP(t *testing.T) {
 	// given a provider chain A and a consumer chain B
 	// when
 	// then
-	coord := wasmibctesting.NewCoordinatorX(t, 2, func(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount, chainID string, opts []wasm.Option, balances ...banktypes.Balance) wasmibctesting.ChainApp {
-		return app.SetupWithGenesisValSet(t, valSet, genAccs, chainID, opts, balances...)
-	})
+	coord := NewIBCCoordinator(t, 2)
 	hostChain := coord.GetChain(ibctesting.GetChainID(1))
 	hostParams := hosttypes.NewParams(true, []string{sdk.MsgTypeURL(&banktypes.MsgSend{})})
 	hostApp := hostChain.App.(*app.MeshApp)
