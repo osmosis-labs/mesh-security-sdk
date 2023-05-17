@@ -97,11 +97,3 @@ func (k Keeper) setTotalDelegatedAmount(ctx sdk.Context, actor sdk.AccAddress, n
 	}
 	store.Set(types.BuildTotalDelegatedAmountKey(actor), bz)
 }
-
-func (k Keeper) getOrCreateIntermediaryAccount(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress) sdk.AccAddress {
-	panic("not implemented, yet")
-}
-
-func (k Keeper) getIntermediaryAccount(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress) sdk.AccAddress {
-	panic("not implemented, yet")
-}

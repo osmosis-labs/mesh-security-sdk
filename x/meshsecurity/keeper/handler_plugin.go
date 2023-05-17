@@ -15,7 +15,7 @@ import (
 
 type msKeeper interface {
 	IsAuthorized(ctx sdk.Context, contractAddr sdk.AccAddress) (bool, error)
-	Delegate(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) (sdk.AccAddress, error)
+	Delegate(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) error
 	Undelegate(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) error
 }
 
@@ -31,7 +31,7 @@ func (h CustomMsgHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddre
 	if err := json.Unmarshal(msg.Custom, &customMsg); err != nil {
 		return nil, nil, sdkerrors.ErrJSONUnmarshal.Wrap("custom message")
 	}
-	if customMsg.VirtualStake != nil {
+	if customMsg.VirtualStake == nil {
 		// not our message type
 		return nil, nil, wasmtypes.ErrUnknownMsg
 	}
@@ -68,13 +68,13 @@ func (h CustomMsgHandler) handleBondMsg(ctx sdk.Context, actor sdk.AccAddress, b
 	if err != nil {
 		return nil, nil, err
 	}
-	acc, err := h.k.Delegate(ctx, actor, valAddr, coin)
+	err = h.k.Delegate(ctx, actor, valAddr, coin)
 	if err != nil {
 		return nil, nil, err
 	}
 	// todo: events here?
-	// todo: response data format? does the contract need to know the address of the intermediary account?
-	return []sdk.Event{}, [][]byte{[]byte(acc.String())}, nil
+	// todo: response data format?
+	return []sdk.Event{}, [][]byte{}, nil
 }
 
 func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress, bondMsg *contract.UnbondMsg) ([]sdk.Event, [][]byte, error) {
@@ -91,6 +91,6 @@ func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress,
 		return nil, nil, err
 	}
 	// todo: events here?
-	// todo: response data format? does the contract need to know the address of the intermediary account?
+	// todo: response data format?
 	return []sdk.Event{}, [][]byte{}, nil
 }
