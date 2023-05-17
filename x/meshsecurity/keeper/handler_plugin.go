@@ -13,14 +13,36 @@ import (
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 )
 
+// AuthSource abstract type that provides contract authorization.
+// This is an extension point for custom implementations.
+type AuthSource interface {
+	// IsAuthorized returns if the contract authorized to execute a virtual stake message
+	IsAuthorized(ctx sdk.Context, contractAddr sdk.AccAddress) bool
+}
+
+// abstract keeper
 type msKeeper interface {
-	IsAuthorized(ctx sdk.Context, contractAddr sdk.AccAddress) (bool, error)
 	Delegate(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) error
 	Undelegate(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) error
 }
 
 type CustomMsgHandler struct {
-	k msKeeper
+	k    msKeeper
+	auth AuthSource
+}
+
+// NewDefaultCustomMsgHandler constructor to set up the CustomMsgHandler with default max cap authorization
+func NewDefaultCustomMsgHandler(k Keeper) *CustomMsgHandler {
+	hasMaxCapAuthZ := AuthSourceFn(func(ctx sdk.Context, contractAddr sdk.AccAddress) bool {
+		return k.HasMaxCapLimit(ctx, contractAddr)
+	})
+	return &CustomMsgHandler{k: k, auth: hasMaxCapAuthZ}
+}
+
+// NewCustomMsgHandler constructor to set up CustomMsgHandler with an individual auth source.
+// This is an extension point for non default contract authorization logic.
+func NewCustomMsgHandler(k msKeeper, auth AuthSource) *CustomMsgHandler {
+	return &CustomMsgHandler{k: k, auth: auth}
 }
 
 func (h CustomMsgHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddress, _ string, msg wasmvmtypes.CosmosMsg) ([]sdk.Event, [][]byte, error) {
@@ -36,11 +58,7 @@ func (h CustomMsgHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddre
 		return nil, nil, wasmtypes.ErrUnknownMsg
 	}
 
-	ok, err := h.k.IsAuthorized(ctx, contractAddr)
-	if err != nil {
-		return nil, nil, err
-	}
-	if !ok {
+	if !h.auth.IsAuthorized(ctx, contractAddr) {
 		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
 	}
 
@@ -93,4 +111,12 @@ func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress,
 	// todo: events here?
 	// todo: response data format?
 	return []sdk.Event{}, [][]byte{}, nil
+}
+
+// AuthSourceFn is helper for simple AuthSource types
+type AuthSourceFn func(ctx sdk.Context, contractAddr sdk.AccAddress) bool
+
+// IsAuthorized returns if the contract authorized to execute a virtual stake message
+func (a AuthSourceFn) IsAuthorized(ctx sdk.Context, contractAddr sdk.AccAddress) bool {
+	return a(ctx, contractAddr)
 }

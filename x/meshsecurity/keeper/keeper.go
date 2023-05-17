@@ -30,11 +30,6 @@ func NewKeeperX(cdc codec.Codec, storeKey storetypes.StoreKey, accountKeeper typ
 	return &Keeper{storeKey: storeKey, cdc: cdc, accountKeeper: accountKeeper, bank: bank, staking: staking, authority: authority}
 }
 
-func (k Keeper) IsAuthorized(ctx sdk.Context, contractAddr sdk.AccAddress) (bool, error) {
-	// TODO implement me
-	panic("implement me")
-}
-
 // GetParams returns the total set of wasm parameters.
 func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	var params types.Params
@@ -62,6 +57,11 @@ func (k Keeper) SetParams(ctx sdk.Context, ps types.Params) error {
 	//}
 	//store.Set(types.ParamsKey, bz)
 	return nil
+}
+
+func (k Keeper) HasMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) bool {
+	store := ctx.KVStore(k.storeKey)
+	return store.Has(types.BuildMaxCapLimitKey(actor))
 }
 
 // getMaxCapLimit the cap limit is set per consumer contract. Different providers can have different limits
