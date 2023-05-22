@@ -8,9 +8,10 @@ The `buf` CLI comes with an export command. Use `buf export -h` for details
 
 #### Examples:
 
-Download cosmwasm protos for a commit:
+Download mesh-security protos for a commit:
 ```bash
-buf export buf.build/cosmwasm/wasmd:${commit} --output ./tmp
+## todo: not published, yet
+buf export buf.build/osmosis-labs/mesh-security-sdk:${commit} --output ./tmp
 ```
 
 Download all project protos:
