@@ -65,15 +65,9 @@ func (h CustomMsgHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddre
 
 	switch {
 	case customMsg.VirtualStake.Bond != nil:
-		events, i, err := h.handleBondMsg(ctx, contractAddr, customMsg.VirtualStake.Bond)
-		if err != nil {
-			return events, i, err
-		}
+		return h.handleBondMsg(ctx, contractAddr, customMsg.VirtualStake.Bond)
 	case customMsg.VirtualStake.Unbond != nil:
-		events, i, err := h.handleUnbondMsg(ctx, contractAddr, customMsg.VirtualStake.Unbond)
-		if err != nil {
-			return events, i, err
-		}
+		return h.handleUnbondMsg(ctx, contractAddr, customMsg.VirtualStake.Unbond)
 	}
 	return nil, nil, wasmtypes.ErrUnknownMsg
 }
@@ -93,7 +87,7 @@ func (h CustomMsgHandler) handleBondMsg(ctx sdk.Context, actor sdk.AccAddress, b
 	}
 	// todo: events here?
 	// todo: response data format?
-	return []sdk.Event{}, [][]byte{}, nil
+	return []sdk.Event{}, nil, nil
 }
 
 func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress, bondMsg *contract.UnbondMsg) ([]sdk.Event, [][]byte, error) {
@@ -111,7 +105,7 @@ func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress,
 	}
 	// todo: events here?
 	// todo: response data format?
-	return []sdk.Event{}, [][]byte{}, nil
+	return []sdk.Event{}, nil, nil
 }
 
 // AuthSourceFn is helper for simple AuthSource types
