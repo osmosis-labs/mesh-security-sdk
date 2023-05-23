@@ -3,7 +3,6 @@ package keeper
 import (
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
@@ -43,28 +42,5 @@ func NewStakingKeeperAdapter(k types.SDKStakingKeeper, b types.SDKBankKeeper) *S
 //
 // This is copied from the Osmosis sdk fork
 func (s StakingKeeperAdapter) InstantUndelegate(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec) (sdk.Coins, error) {
-	validator, found := s.GetValidator(ctx, valAddr)
-	if !found {
-		return nil, stakingtypes.ErrNoDelegatorForAddress
-	}
-
-	returnAmount, err := s.Unbond(ctx, delAddr, valAddr, sharesAmount)
-	if err != nil {
-		return nil, err
-	}
-
-	bondDenom := s.BondDenom(ctx)
-
-	amt := sdk.NewCoin(bondDenom, returnAmount)
-	res := sdk.NewCoins(amt)
-
-	moduleName := stakingtypes.NotBondedPoolName
-	if validator.IsBonded() {
-		moduleName = stakingtypes.BondedPoolName
-	}
-	err = s.bank.UndelegateCoinsFromModuleToAccount(ctx, moduleName, delAddr, res)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	panic("not implemented, yet")
 }
