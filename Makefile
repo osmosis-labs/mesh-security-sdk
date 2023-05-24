@@ -30,14 +30,8 @@ test-all: test
 
 test:
 	$(MAKE) -C demo test
-#	$(MAKE) -C x test
-#	$(MAKE) -C tests/e2e/ test
-
-#test-race:
-#	@VERSION=$(VERSION) go test -mod=readonly -race -tags='ledger test_ledger_mock' ./x/... ./tests/e2e/...
-#
-#test-cover:
-#	@go test -mod=readonly -timeout 30m -race -coverprofile=coverage.txt -covermode=atomic -tags='ledger test_ledger_mock' ./x/... ./tests/e2e/...
+	$(MAKE) -C x test
+	$(MAKE) -C tests/e2e/ test
 
 ###############################################################################
 ###                                Linting                                  ###

@@ -124,6 +124,10 @@ import (
 	ibckeeper "github.com/cosmos/ibc-go/v7/modules/core/keeper"
 	ibctm "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
 	"github.com/spf13/cast"
+
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity"
+	meshseckeeper "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/keeper"
+	meshsectypes "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
 const appName = "MeshApp"
@@ -280,6 +284,7 @@ type MeshApp struct {
 	ICAHostKeeper       icahostkeeper.Keeper
 	TransferKeeper      ibctransferkeeper.Keeper
 	WasmKeeper          wasm.Keeper
+	MeshSecKeeper       *meshseckeeper.Keeper
 
 	ScopedIBCKeeper           capabilitykeeper.ScopedKeeper
 	ScopedICAHostKeeper       capabilitykeeper.ScopedKeeper
@@ -331,6 +336,7 @@ func NewMeshApp(
 		ibcexported.StoreKey, ibctransfertypes.StoreKey, ibcfeetypes.StoreKey,
 		wasm.StoreKey, icahosttypes.StoreKey,
 		icacontrollertypes.StoreKey,
+		meshsectypes.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
@@ -579,6 +585,15 @@ func NewMeshApp(
 		panic(fmt.Sprintf("error while reading wasm config: %s", err))
 	}
 
+	meshMessageHandler := wasmkeeper.WithMessageHandlerDecorator(func(nested wasmkeeper.Messenger) wasmkeeper.Messenger {
+		return wasmkeeper.NewMessageHandlerChain(
+			nested,
+			// append our custom message handler
+			meshseckeeper.NewDefaultCustomMsgHandler(app.MeshSecKeeper),
+		)
+	})
+	wasmOpts = append(wasmOpts, meshMessageHandler)
+
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
 	availableCapabilities := strings.Join(AllCapabilities(), ",")
@@ -609,6 +624,16 @@ func NewMeshApp(
 	}
 	// Set legacy router for backwards compatibility with gov v1beta1
 	app.GovKeeper.SetLegacyRouter(govRouter)
+
+	// setup mesh-security keeper with vanilla Cosmos-SDK
+	// see also NewKeeperX constructor for integration with Osmosis SDK fork
+	app.MeshSecKeeper = meshseckeeper.NewKeeper(
+		app.appCodec,
+		keys[meshsectypes.StoreKey],
+		app.BankKeeper,
+		app.StakingKeeper,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
 
 	// Create Transfer Stack
 	var transferStack porttypes.IBCModule
@@ -681,6 +706,7 @@ func NewMeshApp(
 		transfer.NewAppModule(app.TransferKeeper),
 		ibcfee.NewAppModule(app.IBCFeeKeeper),
 		ica.NewAppModule(&app.ICAControllerKeeper, &app.ICAHostKeeper),
+		meshsecurity.NewAppModule(appCodec, app.MeshSecKeeper),
 		crisis.NewAppModule(app.CrisisKeeper, skipGenesisInvariants, app.GetSubspace(crisistypes.ModuleName)), // always be last to make sure that it checks for all invariants and not only part of them
 	)
 
@@ -701,6 +727,7 @@ func NewMeshApp(
 		icatypes.ModuleName,
 		ibcfeetypes.ModuleName,
 		wasm.ModuleName,
+		meshsectypes.ModuleName,
 	)
 
 	app.ModuleManager.SetOrderEndBlockers(
@@ -716,6 +743,7 @@ func NewMeshApp(
 		icatypes.ModuleName,
 		ibcfeetypes.ModuleName,
 		wasm.ModuleName,
+		meshsectypes.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
@@ -739,6 +767,7 @@ func NewMeshApp(
 		ibcfeetypes.ModuleName,
 		// wasm after ibc transfer
 		wasm.ModuleName,
+		meshsectypes.ModuleName,
 	}
 	app.ModuleManager.SetOrderInitGenesis(genesisModuleOrder...)
 	app.ModuleManager.SetOrderExportGenesis(genesisModuleOrder...)
