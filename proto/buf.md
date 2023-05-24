@@ -1,6 +1,6 @@
 # Protobufs
 
-This is the public protocol buffers API for [Wasmd](https://github.com/CosmWasm/wasmd).
+This is the public protocol buffers API for [Mesh Security SDK](https://github.com/osmosis-labs/mesh-security-sdk).
 
 ## Download
 
