@@ -1,0 +1,35 @@
+syntax = "proto3";
+package osmosis.meshsecurity.v1beta1;
+
+import "cosmos/base/v1beta1/coin.proto";
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+
+option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types";
+option (gogoproto.goproto_getters_all) = false;
+option (gogoproto.equal_all) = false;
+
+// Query provides defines the gRPC querier service
+service Query {
+  // ContractInfo gets the contract meta data
+  rpc VirtualStakingMaxCap(QueryVirtualStakingMaxCapRequest)
+      returns (QueryVirtualStakingMaxCapResponse) {
+    option (google.api.http).get =
+        "/osmosis/meshsecurity/v1beta1/max_cap/{address}";
+  }
+}
+
+// QueryVirtualStakingMaxCapRequest is the request type for the
+// Query/VirtualStakingMaxCap RPC method
+message QueryVirtualStakingMaxCapRequest {
+  // address is the address of the contract to query
+  string address = 1;
+}
+
+// QueryVirtualStakingMaxCapResponse is the response type for the
+// Query/VirtualStakingMaxCap RPC method
+message QueryVirtualStakingMaxCapResponse {
+  option (gogoproto.equal) = true;
+
+  cosmos.base.v1beta1.Coin limit = 1 [ (gogoproto.nullable) = false ];
+}
