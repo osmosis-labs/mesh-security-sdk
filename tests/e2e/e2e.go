@@ -40,14 +40,12 @@ func voteAndPassGovProposal(t *testing.T, coord *ibctesting.Coordinator, chain *
 	require.NoError(t, err)
 
 	chainApp := chain.App.(*app.MeshApp)
-	rsp, err := chainApp.GovKeeper.Proposal(sdk.WrapSDKContext(chain.GetContext()), &govv1.QueryProposalRequest{ProposalId: proposalID})
-	require.NoError(t, err)
 	govParams := chainApp.GovKeeper.GetParams(chain.GetContext())
 
 	coord.IncrementTimeBy(*govParams.VotingPeriod)
 	coord.CommitBlock(chain)
 
-	rsp, err = chainApp.GovKeeper.Proposal(sdk.WrapSDKContext(chain.GetContext()), &govv1.QueryProposalRequest{ProposalId: proposalID})
+	rsp, err := chainApp.GovKeeper.Proposal(sdk.WrapSDKContext(chain.GetContext()), &govv1.QueryProposalRequest{ProposalId: proposalID})
 	require.NoError(t, err)
 	require.Equal(t, rsp.Proposal.Status, govv1.ProposalStatus_PROPOSAL_STATUS_PASSED)
 }
