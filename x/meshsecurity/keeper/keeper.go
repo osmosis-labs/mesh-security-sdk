@@ -54,12 +54,15 @@ func (k Keeper) GetAuthority() string {
 	return k.authority
 }
 
+// HasMaxCapLimit returns true when any max cap limit was set. The amount is not taken into account for the result.
+// A 0 value would be true as well.
 func (k Keeper) HasMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) bool {
 	store := ctx.KVStore(k.storeKey)
 	return store.Has(types.BuildMaxCapLimitKey(actor))
 }
 
 // GetMaxCapLimit the cap limit is set per consumer contract. Different providers can have different limits
+// Returns zero amount when no limit is stored.
 func (k Keeper) GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
 	return sdk.NewCoin(k.staking.BondDenom(ctx), k.mustLoadInt(ctx, k.storeKey, types.BuildMaxCapLimitKey(actor)))
 }
@@ -79,7 +82,7 @@ func (k Keeper) SetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress, newAmount 
 	return nil
 }
 
-// helper to deserialize a math.Int from store.
+// helper to deserialize a math.Int from store. Returns zero when key does not exist.
 // Panics when Unmarshal fails
 func (k Keeper) mustLoadInt(ctx sdk.Context, storeKey storetypes.StoreKey, key []byte) math.Int {
 	store := ctx.KVStore(storeKey)
