@@ -82,6 +82,20 @@ func (k Keeper) SetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress, newAmount 
 	return nil
 }
 
+// getTotalDelegatedAmount returns the total amount delegated by the given consumer contract
+func (k Keeper) getTotalDelegatedAmount(ctx sdk.Context, actor sdk.AccAddress) math.Int {
+	return k.mustLoadInt(ctx, k.storeKey, types.BuildTotalDelegatedAmountKey(actor))
+}
+
+func (k Keeper) setTotalDelegatedAmount(ctx sdk.Context, actor sdk.AccAddress, newAmount math.Int) {
+	store := ctx.KVStore(k.storeKey)
+	bz, err := newAmount.Marshal()
+	if err != nil { // always nil
+		panic(err)
+	}
+	store.Set(types.BuildTotalDelegatedAmountKey(actor), bz)
+}
+
 // helper to deserialize a math.Int from store. Returns zero when key does not exist.
 // Panics when Unmarshal fails
 func (k Keeper) mustLoadInt(ctx sdk.Context, storeKey storetypes.StoreKey, key []byte) math.Int {

@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/x/auth"
+
 	dbm "github.com/cometbft/cometbft-db"
 	"github.com/cometbft/cometbft/libs/log"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
@@ -44,6 +46,7 @@ type encodingConfig struct {
 }
 
 var moduleBasics = module.NewBasicManager(
+	auth.AppModuleBasic{},
 	bank.AppModuleBasic{},
 	staking.AppModuleBasic{},
 	mint.AppModuleBasic{},
@@ -87,7 +90,7 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)
 	keys := sdk.NewKVStoreKeys(
-		banktypes.StoreKey, stakingtypes.StoreKey, types.StoreKey,
+		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey, types.StoreKey,
 	)
 	for _, v := range keys {
 		ms.MountStoreWithDB(v, storetypes.StoreTypeIAVL, db)
@@ -103,14 +106,16 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 		stakingtypes.BondedPoolName:    {authtypes.Burner, authtypes.Staking},
 		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
 		govtypes.ModuleName:            {authtypes.Burner},
+		types.ModuleName:               {authtypes.Minter, authtypes.Burner},
 	}
+	authority := authtypes.NewModuleAddress(govtypes.ModuleName).String()
 	accountKeeper := authkeeper.NewAccountKeeper(
 		appCodec,
 		keys[authtypes.StoreKey],   // target store
 		authtypes.ProtoBaseAccount, // prototype
 		maccPerms,
 		sdk.Bech32MainPrefix,
-		authtypes.NewModuleAddress(authtypes.ModuleName).String(),
+		authority,
 	)
 	blockedAddrs := make(map[string]bool)
 	for acc := range maccPerms {
@@ -121,7 +126,6 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 		Time:   time.Date(2020, time.April, 22, 12, 0, 0, 0, time.UTC),
 	}, false, log.NewNopLogger())
 
-	authority := authtypes.NewModuleAddress(govtypes.ModuleName).String()
 	bankKeeper := bankkeeper.NewBaseKeeper(
 		appCodec,
 		keys[banktypes.StoreKey],

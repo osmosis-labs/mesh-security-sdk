@@ -3,6 +3,8 @@ package e2e
 import (
 	"testing"
 
+	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
+
 	"github.com/CosmWasm/wasmd/x/wasm"
 	"github.com/CosmWasm/wasmd/x/wasm/ibctesting"
 	"github.com/cometbft/cometbft/types"
@@ -16,10 +18,13 @@ import (
 )
 
 // NewIBCCoordinator initializes Coordinator with N meshd TestChain instances
-func NewIBCCoordinator(t *testing.T, n int) *ibctesting.Coordinator {
-	return ibctesting.NewCoordinatorX(t, n, func(t *testing.T, valSet *types.ValidatorSet, genAccs []authtypes.GenesisAccount, chainID string, opts []wasm.Option, balances ...banktypes.Balance) ibctesting.ChainApp {
-		return app.SetupWithGenesisValSet(t, valSet, genAccs, chainID, opts, balances...)
-	})
+func NewIBCCoordinator(t *testing.T, n int, opts ...[]wasmkeeper.Option) *ibctesting.Coordinator {
+	return ibctesting.NewCoordinatorX(t, n,
+		func(t *testing.T, valSet *types.ValidatorSet, genAccs []authtypes.GenesisAccount, chainID string, opts []wasm.Option, balances ...banktypes.Balance) ibctesting.ChainApp {
+			return app.SetupWithGenesisValSet(t, valSet, genAccs, chainID, opts, balances...)
+		},
+		opts...,
+	)
 }
 
 func submitGovProposal(t *testing.T, chain *ibctesting.TestChain, msgs ...sdk.Msg) uint64 {
