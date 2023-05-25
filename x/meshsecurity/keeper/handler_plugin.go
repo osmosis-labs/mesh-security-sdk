@@ -33,16 +33,22 @@ type CustomMsgHandler struct {
 
 // NewDefaultCustomMsgHandler constructor to set up the CustomMsgHandler with default max cap authorization
 func NewDefaultCustomMsgHandler(k *Keeper) *CustomMsgHandler {
-	hasMaxCapAuthZ := AuthSourceFn(func(ctx sdk.Context, contractAddr sdk.AccAddress) bool {
-		return k.HasMaxCapLimit(ctx, contractAddr)
-	})
-	return &CustomMsgHandler{k: k, auth: hasMaxCapAuthZ}
+	return &CustomMsgHandler{k: k, auth: defaultMaxCapAuthorizator(k)}
 }
 
 // NewCustomMsgHandler constructor to set up CustomMsgHandler with an individual auth source.
 // This is an extension point for non default contract authorization logic.
 func NewCustomMsgHandler(k msKeeper, auth AuthSource) *CustomMsgHandler {
 	return &CustomMsgHandler{k: k, auth: auth}
+}
+
+// default authorization logic that ensures any max cap limit was set. It does not take the amount into account
+// as contracts with a limit 0 tokens may need to instant undelegate or run other operations.
+// Safety mechanisms for these operations need to be placed on the implementation side.
+func defaultMaxCapAuthorizator(k *Keeper) AuthSourceFn {
+	return func(ctx sdk.Context, contractAddr sdk.AccAddress) bool {
+		return k.HasMaxCapLimit(ctx, contractAddr)
+	}
 }
 
 // DispatchMsg handle contract message of type Custom in the mesh-security namespace

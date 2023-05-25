@@ -223,6 +223,7 @@ var (
 		transfer.AppModuleBasic{},
 		ica.AppModuleBasic{},
 		ibcfee.AppModuleBasic{},
+		meshsecurity.AppModuleBasic{},
 	)
 
 	// module account permissions

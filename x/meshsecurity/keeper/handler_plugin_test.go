@@ -10,7 +10,6 @@ import (
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	"github.com/cometbft/cometbft/libs/rand"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/address"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -24,8 +23,8 @@ func TestCustomMeshSecDispatchMsg(t *testing.T) {
 		panicAuthZ = AuthSourceFn(func(_ sdk.Context, _ sdk.AccAddress) bool { panic("not supposed to be called") })
 	)
 	var (
-		myContractAddr  = sdk.AccAddress(rand.Bytes(wasmtypes.ContractAddrLen))
-		myValidatorAddr = sdk.ValAddress(rand.Bytes(address.Len))
+		myContractAddr  = sdk.AccAddress(rand.Bytes(32))
+		myValidatorAddr = sdk.ValAddress(rand.Bytes(20))
 		myAmount        = sdk.NewInt64Coin("ALX", 1234)
 		myErr           = errors.New("testing")
 	)
