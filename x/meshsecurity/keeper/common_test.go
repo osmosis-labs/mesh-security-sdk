@@ -4,8 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/x/auth"
-
+	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	dbm "github.com/cometbft/cometbft-db"
 	"github.com/cometbft/cometbft/libs/log"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
@@ -17,6 +16,7 @@ import (
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -84,6 +84,8 @@ type TestKeepers struct {
 	StoreKey       *storetypes.KVStoreKey
 	EncodingConfig encodingConfig
 	MeshKeeper     *Keeper
+	AccountKeeper  authkeeper.AccountKeeper
+	Faucet         *wasmkeeper.TestFaucet
 }
 
 func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
@@ -151,11 +153,14 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 		stakingKeeper,
 		authority,
 	)
+	faucet := wasmkeeper.NewTestFaucet(t, ctx, bankKeeper, minttypes.ModuleName, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1_000_000_000_000))
 	return ctx, TestKeepers{
+		AccountKeeper:  accountKeeper,
 		StakingKeeper:  stakingKeeper,
 		BankKeeper:     bankKeeper,
 		StoreKey:       keys[types.StoreKey],
 		EncodingConfig: encConfig,
 		MeshKeeper:     msKeeper,
+		Faucet:         faucet,
 	}
 }

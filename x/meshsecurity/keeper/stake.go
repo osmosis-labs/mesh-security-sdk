@@ -59,12 +59,47 @@ func (k Keeper) Delegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.Val
 	// and update our records
 	k.setTotalDelegatedAmount(cacheCtx, actor, newTotalDelegatedAmount)
 	done()
-
-	// TODO: emit events?
-	// TODO: add to telemetry?
 	return newShares, err
 }
 
 func (k Keeper) Undelegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Coin) error {
-	panic("not implemented, yet")
+	if amt.Amount.IsZero() || amt.Amount.IsNegative() {
+		return errors.ErrInvalidRequest.Wrap("amount")
+	}
+
+	// Ensure staking constraints
+	bondDenom := k.staking.BondDenom(pCtx)
+	if amt.Denom != bondDenom {
+		return errors.ErrInvalidRequest.Wrapf("invalid coin denomination: got %s, expected %s", amt.Denom, bondDenom)
+	}
+
+	cacheCtx, done := pCtx.CacheContext() // work in a cached store (safety net?)
+	shares, err := k.staking.ValidateUnbondAmount(cacheCtx, actor, valAddr, amt.Amount)
+	if err == stakingtypes.ErrNoDelegation {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	undelegatedCoins, err := k.staking.InstantUndelegate(cacheCtx, actor, valAddr, shares)
+	if err != nil {
+		return err
+	}
+	err = k.bank.SendCoinsFromAccountToModule(cacheCtx, actor, types.ModuleName, undelegatedCoins)
+	if err != nil {
+		return err
+	}
+
+	err = k.bank.BurnCoins(cacheCtx, types.ModuleName, undelegatedCoins)
+	if err != nil {
+		return err
+	}
+
+	unbondedAmount := undelegatedCoins.AmountOf(bondDenom)
+	k.bank.AddSupplyOffset(cacheCtx, bondDenom, unbondedAmount)
+	newDelegatedAmt := k.getTotalDelegatedAmount(cacheCtx, actor).Sub(unbondedAmount)
+	k.setTotalDelegatedAmount(cacheCtx, actor, newDelegatedAmt)
+
+	done()
+	return nil
 }

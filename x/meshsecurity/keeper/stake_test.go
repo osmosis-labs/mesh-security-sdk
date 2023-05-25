@@ -33,35 +33,57 @@ func TestDelegateVirtualStake(t *testing.T) {
 	startSupply := totalBondTokenSupply(pCtx)
 	specs := map[string]struct {
 		limit      sdk.Coin
+		usedLimit  math.Int
 		delegation sdk.Coin
 		valAddr    sdk.ValAddress
 		expErr     bool
+		expNewUsed math.Int
 	}{
-		"all good": {
+		"all good - full limit": {
 			limit:      sdk.NewInt64Coin(sdk.DefaultBondDenom, 10),
+			usedLimit:  math.ZeroInt(),
 			delegation: sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(10)),
 			valAddr:    myValAddr,
+			expNewUsed: math.NewInt(10),
 		},
-		"exceed limit": {
+		"all good - used before": {
+			limit:      sdk.NewInt64Coin(sdk.DefaultBondDenom, 2),
+			usedLimit:  math.OneInt(),
+			delegation: sdk.NewCoin(sdk.DefaultBondDenom, math.OneInt()),
+			valAddr:    myValAddr,
+			expNewUsed: math.NewInt(2),
+		},
+		"exceed limit - nothing used before": {
 			limit:      sdk.NewInt64Coin(sdk.DefaultBondDenom, 1),
+			usedLimit:  math.ZeroInt(),
+			delegation: sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(2)),
+			valAddr:    myValAddr,
+			expErr:     true,
+		},
+		"exceed limit - used before": {
+			limit:      sdk.NewInt64Coin(sdk.DefaultBondDenom, 2),
+			usedLimit:  math.OneInt(),
 			delegation: sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(2)),
 			valAddr:    myValAddr,
 			expErr:     true,
 		},
 		"invalid amount": {
 			limit:      sdk.NewInt64Coin(sdk.DefaultBondDenom, 10),
+			usedLimit:  math.ZeroInt(),
 			delegation: sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: math.NewInt(-1)},
 			valAddr:    myValAddr,
 			expErr:     true,
 		},
 		"non staking denom rejected": {
 			limit:      sdk.NewInt64Coin(sdk.DefaultBondDenom, 10),
+			usedLimit:  math.ZeroInt(),
 			delegation: sdk.NewCoin("ALX", math.OneInt()),
 			valAddr:    myValAddr,
 			expErr:     true,
 		},
 		"unknown validator": {
 			limit:      sdk.NewInt64Coin(sdk.DefaultBondDenom, 10),
+			usedLimit:  math.ZeroInt(),
 			delegation: sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(10)),
 			valAddr:    rand.Bytes(20),
 			expErr:     true,
@@ -73,27 +95,91 @@ func TestDelegateVirtualStake(t *testing.T) {
 			captBankKeeper := NewCaptureOffsetBankKeeper(keepers.BankKeeper)
 			k.bank = captBankKeeper
 			require.NoError(t, k.SetMaxCapLimit(ctx, myContractAddr, spec.limit))
-
-			expSupplyInc := spec.delegation
+			k.setTotalDelegatedAmount(ctx, myContractAddr, spec.usedLimit)
+			expSupplyDiff := spec.delegation
 
 			// when
 			gotShares, gotErr := k.Delegate(ctx, myContractAddr, spec.valAddr, spec.delegation)
 			// then
 			if spec.expErr {
 				require.Error(t, gotErr)
-				expSupplyInc = sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroInt())
+				expSupplyDiff = sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroInt())
 			} else {
 				require.NoError(t, gotErr)
 				require.False(t, gotShares.IsZero())
+				// and usage updated
+				assert.Equal(t, spec.expNewUsed, k.getTotalDelegatedAmount(ctx, myContractAddr))
 			}
 			// and delegation was persisted
 			_, ok := keepers.StakingKeeper.GetDelegation(ctx, myContractAddr, myValAddr)
 			require.Equal(t, !spec.expErr, ok)
 
-			// and supply increased
 			currentSupply := totalBondTokenSupply(ctx)
-			assert.Equal(t, expSupplyInc.String(), currentSupply.Sub(startSupply).String())
-			assert.Equal(t, expSupplyInc.Amount.Neg().String(), captBankKeeper.Offset[sdk.DefaultBondDenom].String())
+			// total supply increased
+			assert.Equal(t, expSupplyDiff.String(), currentSupply.Sub(startSupply).String())
+			// and supply offset decreased (negative)
+			assert.Equal(t, expSupplyDiff.Amount.Neg().String(), captBankKeeper.Offset[sdk.DefaultBondDenom].String())
+		})
+	}
+}
+
+func TestInstantUndelegateVirtualStake(t *testing.T) {
+	pCtx, keepers := CreateDefaultTestInput(t)
+	k := keepers.MeshKeeper
+
+	myContractAddr := sdk.AccAddress(rand.Bytes(32))
+	vAddrs := addValidators(t, pCtx, keepers.StakingKeeper)
+	myValAddr := vAddrs[0]
+	totalBondTokenSupply := func(ctx sdk.Context) sdk.Coin {
+		rsp, err := keepers.BankKeeper.SupplyOf(sdk.WrapSDKContext(ctx), &banktypes.QuerySupplyOfRequest{Denom: sdk.DefaultBondDenom})
+		require.NoError(t, err)
+		return rsp.Amount
+	}
+	initialDelegation := sdk.NewInt64Coin(sdk.DefaultBondDenom, 1_000_000_000)
+	require.NoError(t, k.SetMaxCapLimit(pCtx, myContractAddr, initialDelegation))
+	_, err := k.Delegate(pCtx, myContractAddr, myValAddr, initialDelegation)
+	require.NoError(t, err)
+
+	startSupply := totalBondTokenSupply(pCtx)
+	specs := map[string]struct {
+		undelegation sdk.Coin
+		valAddr      sdk.ValAddress
+		expErr       bool
+		expNewUsed   math.Int
+	}{
+		"all good": {
+			undelegation: sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(100_000_000)),
+			valAddr:      myValAddr,
+			expNewUsed:   math.NewInt(900_000_000),
+		},
+		// todo: add more scenarios
+	}
+	for name, spec := range specs {
+		t.Run(name, func(t *testing.T) {
+			ctx, _ := pCtx.CacheContext()
+			captBankKeeper := NewCaptureOffsetBankKeeper(keepers.BankKeeper)
+			k.bank = captBankKeeper
+			expSupplyDiff := spec.undelegation.Amount.Neg()
+
+			// when
+			gotErr := k.Undelegate(ctx, myContractAddr, spec.valAddr, spec.undelegation)
+			// then
+			if spec.expErr {
+				require.Error(t, gotErr)
+				return
+			}
+			require.NoError(t, gotErr)
+			// and usage updated
+			assert.Equal(t, spec.expNewUsed, k.getTotalDelegatedAmount(ctx, myContractAddr))
+			// and delegation was persisted
+			//_, ok := keepers.StakingKeeper.GetDelegation(ctx, myContractAddr, myValAddr)
+			//require.Equal(t, !spec.expErr, ok)
+
+			currentSupply := totalBondTokenSupply(ctx)
+			// total supply decreased
+			assert.Equal(t, expSupplyDiff.String(), currentSupply.Amount.Sub(startSupply.Amount).String())
+			// and supply offset increased (negative)
+			assert.Equal(t, expSupplyDiff.Neg().String(), captBankKeeper.Offset[sdk.DefaultBondDenom].String())
 		})
 	}
 }
