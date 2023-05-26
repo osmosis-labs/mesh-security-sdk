@@ -82,9 +82,14 @@ func (k Keeper) SetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress, newAmount 
 	return nil
 }
 
-// getTotalDelegatedAmount returns the total amount delegated by the given consumer contract
+// getTotalDelegatedAmount returns the total amount delegated by the given consumer contract.
+// This amount is never negative.
 func (k Keeper) getTotalDelegatedAmount(ctx sdk.Context, actor sdk.AccAddress) math.Int {
-	return k.mustLoadInt(ctx, k.storeKey, types.BuildTotalDelegatedAmountKey(actor))
+	v := k.mustLoadInt(ctx, k.storeKey, types.BuildTotalDelegatedAmountKey(actor))
+	if v.IsNegative() {
+		return math.ZeroInt()
+	}
+	return v
 }
 
 func (k Keeper) setTotalDelegatedAmount(ctx sdk.Context, actor sdk.AccAddress, newAmount math.Int) {
