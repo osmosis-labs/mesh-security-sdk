@@ -46,7 +46,7 @@ func TestCustomMeshSecDispatchMsg(t *testing.T) {
 			src:  wasmvmtypes.CosmosMsg{Custom: validBondMsg},
 			auth: allAuthZ,
 			setup: func(t *testing.T) (msKeeper, func()) {
-				fn, asserts := captureCall(t, myContractAddr, myValidatorAddr, myAmount)
+				fn, asserts := captureDelegateCall(t, myContractAddr, myValidatorAddr, myAmount, sdk.OneDec())
 				return &msKeeperMock{DelegateFn: fn}, asserts
 			},
 		},
@@ -54,8 +54,8 @@ func TestCustomMeshSecDispatchMsg(t *testing.T) {
 			src:  wasmvmtypes.CosmosMsg{Custom: validBondMsg},
 			auth: allAuthZ,
 			setup: func(t *testing.T) (msKeeper, func()) {
-				m := msKeeperMock{DelegateFn: func(_ sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) error {
-					return myErr
+				m := msKeeperMock{DelegateFn: func(_ sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) (sdk.Dec, error) {
+					return sdk.ZeroDec(), myErr
 				}}
 				return &m, t.FailNow
 			},
@@ -138,6 +138,13 @@ func TestCustomMeshSecDispatchMsg(t *testing.T) {
 	}
 }
 
+func captureDelegateCall(t *testing.T, myContractAddr sdk.AccAddress, myValidatorAddr sdk.ValAddress, expCoin sdk.Coin, retShare sdk.Dec) (func(_ sdk.Context, actor sdk.AccAddress, val sdk.ValAddress, coin sdk.Coin) (sdk.Dec, error), func()) {
+	fn, asserts := captureCall(t, myContractAddr, myValidatorAddr, expCoin)
+	return func(ctx sdk.Context, actor sdk.AccAddress, val sdk.ValAddress, coin sdk.Coin) (sdk.Dec, error) {
+		return retShare, fn(ctx, actor, val, coin)
+	}, asserts
+}
+
 func captureCall(t *testing.T, myContractAddr sdk.AccAddress, myValidatorAddr sdk.ValAddress, expCoin sdk.Coin) (func(_ sdk.Context, actor sdk.AccAddress, val sdk.ValAddress, coin sdk.Coin) error, func()) {
 	var (
 		captureVal     sdk.ValAddress
@@ -159,11 +166,11 @@ func captureCall(t *testing.T, myContractAddr sdk.AccAddress, myValidatorAddr sd
 var _ msKeeper = msKeeperMock{}
 
 type msKeeperMock struct {
-	DelegateFn   func(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) error
+	DelegateFn   func(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) (sdk.Dec, error)
 	UndelegateFn func(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) error
 }
 
-func (m msKeeperMock) Delegate(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) error {
+func (m msKeeperMock) Delegate(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) (sdk.Dec, error) {
 	if m.DelegateFn == nil {
 		panic("not expected to be called")
 	}

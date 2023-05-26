@@ -25,5 +25,10 @@ var (
 
 // BuildMaxCapLimitKey build max cap limit store key
 func BuildMaxCapLimitKey(contractAddr sdk.AccAddress) []byte {
+	return append(MaxCapLimitKeyPrefix, contractAddr.Bytes()...)
+}
+
+// BuildTotalDelegatedAmountKey build delegated amount store key for given contract
+func BuildTotalDelegatedAmountKey(contractAddr sdk.AccAddress) []byte {
 	return append(TotalDelegatedAmountKeyPrefix, contractAddr.Bytes()...)
 }

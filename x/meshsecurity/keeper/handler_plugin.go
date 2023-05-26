@@ -22,7 +22,7 @@ type AuthSource interface {
 
 // abstract keeper
 type msKeeper interface {
-	Delegate(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) error
+	Delegate(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) (sdk.Dec, error)
 	Undelegate(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) error
 }
 
@@ -87,7 +87,7 @@ func (h CustomMsgHandler) handleBondMsg(ctx sdk.Context, actor sdk.AccAddress, b
 	if err != nil {
 		return nil, nil, err
 	}
-	err = h.k.Delegate(ctx, actor, valAddr, coin)
+	_, err = h.k.Delegate(ctx, actor, valAddr, coin)
 	if err != nil {
 		return nil, nil, err
 	}
