@@ -8,8 +8,9 @@ import (
 	types "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
-// Delegate delegate mints new "virtual" bonding tokens and delegates them to the given validator.
+// Delegate mints new "virtual" bonding tokens and delegates them to the given validator.
 // The amount minted is added to the SupplyOffset, when supported.
+// Authorization of the caller should be handled before entering this method.
 func (k Keeper) Delegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Coin) (sdk.Dec, error) {
 	if amt.Amount.IsZero() || amt.Amount.IsNegative() {
 		return sdk.ZeroDec(), errors.ErrInvalidRequest.Wrap("amount")
@@ -29,7 +30,7 @@ func (k Keeper) Delegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.Val
 	newTotalDelegatedAmount := k.getTotalDelegatedAmount(pCtx, actor).Add(amt.Amount)
 	max := k.GetMaxCapLimit(pCtx, actor).Amount
 	if newTotalDelegatedAmount.GT(max) {
-		return sdk.ZeroDec(), types.ErrMaxCapExceeded
+		return sdk.ZeroDec(), types.ErrMaxCapExceeded.Wrapf("%s exceeds %s", newTotalDelegatedAmount, max)
 	}
 
 	cacheCtx, done := pCtx.CacheContext() // work in a cached store as osmosis (safety net?)
