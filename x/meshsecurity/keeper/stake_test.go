@@ -23,7 +23,7 @@ func TestDelegateVirtualStake(t *testing.T) {
 	k := keepers.MeshKeeper
 
 	myContractAddr := sdk.AccAddress(rand.Bytes(32))
-	vAddrs := addValidators(t, pCtx, keepers.StakingKeeper)
+	vAddrs := add3Validators(t, pCtx, keepers.StakingKeeper)
 	myValAddr := vAddrs[0]
 	totalBondTokenSupply := func(ctx sdk.Context) sdk.Coin {
 		rsp, err := keepers.BankKeeper.SupplyOf(sdk.WrapSDKContext(ctx), &banktypes.QuerySupplyOfRequest{Denom: sdk.DefaultBondDenom})
@@ -71,6 +71,13 @@ func TestDelegateVirtualStake(t *testing.T) {
 			limit:      sdk.NewInt64Coin(sdk.DefaultBondDenom, 10),
 			usedLimit:  math.ZeroInt(),
 			delegation: sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: math.NewInt(-1)},
+			valAddr:    myValAddr,
+			expErr:     true,
+		},
+		"nil amount": {
+			limit:      sdk.NewInt64Coin(sdk.DefaultBondDenom, 10),
+			usedLimit:  math.ZeroInt(),
+			delegation: sdk.Coin{Denom: sdk.DefaultBondDenom},
 			valAddr:    myValAddr,
 			expErr:     true,
 		},
@@ -128,7 +135,7 @@ func TestInstantUndelegateVirtualStake(t *testing.T) {
 	k := keepers.MeshKeeper
 
 	myContractAddr := sdk.AccAddress(rand.Bytes(32))
-	vAddrs := addValidators(t, pCtx, keepers.StakingKeeper)
+	vAddrs := add3Validators(t, pCtx, keepers.StakingKeeper)
 	myValAddr := vAddrs[0]
 	totalBondTokenSupply := func(ctx sdk.Context) sdk.Coin {
 		rsp, err := keepers.BankKeeper.SupplyOf(sdk.WrapSDKContext(ctx), &banktypes.QuerySupplyOfRequest{Denom: sdk.DefaultBondDenom})
@@ -136,7 +143,8 @@ func TestInstantUndelegateVirtualStake(t *testing.T) {
 		return rsp.Amount
 	}
 	initialDelegation := sdk.NewInt64Coin(sdk.DefaultBondDenom, 1_000_000_000)
-	require.NoError(t, k.SetMaxCapLimit(pCtx, myContractAddr, initialDelegation))
+	totalCapLimit := initialDelegation.AddAmount(math.OneInt())
+	require.NoError(t, k.SetMaxCapLimit(pCtx, myContractAddr, totalCapLimit))
 	_, err := k.Delegate(pCtx, myContractAddr, myValAddr, initialDelegation)
 	require.NoError(t, err)
 
@@ -145,21 +153,66 @@ func TestInstantUndelegateVirtualStake(t *testing.T) {
 		undelegation sdk.Coin
 		valAddr      sdk.ValAddress
 		expErr       bool
+		expNoop      bool
 		expNewUsed   math.Int
 	}{
-		"all good": {
+		"partial undelegate": {
 			undelegation: sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(100_000_000)),
 			valAddr:      myValAddr,
 			expNewUsed:   math.NewInt(900_000_000),
 		},
-		// todo: add more scenarios
+		"full undelegate": {
+			undelegation: initialDelegation,
+			valAddr:      myValAddr,
+			expNewUsed:   math.ZeroInt(),
+		},
+		"non delegated validator": {
+			undelegation: sdk.NewCoin(sdk.DefaultBondDenom, math.OneInt()),
+			valAddr:      vAddrs[1],
+			expNewUsed:   initialDelegation.Amount,
+			expNoop:      true,
+		},
+		"exceed total delegate": {
+			undelegation: totalCapLimit.AddAmount(math.OneInt()),
+			valAddr:      myValAddr,
+			expErr:       true,
+		},
+		"exceed staked amount": {
+			undelegation: initialDelegation.AddAmount(math.OneInt()),
+			valAddr:      myValAddr,
+			expErr:       true,
+		},
+		"zero amount undelegate": {
+			undelegation: sdk.NewCoin(sdk.DefaultBondDenom, math.ZeroInt()),
+			valAddr:      myValAddr,
+			expErr:       true,
+		},
+		"nil Amount": {
+			undelegation: sdk.Coin{Denom: sdk.DefaultBondDenom},
+			valAddr:      myValAddr,
+			expErr:       true,
+		},
+		"negative Amount": {
+			undelegation: sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: math.NewInt(-1)},
+			valAddr:      myValAddr,
+			expErr:       true,
+		},
+		"non staking denom rejected": {
+			undelegation: sdk.NewCoin("ALX", math.OneInt()),
+			valAddr:      myValAddr,
+			expErr:       true,
+		},
+		"unknown validator": {
+			undelegation: sdk.NewCoin(sdk.DefaultBondDenom, math.OneInt()),
+			valAddr:      rand.Bytes(20),
+			expErr:       true,
+		},
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
 			ctx, _ := pCtx.CacheContext()
 			captBankKeeper := NewCaptureOffsetBankKeeper(keepers.BankKeeper)
 			k.bank = captBankKeeper
-			expSupplyDiff := spec.undelegation.Amount.Neg()
 
 			// when
 			gotErr := k.Undelegate(ctx, myContractAddr, spec.valAddr, spec.undelegation)
@@ -170,12 +223,16 @@ func TestInstantUndelegateVirtualStake(t *testing.T) {
 			}
 			require.NoError(t, gotErr)
 			// and usage updated
-			assert.Equal(t, spec.expNewUsed, k.getTotalDelegatedAmount(ctx, myContractAddr))
+			assert.Equal(t, spec.expNewUsed.String(), k.getTotalDelegatedAmount(ctx, myContractAddr).String())
 			// and delegation was persisted
 			//_, ok := keepers.StakingKeeper.GetDelegation(ctx, myContractAddr, myValAddr)
 			//require.Equal(t, !spec.expErr, ok)
 
 			currentSupply := totalBondTokenSupply(ctx)
+			expSupplyDiff := spec.undelegation.Amount.Neg()
+			if spec.expNoop {
+				expSupplyDiff = math.ZeroInt()
+			}
 			// total supply decreased
 			assert.Equal(t, expSupplyDiff.String(), currentSupply.Amount.Sub(startSupply.Amount).String())
 			// and supply offset increased (negative)
@@ -205,7 +262,7 @@ func (c *CaptureOffsetBankKeeper) AddSupplyOffset(_ sdk.Context, denom string, o
 	c.Offset[denom] = old.Add(offsetAmount)
 }
 
-func addValidators(t *testing.T, pCtx sdk.Context, stakingKeeper *stakingkeeper.Keeper) []sdk.ValAddress {
+func add3Validators(t *testing.T, pCtx sdk.Context, stakingKeeper *stakingkeeper.Keeper) []sdk.ValAddress {
 	accNum := 3
 	valAddrs := simtestutil.ConvertAddrsToValAddrs(simtestutil.CreateIncrementalAccounts(accNum))
 	PKs := simtestutil.CreateTestPubKeys(accNum)

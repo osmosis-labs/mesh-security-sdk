@@ -13,7 +13,7 @@ import (
 // The amount minted is removed from the SupplyOffset (so that it will become negative), when supported.
 // Authorization of the actor should be handled before entering this method.
 func (k Keeper) Delegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Coin) (sdk.Dec, error) {
-	if amt.Amount.IsZero() || amt.Amount.IsNegative() {
+	if amt.Amount.IsNil() || amt.Amount.IsZero() || amt.Amount.IsNegative() {
 		return sdk.ZeroDec(), errors.ErrInvalidRequest.Wrap("amount")
 	}
 
@@ -67,7 +67,7 @@ func (k Keeper) Delegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.Val
 // The amount burned is added to the (negative) SupplyOffset, when supported.
 // Authorization of the actor should be handled before entering this method.
 func (k Keeper) Undelegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Coin) error {
-	if amt.Amount.IsZero() || amt.Amount.IsNegative() {
+	if amt.Amount.IsNil() || amt.Amount.IsZero() || amt.Amount.IsNegative() {
 		return errors.ErrInvalidRequest.Wrap("amount")
 	}
 
