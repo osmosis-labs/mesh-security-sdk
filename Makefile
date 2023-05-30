@@ -78,7 +78,6 @@ proto-check-breaking:
 	@$(DOCKER_BUF) breaking --against $(HTTPS_GIT)#branch=main
 
 
-.PHONY: all install install-debug \
-	go-mod-cache draw-deps clean build  \
-	test test-all test-build test-cover test-unit test-race \
+.PHONY: all install \
+	build test test-all \
 	proto-all proto-format proto-swagger-gen proto-lint proto-check-breaking

@@ -18,13 +18,13 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
-	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.15.0 // indirect
 	github.com/rakyll/statik v0.1.7 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/testify v1.8.2 // indirect
+	github.com/stretchr/testify v1.8.2
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	google.golang.org/genproto v0.0.0-20230216225411-c8e22ba71e44
 	google.golang.org/grpc v1.54.0
@@ -34,6 +34,8 @@ require (
 require (
 	cosmossdk.io/errors v1.0.0-beta.7
 	cosmossdk.io/math v1.0.1
+	github.com/cometbft/cometbft v0.37.1
+	github.com/cometbft/cometbft-db v0.7.0
 )
 
 require (
@@ -61,8 +63,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/coinbase/rosetta-sdk-go/types v1.0.0 // indirect
-	github.com/cometbft/cometbft v0.37.1 // indirect
-	github.com/cometbft/cometbft-db v0.7.0 // indirect
 	github.com/confio/ics23/go v0.9.0 // indirect
 	github.com/cosmos/btcutil v1.0.5 // indirect
 	github.com/cosmos/go-bip39 v1.0.0 // indirect
