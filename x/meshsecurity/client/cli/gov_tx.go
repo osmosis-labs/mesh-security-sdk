@@ -45,10 +45,10 @@ func ProposalSetVirtualStakingMaxCapCmd() *cobra.Command {
 			fmt.Sprintf(`Submit a proposal to set virtual staking maximum cap limit to the given contract.
 
 Example:
-$ %s tx meshsecurity submit-proposal set-virtual-staking-max-cap %s1l94ptufswr6v7qntax4m7nvn3jgf6k4gn2rknq 100stake --title "a title" --summary "a summary" --authority %s1eppn90g4eg7guvyhz0ayph40c3e6uktygdd2nq
-`, version.AppName, bech32Prefix, bech32Prefix)),
+$ %s tx meshsecurity submit-proposal set-virtual-staking-max-cap %s1l94ptufswr6v7qntax4m7nvn3jgf6k4gn2rknq 100stake --title "a title" --summary "a summary" --authority %s
+`, version.AppName, bech32Prefix, DefaultGovAuthority.String())),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, proposalTitle, summary, deposit, err := getProposalInfo(cmd)
+			clientCtx, proposalTitle, summary, metadata, deposit, err := getProposalInfo(cmd)
 			if err != nil {
 				return err
 			}
@@ -66,7 +66,7 @@ $ %s tx meshsecurity submit-proposal set-virtual-staking-max-cap %s1l94ptufswr6v
 				return err
 			}
 
-			proposalMsg, err := v1.NewMsgSubmitProposal([]sdk.Msg{&src}, deposit, clientCtx.GetFromAddress().String(), "", proposalTitle, summary)
+			proposalMsg, err := v1.NewMsgSubmitProposal([]sdk.Msg{&src}, deposit, clientCtx.GetFromAddress().String(), metadata, proposalTitle, summary)
 			if err != nil {
 				return err
 			}
@@ -102,35 +102,41 @@ func addCommonProposalFlags(cmd *cobra.Command) {
 	flags.AddTxFlagsToCmd(cmd)
 	cmd.Flags().String(cli.FlagTitle, "", "Title of proposal")
 	cmd.Flags().String(cli.FlagSummary, "", "Summary of proposal")
+	cmd.Flags().String(cli.FlagMetadata, "", "Metadata of proposal")
 	cmd.Flags().String(cli.FlagDeposit, "", "Deposit of proposal")
 	cmd.Flags().String(flagAuthority, DefaultGovAuthority.String(), "The address of the governance account. Default is the sdk gov module account")
 }
 
-func getProposalInfo(cmd *cobra.Command) (client.Context, string, string, sdk.Coins, error) {
+func getProposalInfo(cmd *cobra.Command) (client.Context, string, string, string, sdk.Coins, error) {
 	clientCtx, err := client.GetClientTxContext(cmd)
 	if err != nil {
-		return client.Context{}, "", "", nil, err
+		return client.Context{}, "", "", "", nil, err
 	}
 
 	proposalTitle, err := cmd.Flags().GetString(cli.FlagTitle)
 	if err != nil {
-		return clientCtx, proposalTitle, "", nil, err
+		return clientCtx, proposalTitle, "", "", nil, err
 	}
 
 	summary, err := cmd.Flags().GetString(cli.FlagSummary)
 	if err != nil {
-		return client.Context{}, proposalTitle, summary, nil, err
+		return client.Context{}, proposalTitle, summary, "", nil, err
+	}
+
+	metadata, err := cmd.Flags().GetString(cli.FlagMetadata)
+	if err != nil {
+		return client.Context{}, proposalTitle, summary, metadata, nil, err
 	}
 
 	depositArg, err := cmd.Flags().GetString(cli.FlagDeposit)
 	if err != nil {
-		return client.Context{}, proposalTitle, summary, nil, err
+		return client.Context{}, proposalTitle, summary, metadata, nil, err
 	}
 
 	deposit, err := sdk.ParseCoinsNormalized(depositArg)
 	if err != nil {
-		return client.Context{}, proposalTitle, summary, deposit, err
+		return client.Context{}, proposalTitle, summary, metadata, deposit, err
 	}
 
-	return clientCtx, proposalTitle, summary, deposit, nil
+	return clientCtx, proposalTitle, summary, metadata, deposit, nil
 }
