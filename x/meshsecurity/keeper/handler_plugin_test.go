@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
+
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
@@ -182,4 +184,59 @@ func (m msKeeperMock) Undelegate(ctx sdk.Context, actor sdk.AccAddress, addr sdk
 		panic("not expected to be called")
 	}
 	return m.UndelegateFn(ctx, actor, addr, coin)
+}
+
+func TestIntegrityHandler(t *testing.T) {
+	myContractAddr := sdk.AccAddress(rand.Bytes(32))
+	specs := map[string]struct {
+		src       wasmvmtypes.CosmosMsg
+		hasMaxCap bool
+		expErr    error
+	}{
+		"staking msg - max cap contract": {
+			src:       wasmvmtypes.CosmosMsg{Staking: &wasmvmtypes.StakingMsg{}},
+			hasMaxCap: true,
+			expErr:    types.ErrUnsupported,
+		},
+		"staking msg - other contract": {
+			src:    wasmvmtypes.CosmosMsg{Staking: &wasmvmtypes.StakingMsg{}},
+			expErr: wasmtypes.ErrUnknownMsg,
+		},
+		"stargate msg - max cap contract": {
+			src:       wasmvmtypes.CosmosMsg{Stargate: &wasmvmtypes.StargateMsg{}},
+			hasMaxCap: true,
+			expErr:    types.ErrUnsupported,
+		},
+		"stargate msg - other contract": {
+			src:    wasmvmtypes.CosmosMsg{Stargate: &wasmvmtypes.StargateMsg{}},
+			expErr: wasmtypes.ErrUnknownMsg,
+		},
+		"custom msg": {
+			src:       wasmvmtypes.CosmosMsg{Custom: []byte(`{}`)},
+			hasMaxCap: true,
+			expErr:    wasmtypes.ErrUnknownMsg,
+		},
+		"other msg": {
+			src:       wasmvmtypes.CosmosMsg{Bank: &wasmvmtypes.BankMsg{}},
+			hasMaxCap: true,
+			expErr:    wasmtypes.ErrUnknownMsg,
+		},
+	}
+	for name, spec := range specs {
+		t.Run(name, func(t *testing.T) {
+			h := NewIntegrityHandler(maxCapSourceFn(func(ctx sdk.Context, actor sdk.AccAddress) bool {
+				return spec.hasMaxCap
+			}))
+			_, _, gotErr := h.DispatchMsg(sdk.Context{}, myContractAddr, "", spec.src)
+			require.ErrorIs(t, gotErr, spec.expErr)
+		})
+	}
+}
+
+var _ maxCapSource = maxCapSourceFn(nil)
+
+type maxCapSourceFn func(ctx sdk.Context, actor sdk.AccAddress) bool
+
+func (m maxCapSourceFn) HasMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) bool {
+	return m(ctx, actor)
 }

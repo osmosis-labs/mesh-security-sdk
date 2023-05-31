@@ -588,6 +588,7 @@ func NewMeshApp(
 
 	meshMessageHandler := wasmkeeper.WithMessageHandlerDecorator(func(nested wasmkeeper.Messenger) wasmkeeper.Messenger {
 		return wasmkeeper.NewMessageHandlerChain(
+			meshseckeeper.NewIntegrityHandler(app.MeshSecKeeper),
 			nested,
 			// append our custom message handler
 			meshseckeeper.NewDefaultCustomMsgHandler(app.MeshSecKeeper),
