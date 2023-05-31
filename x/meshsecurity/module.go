@@ -12,6 +12,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
 
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/client/cli"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/keeper"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
@@ -56,7 +57,7 @@ func (b AppModuleBasic) ValidateGenesis(marshaler codec.JSONCodec, _ client.TxEn
 
 // GetTxCmd returns the root tx command for the mesh-security module.
 func (b AppModuleBasic) GetTxCmd() *cobra.Command {
-	return nil
+	return cli.GetTxCmd()
 }
 
 // GetQueryCmd returns no root query command for the mesh-security module.
