@@ -594,8 +594,9 @@ func NewMeshApp(
 			meshseckeeper.NewDefaultCustomMsgHandler(app.MeshSecKeeper),
 		)
 	})
-	wasmOpts = append(wasmOpts, meshMessageHandler)
-
+	wasmOpts = append(wasmOpts, meshMessageHandler,
+		wasmkeeper.WithQueryHandlerDecorator(meshseckeeper.NewQueryDecorator(app.MeshSecKeeper)),
+	)
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
 	availableCapabilities := strings.Join(AllCapabilities(), ",")

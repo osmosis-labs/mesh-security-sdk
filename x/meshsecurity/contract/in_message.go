@@ -20,11 +20,3 @@ type UnbondMsg struct {
 	Amount    wasmvmtypes.Coin `json:"amount"`
 	Validator string           `json:"validator"`
 }
-
-type CustomQuery struct {
-	VirtualStake *VirtualStakeQuery `json:"virtual_stake,omitempty"`
-}
-
-type VirtualStakeQuery struct {
-	MaxCap *struct{} `json:"max_cap,omitempty"`
-}

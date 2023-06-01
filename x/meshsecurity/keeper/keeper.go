@@ -82,19 +82,24 @@ func (k Keeper) SetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress, newAmount 
 	return nil
 }
 
-// getTotalDelegatedAmount returns the total amount delegated by the given consumer contract.
-// This amount is never negative.
-func (k Keeper) getTotalDelegatedAmount(ctx sdk.Context, actor sdk.AccAddress) math.Int {
+// GetTotalDelegated returns the total amount delegated by the given consumer contract.
+// This amount can be 0 is never negative.
+func (k Keeper) GetTotalDelegated(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
 	v := k.mustLoadInt(ctx, k.storeKey, types.BuildTotalDelegatedAmountKey(actor))
 	if v.IsNegative() {
-		return math.ZeroInt()
+		v = math.ZeroInt()
 	}
-	return v
+	return sdk.NewCoin(k.staking.BondDenom(ctx), v)
 }
 
-func (k Keeper) setTotalDelegatedAmount(ctx sdk.Context, actor sdk.AccAddress, newAmount math.Int) {
+// internal setter. must only be used with bonding token denom or panics
+func (k Keeper) setTotalDelegated(ctx sdk.Context, actor sdk.AccAddress, newAmount sdk.Coin) {
+	if k.staking.BondDenom(ctx) != newAmount.Denom {
+		panic(sdkerrors.ErrInvalidCoins.Wrapf("not a staking denom: %s", newAmount.Denom))
+	}
+
 	store := ctx.KVStore(k.storeKey)
-	bz, err := newAmount.Marshal()
+	bz, err := newAmount.Amount.Marshal()
 	if err != nil { // always nil
 		panic(err)
 	}
