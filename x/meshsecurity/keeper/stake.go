@@ -28,9 +28,9 @@ func (k Keeper) Delegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.Val
 	}
 
 	// Ensure MS constraints:
-	newTotalDelegatedAmount := k.getTotalDelegatedAmount(pCtx, actor).Add(amt.Amount)
-	max := k.GetMaxCapLimit(pCtx, actor).Amount
-	if newTotalDelegatedAmount.GT(max) {
+	newTotalDelegatedAmount := k.GetTotalDelegated(pCtx, actor).Add(amt)
+	max := k.GetMaxCapLimit(pCtx, actor)
+	if max.IsLT(newTotalDelegatedAmount) {
 		return sdk.ZeroDec(), types.ErrMaxCapExceeded.Wrapf("%s exceeds %s", newTotalDelegatedAmount, max)
 	}
 
@@ -58,7 +58,7 @@ func (k Keeper) Delegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.Val
 	)
 
 	// and update our records
-	k.setTotalDelegatedAmount(cacheCtx, actor, newTotalDelegatedAmount)
+	k.setTotalDelegated(cacheCtx, actor, newTotalDelegatedAmount)
 	done()
 	return newShares, err
 }
@@ -78,8 +78,8 @@ func (k Keeper) Undelegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.V
 	}
 
 	cacheCtx, done := pCtx.CacheContext() // work in a cached store (safety net?)
-	totalDelegatedAmount := k.getTotalDelegatedAmount(cacheCtx, actor)
-	if amt.Amount.GT(totalDelegatedAmount) {
+	totalDelegatedAmount := k.GetTotalDelegated(cacheCtx, actor)
+	if totalDelegatedAmount.IsLT(amt) {
 		return errors.ErrInvalidRequest.Wrap("amount exceeds total delegated")
 	}
 	shares, err := k.staking.ValidateUnbondAmount(cacheCtx, actor, valAddr, amt.Amount)
@@ -103,13 +103,13 @@ func (k Keeper) Undelegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.V
 		return err
 	}
 
-	unbondedAmount := undelegatedCoins.AmountOf(bondDenom)
-	k.bank.AddSupplyOffset(cacheCtx, bondDenom, unbondedAmount)
+	unbondedAmount := sdk.NewCoin(bondDenom, undelegatedCoins.AmountOf(bondDenom))
+	k.bank.AddSupplyOffset(cacheCtx, bondDenom, unbondedAmount.Amount)
 	newDelegatedAmt := totalDelegatedAmount.Sub(unbondedAmount)
 	if newDelegatedAmt.IsNegative() {
-		newDelegatedAmt = math.ZeroInt()
+		newDelegatedAmt = sdk.NewCoin(bondDenom, math.ZeroInt())
 	}
-	k.setTotalDelegatedAmount(cacheCtx, actor, newDelegatedAmt)
+	k.setTotalDelegated(cacheCtx, actor, newDelegatedAmt)
 
 	done()
 	return nil

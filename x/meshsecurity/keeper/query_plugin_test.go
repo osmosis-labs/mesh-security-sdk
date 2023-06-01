@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	"testing"
 
 	"cosmossdk.io/math"
@@ -14,20 +15,24 @@ import (
 func TestChainedCustomQuerier(t *testing.T) {
 	myContractAddr := sdk.AccAddress(rand.Bytes(32))
 	specs := map[string]struct {
-		src              wasmvmtypes.QueryRequest
-		keeper           func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
-		expData          []byte
-		expErr           bool
-		expMocNextCalled bool
+		src                wasmvmtypes.QueryRequest
+		mockMaxCapLimit    func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
+		mockTotalDelegated func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
+		expData            []byte
+		expErr             bool
+		expMocNextCalled   bool
 	}{
 		"all good": {
 			src: wasmvmtypes.QueryRequest{
-				Custom: []byte(`{"virtual_stake":{"max_cap":{}}}`),
+				Custom: []byte(fmt.Sprintf(`{"virtual_stake":{"max_cap":{"contract":%q}}}`, myContractAddr.String())),
 			},
-			keeper: func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
+			mockMaxCapLimit: func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
 				return sdk.NewCoin("ALX", math.NewInt(123))
 			},
-			expData: []byte(`{"cap":{"denom":"ALX","amount":"123"}}`),
+			mockTotalDelegated: func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
+				return sdk.NewCoin("ALX", math.NewInt(456))
+			},
+			expData: []byte(`{"cap":{"denom":"ALX","amount":"123"},"delegated":{"denom":"ALX","amount":"456"}}`),
 		},
 		"non custom query": {
 			src: wasmvmtypes.QueryRequest{
@@ -49,7 +54,7 @@ func TestChainedCustomQuerier(t *testing.T) {
 				nextCalled = true
 				return nil, nil
 			})
-			mock := &MockViewKeeper{GetMaxCapLimitFn: spec.keeper}
+			mock := &MockViewKeeper{GetMaxCapLimitFn: spec.mockMaxCapLimit, GetTotalDelegatedFn: spec.mockTotalDelegated}
 			ctx := sdk.Context{}
 			gotData, gotErr := ChainedCustomQuerier(mock, next).HandleQuery(ctx, myContractAddr, spec.src)
 			if spec.expErr {
@@ -66,7 +71,8 @@ func TestChainedCustomQuerier(t *testing.T) {
 var _ viewKeeper = &MockViewKeeper{}
 
 type MockViewKeeper struct {
-	GetMaxCapLimitFn func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
+	GetMaxCapLimitFn    func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
+	GetTotalDelegatedFn func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
 }
 
 func (m MockViewKeeper) GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
@@ -74,4 +80,11 @@ func (m MockViewKeeper) GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sd
 		panic("not expected to be called")
 	}
 	return m.GetMaxCapLimitFn(ctx, actor)
+}
+
+func (m MockViewKeeper) GetTotalDelegated(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
+	if m.GetTotalDelegatedFn == nil {
+		panic("not expected to be called")
+	}
+	return m.GetTotalDelegatedFn(ctx, actor)
 }

@@ -3,6 +3,8 @@ package keeper
 import (
 	"encoding/json"
 
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+
 	errorsmod "cosmossdk.io/errors"
 
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
@@ -15,6 +17,7 @@ import (
 // abstract query keeper
 type viewKeeper interface {
 	GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
+	GetTotalDelegated(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
 }
 
 // NewQueryDecorator constructor to build a chained custom querier.
@@ -44,12 +47,16 @@ func ChainedCustomQuerier(k viewKeeper, next wasmkeeper.WasmVMQueryHandler) wasm
 		if err := json.Unmarshal(request.Custom, &contractQuery); err != nil {
 			return nil, errorsmod.Wrap(err, "mesh-security query")
 		}
-		if contractQuery.VirtualStake == nil {
+		if contractQuery.VirtualStake == nil || contractQuery.VirtualStake.BondStatus == nil {
 			return next.HandleQuery(ctx, caller, request)
 		}
-		maxCapLimit := k.GetMaxCapLimit(ctx, caller)
-		res := contract.MaxCapResponse{
-			MaxCap: wasmkeeper.ConvertSdkCoinToWasmCoin(maxCapLimit),
+		contractAddr, err := sdk.AccAddressFromBech32(contractQuery.VirtualStake.BondStatus.Contract)
+		if err != nil {
+			return nil, sdkerrors.ErrInvalidAddress.Wrap(contractQuery.VirtualStake.BondStatus.Contract)
+		}
+		res := contract.BondStatusResponse{
+			MaxCap:    wasmkeeper.ConvertSdkCoinToWasmCoin(k.GetMaxCapLimit(ctx, contractAddr)),
+			Delegated: wasmkeeper.ConvertSdkCoinToWasmCoin(k.GetTotalDelegated(ctx, contractAddr)),
 		}
 		bz, err := json.Marshal(res)
 		if err != nil {
