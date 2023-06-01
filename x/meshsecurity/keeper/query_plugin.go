@@ -39,6 +39,12 @@ func NewQueryDecorator(k viewKeeper) func(wasmkeeper.WasmVMQueryHandler) wasmkee
 // This CustomQuerier is designed as an extension point. See the NewQueryDecorator impl how to
 // set this up for wasmd.
 func ChainedCustomQuerier(k viewKeeper, next wasmkeeper.WasmVMQueryHandler) wasmkeeper.WasmVMQueryHandler {
+	if k == nil {
+		panic("keeper must not be nil")
+	}
+	if next == nil {
+		panic("next handler must not be nil")
+	}
 	return QueryHandlerFn(func(ctx sdk.Context, caller sdk.AccAddress, request wasmvmtypes.QueryRequest) ([]byte, error) {
 		if request.Custom == nil {
 			return next.HandleQuery(ctx, caller, request)

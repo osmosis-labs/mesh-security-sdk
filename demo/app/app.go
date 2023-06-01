@@ -580,6 +580,17 @@ func NewMeshApp(
 		app.MsgServiceRouter(),
 	)
 
+	// setup mesh-security keeper with vanilla Cosmos-SDK
+	// see also NewKeeperX constructor for integration with Osmosis SDK fork
+	// should be initialized before wasm keeper for custom query/msg handlers
+	app.MeshSecKeeper = meshseckeeper.NewKeeper(
+		app.appCodec,
+		keys[meshsectypes.StoreKey],
+		app.BankKeeper,
+		app.StakingKeeper,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
+
 	wasmDir := filepath.Join(homePath, "wasm")
 	wasmConfig, err := wasm.ReadWasmConfig(appOpts)
 	if err != nil {
@@ -627,16 +638,6 @@ func NewMeshApp(
 	}
 	// Set legacy router for backwards compatibility with gov v1beta1
 	app.GovKeeper.SetLegacyRouter(govRouter)
-
-	// setup mesh-security keeper with vanilla Cosmos-SDK
-	// see also NewKeeperX constructor for integration with Osmosis SDK fork
-	app.MeshSecKeeper = meshseckeeper.NewKeeper(
-		app.appCodec,
-		keys[meshsectypes.StoreKey],
-		app.BankKeeper,
-		app.StakingKeeper,
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
-	)
 
 	// Create Transfer Stack
 	var transferStack porttypes.IBCModule
