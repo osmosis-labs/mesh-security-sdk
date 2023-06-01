@@ -7,7 +7,7 @@ type CustomQuery struct {
 }
 
 type VirtualStakeQuery struct {
-	BondStatus *BondStatusQuery `json:"max_cap,omitempty"`
+	BondStatus *BondStatusQuery `json:"bond_status,omitempty"`
 }
 
 type BondStatusQuery struct {

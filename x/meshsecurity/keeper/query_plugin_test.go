@@ -24,7 +24,7 @@ func TestChainedCustomQuerier(t *testing.T) {
 	}{
 		"all good": {
 			src: wasmvmtypes.QueryRequest{
-				Custom: []byte(fmt.Sprintf(`{"virtual_stake":{"max_cap":{"contract":%q}}}`, myContractAddr.String())),
+				Custom: []byte(fmt.Sprintf(`{"virtual_stake":{"bond_status":{"contract":%q}}}`, myContractAddr.String())),
 			},
 			mockMaxCapLimit: func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
 				return sdk.NewCoin("ALX", math.NewInt(123))
