@@ -239,6 +239,7 @@ var (
 		ibcfeetypes.ModuleName:         nil,
 		icatypes.ModuleName:            nil,
 		wasm.ModuleName:                {authtypes.Burner},
+		meshsectypes.ModuleName:        {authtypes.Minter, authtypes.Burner},
 	}
 )
 

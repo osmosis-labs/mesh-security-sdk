@@ -19,7 +19,6 @@ import (
 )
 
 func TestMVP(t *testing.T) {
-	t.Skip("fails currently as contract is using staking.Delegate messages")
 	// scenario:
 	// given a provider chain P and a consumer chain C
 	// when
@@ -37,6 +36,11 @@ func TestMVP(t *testing.T) {
 	initMsg := []byte(fmt.Sprintf(`{"denom": %q}`, sdk.DefaultBondDenom))
 	ibctesting.TestCoin = sdk.NewCoin(sdk.DefaultBondDenom, math.ZeroInt())
 	stakingContract := InstantiateContract(t, consumerChain, codeID, initMsg)
+
+	// ensure nothing staked
+	valAddr := sdk.ValAddress(consumerChain.Vals.Validators[0].Address)
+	_, found := consumerApp.StakingKeeper.GetDelegation(consumerChain.GetContext(), stakingContract, valAddr)
+	require.False(t, found)
 
 	// add authority to mint/burn virtual tokens gov proposal
 	payloadMsg := &types.MsgSetVirtualStakingMaxCap{
@@ -56,26 +60,48 @@ func TestMVP(t *testing.T) {
 	assert.Equal(t, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1_000_000_000), rsp.Limit)
 
 	// when staking contract is instructed to bond tokens
-	valAddr := sdk.ValAddress(consumerChain.Vals.Validators[0].Address).String()
-	execMsg := fmt.Sprintf(`{"bond":{"validator":"%s", "amount":{"denom":"%s", "amount":"10000000"}}}`, valAddr, sdk.DefaultBondDenom)
-	_, err = consumerChain.SendMsgs(&wasmtypes.MsgExecuteContract{
-		Sender:   consumerChain.SenderAccount.GetAddress().String(),
-		Contract: stakingContract.String(),
-		Msg:      []byte(execMsg),
-	})
-	require.NoError(t, err)
+	doExec := func(payload string) {
+		_, err = consumerChain.SendMsgs(&wasmtypes.MsgExecuteContract{
+			Sender:   consumerChain.SenderAccount.GetAddress().String(),
+			Contract: stakingContract.String(),
+			Msg:      []byte(payload),
+		})
+		require.NoError(t, err)
+	}
+	doExec(fmt.Sprintf(`{"bond":{"validator":"%s", "amount":{"denom":"%s", "amount":"10000000"}}}`, valAddr.String(), sdk.DefaultBondDenom))
+
 	// then delegated amount is not updated before the epoch
-	usedAmount := consumerApp.MeshSecKeeper.GetTotalDelegated(consumerChain.GetContext(), stakingContract)
-	assert.Equal(t, sdk.NewCoin(sdk.DefaultBondDenom, math.ZeroInt()), usedAmount)
+
+	assertTotalDelegated := func(expTotalDelegated math.Int) {
+		usedAmount := consumerApp.MeshSecKeeper.GetTotalDelegated(consumerChain.GetContext(), stakingContract)
+		assert.Equal(t, sdk.NewCoin(sdk.DefaultBondDenom, expTotalDelegated), usedAmount)
+	}
+	assertTotalDelegated(math.ZeroInt())
 
 	// when an epoch ends, the delegation rebalance is triggered
-	rebalanceMsg := []byte(`{"rebalance":{}}`)
-	_, err = consumerApp.WasmKeeper.Sudo(consumerChain.GetContext(), stakingContract, rebalanceMsg)
-	require.NoError(t, err)
+	doRebalance := func() {
+		rebalanceMsg := []byte(`{"rebalance":{}}`)
+		_, err = consumerApp.WasmKeeper.Sudo(consumerChain.GetContext(), stakingContract, rebalanceMsg)
+		require.NoError(t, err)
+	}
+	doRebalance()
 
 	// then the total delegated amount is updated
-	usedAmount = consumerApp.MeshSecKeeper.GetTotalDelegated(consumerChain.GetContext(), stakingContract)
-	assert.Equal(t, sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(10000000)), usedAmount)
+	assertTotalDelegated(math.NewInt(10_000_000))
 
 	// and the delegated amount is updated for the validator
+	assertShare := func(exp int64) {
+		del, found := consumerApp.StakingKeeper.GetDelegation(consumerChain.GetContext(), stakingContract, valAddr)
+		require.True(t, found)
+		assert.Equal(t, math.LegacyNewDec(exp), del.Shares)
+	}
+	assertShare(10)
+
+	// when undelegated
+	doExec(fmt.Sprintf(`{"unbond":{"validator":"%s", "amount":{"denom":"%s", "amount":"1000000"}}}`, valAddr.String(), sdk.DefaultBondDenom))
+	// when an epoch ends, the delegation rebalance is triggered
+	doRebalance()
+	// then undelegated and burned
+	assertTotalDelegated(math.NewInt(9_000_000))
+	assertShare(9)
 }
