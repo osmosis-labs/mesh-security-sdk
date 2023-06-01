@@ -3,6 +3,7 @@ package keeper
 import (
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
@@ -40,7 +41,30 @@ func NewStakingKeeperAdapter(k types.SDKStakingKeeper, b types.SDKBankKeeper) *S
 // This function is a combination of Undelegate and CompleteUnbonding,
 // but skips the creation and deletion of UnbondingDelegationEntry
 //
-// This is copied from the Osmosis sdk fork
+// The code is copied from the Osmosis SDK fork https://github.com/osmosis-labs/cosmos-sdk/blob/v0.45.0x-osmo-v9.3/x/staking/keeper/delegation.go#L757
 func (s StakingKeeperAdapter) InstantUndelegate(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec) (sdk.Coins, error) {
-	panic("not implemented, yet")
+	validator, found := s.GetValidator(ctx, valAddr)
+	if !found {
+		return nil, stakingtypes.ErrNoDelegatorForAddress
+	}
+
+	returnAmount, err := s.Unbond(ctx, delAddr, valAddr, sharesAmount)
+	if err != nil {
+		return nil, err
+	}
+
+	bondDenom := s.BondDenom(ctx)
+
+	amt := sdk.NewCoin(bondDenom, returnAmount)
+	res := sdk.NewCoins(amt)
+
+	moduleName := stakingtypes.NotBondedPoolName
+	if validator.IsBonded() {
+		moduleName = stakingtypes.BondedPoolName
+	}
+	err = s.bank.UndelegateCoinsFromModuleToAccount(ctx, moduleName, delAddr, res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
