@@ -10,5 +10,6 @@ func AllCapabilities() []string {
 		"stargate",
 		"cosmwasm_1_1",
 		"cosmwasm_1_2",
+		"virtual_staking",
 	}
 }
