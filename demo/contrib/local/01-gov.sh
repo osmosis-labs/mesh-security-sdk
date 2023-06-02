@@ -13,3 +13,6 @@ echo $RESP
 sleep 6
 meshd q tx $(echo "$RESP"| jq -r '.txhash') -o json | jq
 
+echo "## Query max cap for the contract"
+meshd q meshsecurity max-cap-limit mesh1l94ptufswr6v7qntax4m7nvn3jgf6k4gn2rknq -o json | jq
+
