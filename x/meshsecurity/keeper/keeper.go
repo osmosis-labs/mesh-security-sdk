@@ -124,19 +124,18 @@ func (k Keeper) mustLoadInt(ctx sdk.Context, storeKey storetypes.StoreKey, key [
 
 // IterateMaxCapLimit iterate over contract addresses with max cap limt set
 // Callback can return true to stop early
-func (k Keeper) IterateMaxCapLimit(ctx sdk.Context, cb func(sdk.AccAddress, sdk.Coin) bool) {
+func (k Keeper) IterateMaxCapLimit(ctx sdk.Context, cb func(sdk.AccAddress, math.Int) bool) {
 	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), types.MaxCapLimitKeyPrefix)
 	iter := prefixStore.Iterator(nil, nil)
 	defer iter.Close()
 
 	for ; iter.Valid(); iter.Next() {
-		var c sdk.Coin
-		err := k.cdc.Unmarshal(iter.Value(), &c)
-		if err != nil {
+		var r math.Int
+		if err := r.Unmarshal(iter.Value()); err != nil {
 			panic(err)
 		}
 		// cb returns true to stop early
-		if cb(iter.Key(), c) {
+		if cb(iter.Key(), r) {
 			return
 		}
 	}

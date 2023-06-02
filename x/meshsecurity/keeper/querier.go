@@ -4,6 +4,7 @@ import (
 	"context"
 
 	errorsmod "cosmossdk.io/errors"
+	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -35,11 +36,11 @@ func (g querier) VirtualStakingMaxCapLimit(goCtx context.Context, req *types.Que
 func (g querier) VirtualStakingMaxCapLimits(goCtx context.Context, req *types.QueryVirtualStakingMaxCapLimitsRequest) (*types.QueryVirtualStakingMaxCapLimitsResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	rsp := types.QueryVirtualStakingMaxCapLimitsResponse{}
-	g.k.IterateMaxCapLimit(ctx, func(addr sdk.AccAddress, maxCap sdk.Coin) bool {
+	g.k.IterateMaxCapLimit(ctx, func(addr sdk.AccAddress, maxCap math.Int) bool {
 		info := types.VirtualStakingMaxCapInfo{
 			Contract:  addr.String(),
 			Delegated: g.k.GetTotalDelegated(ctx, addr),
-			Cap:       maxCap,
+			Cap:       sdk.NewCoin(g.k.staking.BondDenom(ctx), maxCap),
 		}
 
 		rsp.MaxCapInfos = append(rsp.MaxCapInfos, info)

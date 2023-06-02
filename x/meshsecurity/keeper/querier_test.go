@@ -53,7 +53,6 @@ func TestQueryVirtualStakingMaxCapLimit(t *testing.T) {
 }
 
 func TestQueryVirtualStakingMaxCapLimits(t *testing.T) {
-	t.Skip("TODO")
 	// setup
 	ctx, keepers := CreateDefaultTestInput(t)
 	k := keepers.MeshKeeper
@@ -76,7 +75,7 @@ func TestQueryVirtualStakingMaxCapLimits(t *testing.T) {
 	// then
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(gotRsp.MaxCapInfos))
-	assert.Equal(t, myContract, gotRsp.MaxCapInfos[0].Contract)
+	assert.Equal(t, myContract.String(), gotRsp.MaxCapInfos[0].Contract)
 	assert.Equal(t, myAmount, gotRsp.MaxCapInfos[0].Cap)
 
 	// set max cap for another contract
