@@ -41,12 +41,41 @@ func GetCmdQueryMaxCapLimit() *cobra.Command {
 				return err
 			}
 
-			req := &types.QueryVirtualStakingMaxCapRequest{
+			req := &types.QueryVirtualStakingMaxCapLimitRequest{
 				Address: args[0],
 			}
 
 			queryClient := types.NewQueryClient(clientCtx)
-			res, err := queryClient.VirtualStakingMaxCap(cmd.Context(), req)
+			res, err := queryClient.VirtualStakingMaxCapLimit(cmd.Context(), req)
+			if err != nil {
+				return err
+			}
+
+			return clientCtx.PrintProto(res)
+		},
+		SilenceUsage: true,
+	}
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
+}
+
+// GetCmdQueryMaxCapLimit implements a command to return the current
+// max cap limit for each contract.
+func GetCmdQueryMaxCapLimits() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "max-cap-limits",
+		Short: "Query the current max cap limit for each contract",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			req := &types.QueryVirtualStakingMaxCapLimitsRequest{}
+
+			queryClient := types.NewQueryClient(clientCtx)
+			res, err := queryClient.VirtualStakingMaxCapLimits(cmd.Context(), req)
 			if err != nil {
 				return err
 			}

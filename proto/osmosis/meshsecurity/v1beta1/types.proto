@@ -1,0 +1,22 @@
+syntax = "proto3";
+package osmosis.meshsecurity.v1beta1;
+
+import "cosmos/base/v1beta1/coin.proto";
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types";
+option (gogoproto.goproto_getters_all) = false;
+option (gogoproto.equal_all) = false;
+
+// VirtualStakingMaxCapInfo stores info about
+// virtual staking max cap
+message VirtualStakingMaxCapInfo {
+  option (gogoproto.equal) = true;
+
+  // contract is the address of the contract
+  string contract = 1;
+  // delegated is the total amount currently delegated
+  cosmos.base.v1beta1.Coin delegated = 2 [ (gogoproto.nullable) = false ];
+  // cap is the current max cap limit
+  cosmos.base.v1beta1.Coin cap = 3 [ (gogoproto.nullable) = false ];
+}

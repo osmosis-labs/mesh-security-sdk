@@ -44,12 +44,12 @@ format-tools:
 
 lint: format-tools
 	golangci-lint run --tests=false ./demo/... ./x/...
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "*_test.go" | xargs gofumpt -d -s
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "./x/vendor*" -not -path "*.git*" -not -path "*_test.go" | xargs gofumpt -d -s
 
 format: format-tools
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./contracts*" -not -path "./packages*" -not -path "./docs*"| xargs misspell -w
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./contracts*" -not -path "./packages*" -not -path "./docs*"| xargs gofumpt -w -s
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./contracts*" -not -path "./packages*" -not -path "./docs*"| xargs goimports -w -local github.com/osmosis-labs/mesh-security-sdk
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./x/vendor*" -not -path "./contracts*" -not -path "./packages*" -not -path "./docs*"| xargs misspell -w
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./x/vendor*" -not -path "./contracts*" -not -path "./packages*" -not -path "./docs*"| xargs gofumpt -w -s
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./x/vendor*" -not -path "./contracts*" -not -path "./packages*" -not -path "./docs*"| xargs goimports -w -local github.com/osmosis-labs/mesh-security-sdk
 
 ###############################################################################
 ###                                Protobuf                                 ###

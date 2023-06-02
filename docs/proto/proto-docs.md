@@ -4,9 +4,14 @@
 
 ## Table of Contents
 
+- [osmosis/meshsecurity/v1beta1/types.proto](#osmosis/meshsecurity/v1beta1/types.proto)
+    - [VirtualStakingMaxCapInfo](#osmosis.meshsecurity.v1beta1.VirtualStakingMaxCapInfo)
+  
 - [osmosis/meshsecurity/v1beta1/query.proto](#osmosis/meshsecurity/v1beta1/query.proto)
-    - [QueryVirtualStakingMaxCapRequest](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapRequest)
-    - [QueryVirtualStakingMaxCapResponse](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapResponse)
+    - [QueryVirtualStakingMaxCapLimitRequest](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitRequest)
+    - [QueryVirtualStakingMaxCapLimitResponse](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitResponse)
+    - [QueryVirtualStakingMaxCapLimitsRequest](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitsRequest)
+    - [QueryVirtualStakingMaxCapLimitsResponse](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitsResponse)
   
     - [Query](#osmosis.meshsecurity.v1beta1.Query)
   
@@ -20,6 +25,40 @@
 
 
 
+<a name="osmosis/meshsecurity/v1beta1/types.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## osmosis/meshsecurity/v1beta1/types.proto
+
+
+
+<a name="osmosis.meshsecurity.v1beta1.VirtualStakingMaxCapInfo"></a>
+
+### VirtualStakingMaxCapInfo
+VirtualStakingMaxCapInfo stores info about
+virtual staking max cap
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `contract` | [string](#string) |  | contract is the address of the contract |
+| `delegated` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | delegated is the total amount currently delegated |
+| `cap` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | cap is the current max cap limit |
+
+
+
+
+
+ <!-- end messages -->
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
+
+ <!-- end services -->
+
+
+
 <a name="osmosis/meshsecurity/v1beta1/query.proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
@@ -27,11 +66,11 @@
 
 
 
-<a name="osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapRequest"></a>
+<a name="osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitRequest"></a>
 
-### QueryVirtualStakingMaxCapRequest
-QueryVirtualStakingMaxCapRequest is the request type for the
-Query/VirtualStakingMaxCap RPC method
+### QueryVirtualStakingMaxCapLimitRequest
+QueryVirtualStakingMaxCapLimitRequest is the request type for the
+Query/VirtualStakingMaxCapLimit RPC method
 
 
 | Field | Type | Label | Description |
@@ -43,16 +82,44 @@ Query/VirtualStakingMaxCap RPC method
 
 
 
-<a name="osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapResponse"></a>
+<a name="osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitResponse"></a>
 
-### QueryVirtualStakingMaxCapResponse
-QueryVirtualStakingMaxCapResponse is the response type for the
-Query/VirtualStakingMaxCap RPC method
+### QueryVirtualStakingMaxCapLimitResponse
+QueryVirtualStakingMaxCapLimitResponse is the response type for the
+Query/VirtualStakingMaxCapLimit RPC method
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `limit` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
+| `delegated` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
+| `cap` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
+
+
+
+
+
+
+<a name="osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitsRequest"></a>
+
+### QueryVirtualStakingMaxCapLimitsRequest
+QueryVirtualStakingMaxCapLimitsRequest is the request type for the
+Query/VirtualStakingMaxCapLimits RPC method
+
+
+
+
+
+
+<a name="osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitsResponse"></a>
+
+### QueryVirtualStakingMaxCapLimitsResponse
+QueryVirtualStakingMaxCapLimitsResponse is the response type for the
+Query/VirtualStakingMaxCapLimits RPC method
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `max_cap_infos` | [VirtualStakingMaxCapInfo](#osmosis.meshsecurity.v1beta1.VirtualStakingMaxCapInfo) | repeated |  |
 
 
 
@@ -72,7 +139,8 @@ Query provides defines the gRPC querier service
 
 | Method Name | Request Type | Response Type | Description | HTTP Verb | Endpoint |
 | ----------- | ------------ | ------------- | ------------| ------- | -------- |
-| `VirtualStakingMaxCap` | [QueryVirtualStakingMaxCapRequest](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapRequest) | [QueryVirtualStakingMaxCapResponse](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapResponse) | ContractInfo gets the contract meta data | GET|/osmosis/meshsecurity/v1beta1/max_cap/{address}|
+| `VirtualStakingMaxCapLimit` | [QueryVirtualStakingMaxCapLimitRequest](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitRequest) | [QueryVirtualStakingMaxCapLimitResponse](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitResponse) | VirtualStakingMaxCapLimit gets max cap limit for the given contract | GET|/osmosis/meshsecurity/v1beta1/max_cap_limit/{address}|
+| `VirtualStakingMaxCapLimits` | [QueryVirtualStakingMaxCapLimitsRequest](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitsRequest) | [QueryVirtualStakingMaxCapLimitsResponse](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitsResponse) | VirtualStakingMaxCapLimits gets max cap limits | GET|/osmosis/meshsecurity/v1beta1/max_cap_limits|
 
  <!-- end services -->
 
