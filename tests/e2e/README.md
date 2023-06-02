@@ -1,2 +1,10 @@
 # End-To-End Tests
-System tests that run against the demo app
+Multi-chain system tests that run against the demo app.
+
+
+Run them with: 
+```shell
+make test
+``` 
+
+
