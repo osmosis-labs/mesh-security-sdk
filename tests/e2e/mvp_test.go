@@ -54,10 +54,10 @@ func TestMVP(t *testing.T) {
 
 	// then the max cap limit is persisted
 	q := baseapp.QueryServiceTestHelper{GRPCQueryRouter: consumerApp.GRPCQueryRouter(), Ctx: consumerChain.GetContext()}
-	var rsp types.QueryVirtualStakingMaxCapResponse
-	err := q.Invoke(nil, "/osmosis.meshsecurity.v1beta1.Query/VirtualStakingMaxCap", &types.QueryVirtualStakingMaxCapRequest{Address: stakingContract.String()}, &rsp)
+	var rsp types.QueryVirtualStakingMaxCapLimitResponse
+	err := q.Invoke(nil, "/osmosis.meshsecurity.v1beta1.Query/VirtualStakingMaxCapLimit", &types.QueryVirtualStakingMaxCapLimitRequest{Address: stakingContract.String()}, &rsp)
 	require.NoError(t, err)
-	assert.Equal(t, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1_000_000_000), rsp.Limit)
+	assert.Equal(t, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1_000_000_000), rsp.Cap)
 
 	// when staking contract is instructed to bond tokens
 	doExec := func(payload string) {

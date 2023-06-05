@@ -4,6 +4,7 @@ import (
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/store/prefix"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -119,4 +120,23 @@ func (k Keeper) mustLoadInt(ctx sdk.Context, storeKey storetypes.StoreKey, key [
 		panic(err)
 	}
 	return r
+}
+
+// IterateMaxCapLimit iterate over contract addresses with max cap limt set
+// Callback can return true to stop early
+func (k Keeper) IterateMaxCapLimit(ctx sdk.Context, cb func(sdk.AccAddress, math.Int) bool) {
+	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), types.MaxCapLimitKeyPrefix)
+	iter := prefixStore.Iterator(nil, nil)
+	defer iter.Close()
+
+	for ; iter.Valid(); iter.Next() {
+		var r math.Int
+		if err := r.Unmarshal(iter.Value()); err != nil {
+			panic(err)
+		}
+		// cb returns true to stop early
+		if cb(iter.Key(), r) {
+			return
+		}
+	}
 }

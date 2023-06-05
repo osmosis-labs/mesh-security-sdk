@@ -2,8 +2,10 @@ syntax = "proto3";
 package osmosis.meshsecurity.v1beta1;
 
 import "cosmos/base/v1beta1/coin.proto";
+import "osmosis/meshsecurity/v1beta1/types.proto";
 import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
+import "amino/amino.proto";
 
 option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types";
 option (gogoproto.goproto_getters_all) = false;
@@ -11,25 +13,44 @@ option (gogoproto.equal_all) = false;
 
 // Query provides defines the gRPC querier service
 service Query {
-  // ContractInfo gets the contract meta data
-  rpc VirtualStakingMaxCap(QueryVirtualStakingMaxCapRequest)
-      returns (QueryVirtualStakingMaxCapResponse) {
+  // VirtualStakingMaxCapLimit gets max cap limit for the given contract
+  rpc VirtualStakingMaxCapLimit(QueryVirtualStakingMaxCapLimitRequest)
+      returns (QueryVirtualStakingMaxCapLimitResponse) {
     option (google.api.http).get =
-        "/osmosis/meshsecurity/v1beta1/max_cap/{address}";
+        "/osmosis/meshsecurity/v1beta1/max_cap_limit/{address}";
+  }
+
+  // VirtualStakingMaxCapLimits gets max cap limits
+  rpc VirtualStakingMaxCapLimits(QueryVirtualStakingMaxCapLimitsRequest)
+      returns (QueryVirtualStakingMaxCapLimitsResponse) {
+    option (google.api.http).get =
+        "/osmosis/meshsecurity/v1beta1/max_cap_limits";
   }
 }
 
-// QueryVirtualStakingMaxCapRequest is the request type for the
-// Query/VirtualStakingMaxCap RPC method
-message QueryVirtualStakingMaxCapRequest {
-  // address is the address of the contract to query
+// QueryVirtualStakingMaxCapLimitRequest is the request type for the
+// Query/VirtualStakingMaxCapLimit RPC method
+message QueryVirtualStakingMaxCapLimitRequest {
+  // Address is the address of the contract to query
   string address = 1;
 }
 
-// QueryVirtualStakingMaxCapResponse is the response type for the
-// Query/VirtualStakingMaxCap RPC method
-message QueryVirtualStakingMaxCapResponse {
+// QueryVirtualStakingMaxCapLimitResponse is the response type for the
+// Query/VirtualStakingMaxCapLimit RPC method
+message QueryVirtualStakingMaxCapLimitResponse {
   option (gogoproto.equal) = true;
 
-  cosmos.base.v1beta1.Coin limit = 1 [ (gogoproto.nullable) = false ];
+  cosmos.base.v1beta1.Coin delegated = 1 [ (gogoproto.nullable) = false ];
+  cosmos.base.v1beta1.Coin cap = 2 [ (gogoproto.nullable) = false ];
+}
+
+// QueryVirtualStakingMaxCapLimitsRequest is the request type for the
+// Query/VirtualStakingMaxCapLimits RPC method
+message QueryVirtualStakingMaxCapLimitsRequest {}
+
+// QueryVirtualStakingMaxCapLimitsResponse is the response type for the
+// Query/VirtualStakingMaxCapLimits RPC method
+message QueryVirtualStakingMaxCapLimitsResponse {
+  repeated VirtualStakingMaxCapInfo max_cap_infos = 1
+      [ (gogoproto.nullable) = false, (amino.dont_omitempty) = true ];
 }
