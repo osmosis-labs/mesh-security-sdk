@@ -31,7 +31,7 @@ service Query {
 // QueryVirtualStakingMaxCapLimitRequest is the request type for the
 // Query/VirtualStakingMaxCapLimit RPC method
 message QueryVirtualStakingMaxCapLimitRequest {
-  // address is the address of the contract to query
+  // Address is the address of the contract to query
   string address = 1;
 }
 

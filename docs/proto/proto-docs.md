@@ -41,9 +41,9 @@ virtual staking max cap
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `contract` | [string](#string) |  | contract is the address of the contract |
-| `delegated` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | delegated is the total amount currently delegated |
-| `cap` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | cap is the current max cap limit |
+| `contract` | [string](#string) |  | Contract is the address of the contract |
+| `delegated` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | Delegated is the total amount currently delegated |
+| `cap` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | Cap is the current max cap limit |
 
 
 
@@ -75,7 +75,7 @@ Query/VirtualStakingMaxCapLimit RPC method
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `address` | [string](#string) |  | address is the address of the contract to query |
+| `address` | [string](#string) |  | Address is the address of the contract to query |
 
 
 

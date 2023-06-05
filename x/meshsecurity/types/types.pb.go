@@ -30,11 +30,11 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 // VirtualStakingMaxCapInfo stores info about
 // virtual staking max cap
 type VirtualStakingMaxCapInfo struct {
-	// contract is the address of the contract
+	// Contract is the address of the contract
 	Contract string `protobuf:"bytes,1,opt,name=contract,proto3" json:"contract,omitempty"`
-	// delegated is the total amount currently delegated
+	// Delegated is the total amount currently delegated
 	Delegated types.Coin `protobuf:"bytes,2,opt,name=delegated,proto3" json:"delegated"`
-	// cap is the current max cap limit
+	// Cap is the current max cap limit
 	Cap types.Coin `protobuf:"bytes,3,opt,name=cap,proto3" json:"cap"`
 }
 

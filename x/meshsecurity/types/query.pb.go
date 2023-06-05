@@ -37,7 +37,7 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 // QueryVirtualStakingMaxCapLimitRequest is the request type for the
 // Query/VirtualStakingMaxCapLimit RPC method
 type QueryVirtualStakingMaxCapLimitRequest struct {
-	// address is the address of the contract to query
+	// Address is the address of the contract to query
 	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
 }
 

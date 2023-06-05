@@ -13,10 +13,10 @@ option (gogoproto.equal_all) = false;
 message VirtualStakingMaxCapInfo {
   option (gogoproto.equal) = true;
 
-  // contract is the address of the contract
+  // Contract is the address of the contract
   string contract = 1;
-  // delegated is the total amount currently delegated
+  // Delegated is the total amount currently delegated
   cosmos.base.v1beta1.Coin delegated = 2 [ (gogoproto.nullable) = false ];
-  // cap is the current max cap limit
+  // Cap is the current max cap limit
   cosmos.base.v1beta1.Coin cap = 3 [ (gogoproto.nullable) = false ];
 }

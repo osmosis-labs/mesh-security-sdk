@@ -62,7 +62,7 @@ func TestQueryVirtualStakingMaxCapLimits(t *testing.T) {
 	gotRsp, err := querier.VirtualStakingMaxCapLimits(sdk.WrapSDKContext(ctx), &types.QueryVirtualStakingMaxCapLimitsRequest{})
 	// then
 	require.NoError(t, err)
-	assert.Zero(t, len(gotRsp.MaxCapInfos))
+	assert.Len(t, gotRsp.MaxCapInfos, 0)
 
 	// set max cap for a random contract
 	myContract := sdk.AccAddress(rand.Bytes(32))
@@ -79,7 +79,9 @@ func TestQueryVirtualStakingMaxCapLimits(t *testing.T) {
 	assert.Equal(t, myAmount, gotRsp.MaxCapInfos[0].Cap)
 
 	// set max cap for another contract
-	err = k.SetMaxCapLimit(ctx, sdk.AccAddress(rand.Bytes(32)), sdk.NewInt64Coin(sdk.DefaultBondDenom, 0))
+	otherContract := sdk.AccAddress(rand.Bytes(32))
+	otherAmount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)
+	err = k.SetMaxCapLimit(ctx, otherContract, otherAmount)
 	require.NoError(t, err)
 
 	// when
@@ -87,4 +89,8 @@ func TestQueryVirtualStakingMaxCapLimits(t *testing.T) {
 	// then
 	require.NoError(t, err)
 	assert.Equal(t, 2, len(gotRsp.MaxCapInfos))
+	assert.Equal(t, myContract.String(), gotRsp.MaxCapInfos[0].Contract)
+	assert.Equal(t, myAmount, gotRsp.MaxCapInfos[0].Cap)
+	assert.Equal(t, otherContract.String(), gotRsp.MaxCapInfos[1].Contract)
+	assert.Equal(t, otherAmount, gotRsp.MaxCapInfos[1].Cap)
 }
