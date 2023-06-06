@@ -4,6 +4,23 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
+	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	authzkeeper "github.com/cosmos/cosmos-sdk/x/authz/keeper"
+	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
+	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
+	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
+	"github.com/cosmos/cosmos-sdk/x/feegrant"
+	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
+	upgradekeeper "github.com/cosmos/cosmos-sdk/x/upgrade/keeper"
+	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
+	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
+	ibckeeper "github.com/cosmos/ibc-go/v7/modules/core/keeper"
+
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	dbm "github.com/cometbft/cometbft-db"
 	"github.com/cometbft/cometbft/libs/log"
@@ -23,6 +40,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	distributionkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
+	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	govclient "github.com/cosmos/cosmos-sdk/x/gov/client"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
@@ -85,6 +104,7 @@ type TestKeepers struct {
 	EncodingConfig encodingConfig
 	MeshKeeper     *Keeper
 	AccountKeeper  authkeeper.AccountKeeper
+	WasmKeeper     wasmkeeper.Keeper
 	Faucet         *wasmkeeper.TestFaucet
 }
 
@@ -92,10 +112,23 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)
 	keys := sdk.NewKVStoreKeys(
-		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey, types.StoreKey,
+		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
+		minttypes.StoreKey, distributiontypes.StoreKey, slashingtypes.StoreKey,
+		govtypes.StoreKey, paramstypes.StoreKey, ibcexported.StoreKey, upgradetypes.StoreKey,
+		evidencetypes.StoreKey, ibctransfertypes.StoreKey,
+		capabilitytypes.StoreKey, feegrant.StoreKey, authzkeeper.StoreKey,
+		wasmtypes.StoreKey, types.StoreKey,
 	)
 	for _, v := range keys {
 		ms.MountStoreWithDB(v, storetypes.StoreTypeIAVL, db)
+	}
+	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
+	for _, v := range memKeys {
+		ms.MountStoreWithDB(v, storetypes.StoreTypeMemory, db)
+	}
+	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
+	for _, v := range tkeys {
+		ms.MountStoreWithDB(v, storetypes.StoreTypeTransient, db)
 	}
 	require.NoError(t, ms.LoadLatestVersion())
 
@@ -104,10 +137,12 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 
 	maccPerms := map[string][]string{ // module account permissions
 		authtypes.FeeCollectorName:     nil,
+		distributiontypes.ModuleName:   nil,
 		minttypes.ModuleName:           {authtypes.Minter},
 		stakingtypes.BondedPoolName:    {authtypes.Burner, authtypes.Staking},
 		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
 		govtypes.ModuleName:            {authtypes.Burner},
+		ibctransfertypes.ModuleName:    {authtypes.Minter, authtypes.Burner},
 		types.ModuleName:               {authtypes.Minter, authtypes.Burner},
 	}
 	authority := authtypes.NewModuleAddress(govtypes.ModuleName).String()
@@ -146,11 +181,85 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 	)
 	require.NoError(t, stakingKeeper.SetParams(ctx, stakingtypes.DefaultParams()))
 
+	distKeeper := distributionkeeper.NewKeeper(
+		appCodec,
+		keys[distributiontypes.StoreKey],
+		accountKeeper,
+		bankKeeper,
+		stakingKeeper,
+		authtypes.FeeCollectorName,
+		authtypes.NewModuleAddress(distributiontypes.ModuleName).String(),
+	)
+	require.NoError(t, distKeeper.SetParams(ctx, distributiontypes.DefaultParams()))
+
+	querier := baseapp.NewGRPCQueryRouter()
+	querier.SetInterfaceRegistry(encConfig.InterfaceRegistry)
+	msgRouter := baseapp.NewMsgServiceRouter()
+	msgRouter.SetInterfaceRegistry(encConfig.InterfaceRegistry)
+
+	capabilityKeeper := capabilitykeeper.NewKeeper(
+		appCodec,
+		keys[capabilitytypes.StoreKey],
+		memKeys[capabilitytypes.MemStoreKey],
+	)
+	scopedIBCKeeper := capabilityKeeper.ScopeToModule(ibcexported.ModuleName)
+	scopedWasmKeeper := capabilityKeeper.ScopeToModule(types.ModuleName)
+
+	paramsKeeper := paramskeeper.NewKeeper(
+		appCodec,
+		encConfig.Amino,
+		keys[paramstypes.StoreKey],
+		tkeys[paramstypes.TStoreKey],
+	)
+
+	upgradeKeeper := upgradekeeper.NewKeeper(
+		map[int64]bool{},
+		keys[upgradetypes.StoreKey],
+		appCodec,
+		t.TempDir(),
+		nil,
+		authtypes.NewModuleAddress(upgradetypes.ModuleName).String(),
+	)
+
+	ibcKeeper := ibckeeper.NewKeeper(
+		appCodec,
+		keys[ibcexported.StoreKey],
+		paramsKeeper.Subspace(ibcexported.ModuleName),
+		stakingKeeper,
+		upgradeKeeper,
+		scopedIBCKeeper,
+	)
+
+	cfg := sdk.GetConfig()
+	cfg.SetAddressVerifier(wasmtypes.VerifyAddressLen())
+
+	wasmKeeper := wasmkeeper.NewKeeper(
+		appCodec,
+		keys[types.StoreKey],
+		accountKeeper,
+		bankKeeper,
+		stakingKeeper,
+		distributionkeeper.NewQuerier(distKeeper),
+		ibcKeeper.ChannelKeeper, // ICS4Wrapper
+		ibcKeeper.ChannelKeeper,
+		&ibcKeeper.PortKeeper,
+		scopedWasmKeeper,
+		wasmtesting.MockIBCTransferKeeper{},
+		msgRouter,
+		querier,
+		t.TempDir(),
+		wasmtypes.DefaultWasmConfig(),
+		"iterator,staking,stargate,cosmwasm_1_1,cosmwasm_1_2,virtual_staking",
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
+	require.NoError(t, wasmKeeper.SetParams(ctx, wasmtypes.DefaultParams()))
+
 	msKeeper := NewKeeper(
 		appCodec,
 		keys[types.StoreKey],
 		bankKeeper,
 		stakingKeeper,
+		wasmKeeper,
 		authority,
 	)
 	faucet := wasmkeeper.NewTestFaucet(t, ctx, bankKeeper, minttypes.ModuleName, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1_000_000_000_000))
@@ -161,6 +270,7 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 		StoreKey:       keys[types.StoreKey],
 		EncodingConfig: encConfig,
 		MeshKeeper:     msKeeper,
+		WasmKeeper:     wasmKeeper,
 		Faucet:         faucet,
 	}
 }

@@ -17,6 +17,7 @@ type Keeper struct {
 	cdc      codec.Codec
 	bank     types.XBankKeeper
 	staking  types.XStakingKeeper
+	sudoer   types.Sudoer
 	// the address capable of executing a MsgUpdateParams message. Typically, this
 	// should be the x/gov module account.
 	authority string
@@ -28,9 +29,10 @@ func NewKeeper(
 	storeKey storetypes.StoreKey,
 	bank types.SDKBankKeeper,
 	staking types.SDKStakingKeeper,
+	sudoer types.Sudoer,
 	authority string,
 ) *Keeper {
-	return NewKeeperX(cdc, storeKey, NewBankKeeperAdapter(bank), NewStakingKeeperAdapter(staking, bank), authority)
+	return NewKeeperX(cdc, storeKey, NewBankKeeperAdapter(bank), NewStakingKeeperAdapter(staking, bank), sudoer, authority)
 }
 
 // NewKeeperX constructor with extended Osmosis SDK keepers
@@ -39,6 +41,7 @@ func NewKeeperX(
 	storeKey storetypes.StoreKey,
 	bank types.XBankKeeper,
 	staking types.XStakingKeeper,
+	sudoer types.Sudoer,
 	authority string,
 ) *Keeper {
 	return &Keeper{
@@ -46,6 +49,7 @@ func NewKeeperX(
 		cdc:       cdc,
 		bank:      bank,
 		staking:   staking,
+		sudoer:    sudoer,
 		authority: authority,
 	}
 }

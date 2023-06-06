@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/cometbft/cometbft/libs/rand"
@@ -65,7 +66,7 @@ func TestQueryVirtualStakingMaxCapLimits(t *testing.T) {
 	assert.Len(t, gotRsp.MaxCapInfos, 0)
 
 	// set max cap for a random contract
-	myContract := sdk.AccAddress(rand.Bytes(32))
+	myContract := sdk.AccAddress(bytes.Repeat([]byte{1}, 32))
 	myAmount := sdk.NewInt64Coin(keepers.StakingKeeper.BondDenom(ctx), 123)
 	err = k.SetMaxCapLimit(ctx, myContract, myAmount)
 	require.NoError(t, err)
@@ -79,7 +80,7 @@ func TestQueryVirtualStakingMaxCapLimits(t *testing.T) {
 	assert.Equal(t, myAmount, gotRsp.MaxCapInfos[0].Cap)
 
 	// set max cap for another contract
-	otherContract := sdk.AccAddress(rand.Bytes(32))
+	otherContract := sdk.AccAddress(bytes.Repeat([]byte{2}, 32))
 	otherAmount := sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)
 	err = k.SetMaxCapLimit(ctx, otherContract, otherAmount)
 	require.NoError(t, err)
