@@ -182,7 +182,8 @@ func bootstrapProviderContracts(t *testing.T, chain *wasmibctesting.TestChain) P
 	// external staking
 	unbondingPeriod := 21 * 24 * 60 * 60 // 21 days - make configurable?
 	extStakingCodeID := chain.StoreCodeFile("testdata/external_staking.wasm.gz").CodeID
-	initMsg = []byte(fmt.Sprintf(`{"denom": %q, "vault": %q, "unbonding_period": %d}`, sdk.DefaultBondDenom, vaultContract.String(), unbondingPeriod))
+	rewardToken := "todo" // ics20 token
+	initMsg = []byte(fmt.Sprintf(`{"denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q}`, sdk.DefaultBondDenom, vaultContract.String(), unbondingPeriod, rewardToken))
 	externalStakingContract := InstantiateContract(t, chain, extStakingCodeID, initMsg)
 
 	return ProviderContracts{
