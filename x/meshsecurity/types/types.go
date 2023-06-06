@@ -1,8 +1,8 @@
 package types
 
-type SchedulerType byte
+type SchedulerTaskType byte
 
 const (
-	SchedulerTypeUndefined SchedulerType = 0
-	SchedulerTypeRebalance               = 1
+	SchedulerTaskUndefined SchedulerTaskType = 0
+	SchedulerTaskRebalance                   = 1
 )

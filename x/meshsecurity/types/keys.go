@@ -35,14 +35,18 @@ func BuildTotalDelegatedAmountKey(contractAddr sdk.AccAddress) []byte {
 }
 
 // BuildSchedulerKeyPrefix build store key prefix
-func BuildSchedulerKeyPrefix(tp SchedulerType, blockHeight uint64) []byte {
-	if tp == SchedulerTypeUndefined {
-		panic("undefined scheduler type")
+func BuildSchedulerKeyPrefix(tp SchedulerTaskType, blockHeight uint64) ([]byte, error) {
+	if tp == SchedulerTaskUndefined {
+		return nil, ErrInvalid.Wrapf("scheduler type: %x", tp)
 	}
-	return append(SchedulerKeyPrefix, append([]byte{byte(tp)}, sdk.Uint64ToBigEndian(blockHeight)...)...)
+	return append(SchedulerKeyPrefix, append([]byte{byte(tp)}, sdk.Uint64ToBigEndian(blockHeight)...)...), nil
 }
 
 // BuildSchedulerContractKey build store key
-func BuildSchedulerContractKey(tp SchedulerType, blockHeight uint64, contractAddr sdk.AccAddress) []byte {
-	return append(BuildSchedulerKeyPrefix(tp, blockHeight), contractAddr.Bytes()...)
+func BuildSchedulerContractKey(tp SchedulerTaskType, blockHeight uint64, contractAddr sdk.AccAddress) ([]byte, error) {
+	prefix, err := BuildSchedulerKeyPrefix(tp, blockHeight)
+	if err != nil {
+		return nil, err
+	}
+	return append(prefix, contractAddr.Bytes()...), nil
 }
