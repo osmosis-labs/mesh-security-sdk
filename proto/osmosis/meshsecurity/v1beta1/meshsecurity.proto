@@ -26,7 +26,6 @@ message VirtualStakingMaxCapInfo {
 message Params {
   option (amino.name) = "meshsecurity/Params";
   option (gogoproto.equal) = true;
-  option (gogoproto.goproto_stringer) = false;
 
   // TotalContractsMaxCap is the maximum that the sum of all contract max caps
   // must not exceed

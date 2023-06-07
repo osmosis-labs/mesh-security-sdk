@@ -49,3 +49,11 @@ func (g querier) VirtualStakingMaxCapLimits(goCtx context.Context, req *types.Qu
 
 	return &rsp, nil
 }
+
+// Params implements the gRPC service handler for querying x/bank parameters.
+func (q querier) Params(ctx context.Context, req *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	params := q.k.GetParams(sdkCtx)
+
+	return &types.QueryParamsResponse{Params: params}, nil
+}
