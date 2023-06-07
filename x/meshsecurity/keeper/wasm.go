@@ -19,6 +19,6 @@ func (k Keeper) Rebalance(ctx sdk.Context, addr sdk.AccAddress) error {
 	if err != nil {
 		return errorsmod.Wrap(err, "marshal sudo msg")
 	}
-	_, err = k.sudoer.Sudo(ctx, addr, bz)
+	_, err = k.wasm.Sudo(ctx, addr, bz)
 	return err
 }

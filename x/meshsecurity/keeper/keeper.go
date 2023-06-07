@@ -21,7 +21,7 @@ type Keeper struct {
 	cdc      codec.Codec
 	bank     types.XBankKeeper
 	staking  types.XStakingKeeper
-	sudoer   types.Sudoer
+	wasm     types.WasmKeeper
 	// the address capable of executing a MsgUpdateParams message. Typically, this
 	// should be the x/gov module account.
 	authority string
@@ -33,10 +33,10 @@ func NewKeeper(
 	storeKey storetypes.StoreKey,
 	bank types.SDKBankKeeper,
 	staking types.SDKStakingKeeper,
-	sudoer types.Sudoer,
+	wasm types.WasmKeeper,
 	authority string,
 ) *Keeper {
-	return NewKeeperX(cdc, storeKey, NewBankKeeperAdapter(bank), NewStakingKeeperAdapter(staking, bank), sudoer, authority)
+	return NewKeeperX(cdc, storeKey, NewBankKeeperAdapter(bank), NewStakingKeeperAdapter(staking, bank), wasm, authority)
 }
 
 // NewKeeperX constructor with extended Osmosis SDK keepers
@@ -45,7 +45,7 @@ func NewKeeperX(
 	storeKey storetypes.StoreKey,
 	bank types.XBankKeeper,
 	staking types.XStakingKeeper,
-	sudoer types.Sudoer,
+	wasm types.WasmKeeper,
 	authority string,
 ) *Keeper {
 	return &Keeper{
@@ -53,7 +53,7 @@ func NewKeeperX(
 		cdc:       cdc,
 		bank:      bank,
 		staking:   staking,
-		sudoer:    sudoer,
+		wasm:      wasm,
 		authority: authority,
 	}
 }
@@ -78,7 +78,7 @@ func (k Keeper) GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
 
 // SetMaxCapLimit stores the max cap limit for the given contract address.
 // Any existing limit for this contract will be overwritten
-func (k Keeper) SetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress, newAmount sdk.Coin) error {
+func (k Keeper) SetMaxCapLimit(ctx sdk.Context, contract sdk.AccAddress, newAmount sdk.Coin) error {
 	if k.staking.BondDenom(ctx) != newAmount.Denom {
 		return sdkerrors.ErrInvalidCoins
 	}
@@ -87,7 +87,7 @@ func (k Keeper) SetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress, newAmount 
 	if err != nil { // always nil
 		return errorsmod.Wrap(err, "marshal amount")
 	}
-	store.Set(types.BuildMaxCapLimitKey(actor), bz)
+	store.Set(types.BuildMaxCapLimitKey(contract), bz)
 	return nil
 }
 

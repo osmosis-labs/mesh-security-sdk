@@ -149,8 +149,8 @@ func TestMVP(t *testing.T) {
 
 	// when an epoch ends, the delegation rebalance is triggered
 	doRebalance := func() {
-		err = consumerApp.MeshSecKeeper.Rebalance(consumerChain.GetContext(), consumerContracts.staking)
-		require.NoError(t, err)
+		epochLength := consumerApp.MeshSecKeeper.GetRebalanceEpochLength(consumerChain.GetContext())
+		coord.CommitNBlocks(consumerChain, epochLength)
 	}
 	doRebalance()
 

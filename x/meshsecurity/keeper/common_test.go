@@ -235,7 +235,7 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 
 	wasmKeeper := wasmkeeper.NewKeeper(
 		appCodec,
-		keys[types.StoreKey],
+		keys[wasmtypes.StoreKey],
 		accountKeeper,
 		bankKeeper,
 		stakingKeeper,

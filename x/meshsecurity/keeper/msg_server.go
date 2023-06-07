@@ -37,6 +37,7 @@ func (m msgServer) SetVirtualStakingMaxCap(goCtx context.Context, req *types.Msg
 		return nil, errorsmod.Wrap(err, "contract")
 	}
 	ctx := sdk.UnwrapSDKContext(goCtx)
+
 	if err := m.k.SetMaxCapLimit(ctx, acc, req.MaxCap); err != nil {
 		return nil, err
 	}

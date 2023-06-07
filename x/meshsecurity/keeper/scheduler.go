@@ -32,6 +32,9 @@ func (k Keeper) deleteScheduledTask(ctx sdk.Context, tp types.SchedulerTaskType,
 
 // ScheduleRebalanceTask schedule a rebalance task for the given virtual staking contract using params defined epoch length
 func (k Keeper) ScheduleRebalanceTask(ctx sdk.Context, contract sdk.AccAddress) error {
+	if !k.wasm.HasContractInfo(ctx, contract) {
+		return types.ErrUnknown.Wrapf("contract: %s", contract.String())
+	}
 	epochLength := k.GetRebalanceEpochLength(ctx)
 	nextExecBlock := uint64(ctx.BlockHeight()) + epochLength
 	return k.ScheduleTask(ctx, types.SchedulerTaskRebalance, contract, nextExecBlock, true)
@@ -40,7 +43,7 @@ func (k Keeper) ScheduleRebalanceTask(ctx sdk.Context, contract sdk.AccAddress) 
 // HasScheduledTask returns true if the contract has a task scheduled of the given type
 func (k Keeper) HasScheduledTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress) bool {
 	var result bool
-	err := k.IterateScheduledTasks(ctx, tp, math.MaxUint, func(addr sdk.AccAddress, _ bool) bool {
+	err := k.IterateScheduledTasks(ctx, tp, math.MaxUint, func(addr sdk.AccAddress, _ uint64, _ bool) bool {
 		result = contract.Equals(addr) // not super efficient but as there should be only a small set
 		// of contracts and tasks lets not do a secondary index now
 		return result
@@ -72,8 +75,8 @@ func (k Keeper) ScheduleTask(ctx sdk.Context, tp types.SchedulerTaskType, contra
 type executor func(ctx sdk.Context, addr sdk.AccAddress) error
 
 // IterateScheduledTasks iterate of all scheduled task executions for the given type up to given block height (included)
-func (k Keeper) IterateScheduledTasks(ctx sdk.Context, tp types.SchedulerTaskType, height uint64, cb func(addr sdk.AccAddress, repeat bool) bool) error {
-	keyPrefix, err := types.BuildSchedulerKeyPrefix(tp, height)
+func (k Keeper) IterateScheduledTasks(ctx sdk.Context, tp types.SchedulerTaskType, height uint64, cb func(addr sdk.AccAddress, height uint64, repeat bool) bool) error {
+	keyPrefix, err := types.BuildSchedulerTypeKeyPrefix(tp)
 	if err != nil {
 		return err
 	}
@@ -85,7 +88,8 @@ func (k Keeper) IterateScheduledTasks(ctx sdk.Context, tp types.SchedulerTaskTyp
 		bz := iter.Value()
 		repeat := isRepeatFlag(bz)
 		// cb returns true to stop early
-		if cb(iter.Key(), repeat) {
+		key := iter.Key()
+		if cb(key[8:], sdk.BigEndianToUint64(key[0:8]), repeat) {
 			return nil
 		}
 	}
@@ -107,12 +111,12 @@ type ExecResult struct {
 // reverts the state of this sub call. Rescheduling or other state changes due to the scheduler provisioning
 // are not affected.
 // The result type contains more details information of execution or provisioning errors.
-// The given epoch length is used for re-scheduling the task
+// The given epoch length is used for re-scheduling the task, when set on the task and value >0
 func (k Keeper) ExecScheduledTasks(pCtx sdk.Context, tp types.SchedulerTaskType, epochLength uint64, cb executor) ([]ExecResult, error) {
 	var allResults []ExecResult
 	currentHeight := uint64(pCtx.BlockHeight())
 	// iterator is most gas cost-efficient currently
-	err := k.IterateScheduledTasks(pCtx, tp, currentHeight, func(contract sdk.AccAddress, repeat bool) bool {
+	err := k.IterateScheduledTasks(pCtx, tp, currentHeight, func(contract sdk.AccAddress, _ uint64, repeat bool) bool {
 		gasLimit := k.GetRebalanceGasLimit(pCtx)
 		cachedCtx, done := pCtx.CacheContext()
 		gasMeter := sdk.NewGasMeter(gasLimit)
