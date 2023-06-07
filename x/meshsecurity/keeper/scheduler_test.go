@@ -127,48 +127,69 @@ func TestScheduleTask(t *testing.T) {
 	pCtx, keepers := CreateDefaultTestInput(t)
 	k := keepers.MeshKeeper
 	myContract := sdk.AccAddress(rand.Bytes(32))
+	myOtherContractWithScheduledTask := sdk.AccAddress(rand.Bytes(32))
 	currentHeight := uint64(pCtx.BlockHeight())
+
+	// set a scheduler to overwrite
+	err := k.ScheduleTask(pCtx, types.SchedulerTaskRebalance, myOtherContractWithScheduledTask, currentHeight+1, true)
+	require.NoError(t, err)
+
 	specs := map[string]struct {
-		taskType types.SchedulerTaskType
-		height   uint64
-		repeat   bool
-		expErr   bool
+		taskType  types.SchedulerTaskType
+		contract  sdk.AccAddress
+		height    uint64
+		repeat    bool
+		expRepeat bool
+		expErr    bool
 	}{
 		"all good - single exec": {
+			contract: myContract,
 			taskType: types.SchedulerTaskRebalance,
 			height:   currentHeight + 1,
 		},
 		"all good - repeat": {
-			taskType: types.SchedulerTaskRebalance,
-			height:   currentHeight + 1,
-			repeat:   true,
+			contract:  myContract,
+			taskType:  types.SchedulerTaskRebalance,
+			height:    currentHeight + 1,
+			repeat:    true,
+			expRepeat: true,
+		},
+		"overwrite existing scheduler - preserve repeat": {
+			contract:  myOtherContractWithScheduledTask,
+			taskType:  types.SchedulerTaskRebalance,
+			height:    currentHeight + 1,
+			repeat:    false,
+			expRepeat: true, // it was set up with repeat
 		},
 		"scheduled for current height": {
+			contract: myContract,
 			taskType: types.SchedulerTaskRebalance,
 			height:   currentHeight,
 		},
 		"scheduled for past height": {
+			contract: myContract,
 			taskType: types.SchedulerTaskRebalance,
 			height:   currentHeight - 1,
 			expErr:   true,
 		},
 		"undefined task type": {
-			height: currentHeight,
-			expErr: true,
+			contract: myContract,
+			height:   currentHeight,
+			expErr:   true,
 		},
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
 			ctx, _ := pCtx.CacheContext()
-			gotErr := k.ScheduleTask(ctx, spec.taskType, myContract, spec.height, spec.repeat)
+			gotErr := k.ScheduleTask(ctx, spec.taskType, spec.contract, spec.height, spec.repeat)
 			if spec.expErr {
 				require.Error(t, gotErr)
 				return
 			}
 			require.NoError(t, gotErr)
-			repeat, exists := k.getScheduledTaskAt(ctx, types.SchedulerTaskRebalance, spec.height, myContract)
+			repeat, exists := k.getScheduledTaskAt(ctx, types.SchedulerTaskRebalance, spec.height, spec.contract)
 			assert.True(t, exists)
-			assert.Equal(t, spec.repeat, repeat)
+			assert.Equal(t, spec.expRepeat, repeat)
 		})
 	}
 }
