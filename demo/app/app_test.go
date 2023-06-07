@@ -16,9 +16,9 @@ import (
 
 var emptyWasmOpts []wasm.Option
 
-func TestWasmdExport(t *testing.T) {
+func TestMeshdExport(t *testing.T) {
 	db := dbm.NewMemDB()
-	gapp := NewWasmAppWithCustomOptions(t, false, SetupOptions{
+	gapp := NewMeshAppWithCustomOptions(t, false, SetupOptions{
 		Logger:  log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
 		DB:      db,
 		AppOpts: simtestutil.NewAppOptionsWithFlagHome(t.TempDir()),

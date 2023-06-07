@@ -29,3 +29,11 @@ func (k Keeper) GetParams(clientCtx sdk.Context) (params types.Params) {
 	k.cdc.MustUnmarshal(bz, &params)
 	return params
 }
+
+func (k Keeper) GetRebalanceGasLimit(ctx sdk.Context) sdk.Gas {
+	return sdk.Gas(k.GetParams(ctx).MaxGasEndBlocker)
+}
+
+func (k Keeper) GetRebalanceEpochLength(ctx sdk.Context) uint64 {
+	return uint64(k.GetParams(ctx).EpochLength)
+}

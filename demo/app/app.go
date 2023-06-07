@@ -871,6 +871,12 @@ func NewMeshApp(
 		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
 		}
+
+		// todo: remove set-params and initialize via genesis
+		if err := app.MeshSecKeeper.SetParams(ctx, meshsectypes.DefaultParams(sdk.DefaultBondDenom)); err != nil {
+			tmos.Exit(fmt.Sprintf("failed to set mesh params: %s", err))
+		}
+
 	}
 
 	return app

@@ -2,7 +2,7 @@ package types
 
 import sdk "github.com/cosmos/cosmos-sdk/types"
 
-var (
+const (
 	// ModuleName defines the module name.
 	ModuleName = "meshsecurity"
 
