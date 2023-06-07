@@ -51,6 +51,15 @@ func (k Keeper) HasScheduledTask(ctx sdk.Context, tp types.SchedulerTaskType, co
 	return err == nil && result // we can ignore the unknown task type error and return false instead
 }
 
+func (k Keeper) getScheduledTaskAt(ctx sdk.Context, tp types.SchedulerTaskType, height uint64, contract sdk.AccAddress) (repeat, exists bool) {
+	key, err := types.BuildSchedulerContractKey(tp, height, contract)
+	if err != nil {
+		return false, false
+	}
+	bz := ctx.KVStore(k.storeKey).Get(key)
+	return isRepeat(bz), bz != nil
+}
+
 // ScheduleTask register a new task to be executed at given block height
 func (k Keeper) ScheduleTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, execBlockHeight uint64, repeat bool) error {
 	if execBlockHeight < uint64(ctx.BlockHeight()) { // sanity check
@@ -63,7 +72,7 @@ func (k Keeper) ScheduleTask(ctx sdk.Context, tp types.SchedulerTaskType, contra
 	store := ctx.KVStore(k.storeKey)
 	if !repeat { // ensure that we do not overwrite a repeating scheduled event
 		if bz := store.Get(storeKey); bz != nil {
-			repeat = isRepeatFlag(bz)
+			repeat = isRepeat(bz)
 		}
 	}
 	store.Set(storeKey, []byte{toByte(repeat)})
@@ -81,15 +90,15 @@ func (k Keeper) IterateScheduledTasks(ctx sdk.Context, tp types.SchedulerTaskTyp
 		return err
 	}
 	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), keyPrefix)
-	iter := prefixStore.Iterator(nil, sdk.Uint64ToBigEndian(height))
+	iter := prefixStore.Iterator(nil, nil)
 	defer iter.Close()
 
 	for ; iter.Valid(); iter.Next() {
-		bz := iter.Value()
-		repeat := isRepeatFlag(bz)
 		// cb returns true to stop early
 		key := iter.Key()
-		if cb(key[8:], sdk.BigEndianToUint64(key[0:8]), repeat) {
+		scheduledHeight := sdk.BigEndianToUint64(key[0:8])
+		if scheduledHeight > height ||
+			cb(key[8:], scheduledHeight, isRepeat(iter.Value())) {
 			return nil
 		}
 	}
@@ -104,6 +113,7 @@ type ExecResult struct {
 	DeleteTaskErr error
 	GasUsed       sdk.Gas
 	GasLimit      sdk.Gas
+	NextRunHeight uint64
 }
 
 // ExecScheduledTasks execute scheduled task at current height
@@ -116,7 +126,7 @@ func (k Keeper) ExecScheduledTasks(pCtx sdk.Context, tp types.SchedulerTaskType,
 	var allResults []ExecResult
 	currentHeight := uint64(pCtx.BlockHeight())
 	// iterator is most gas cost-efficient currently
-	err := k.IterateScheduledTasks(pCtx, tp, currentHeight, func(contract sdk.AccAddress, _ uint64, repeat bool) bool {
+	err := k.IterateScheduledTasks(pCtx, tp, currentHeight, func(contract sdk.AccAddress, scheduledHeight uint64, repeat bool) bool {
 		gasLimit := k.GetRebalanceGasLimit(pCtx)
 		cachedCtx, done := pCtx.CacheContext()
 		gasMeter := sdk.NewGasMeter(gasLimit)
@@ -137,11 +147,12 @@ func (k Keeper) ExecScheduledTasks(pCtx sdk.Context, tp types.SchedulerTaskType,
 		if repeat && epochLength != 0 {
 			// re-schedule
 			nextExecBlock := uint64(pCtx.BlockHeight()) + epochLength
+			result.NextRunHeight = nextExecBlock
 			if err := k.ScheduleTask(pCtx, tp, contract, nextExecBlock, repeat); err != nil {
 				result.RescheduleErr = err
 			}
 		}
-		if err := k.deleteScheduledTask(pCtx, tp, contract, currentHeight); err != nil {
+		if err := k.deleteScheduledTask(pCtx, tp, contract, scheduledHeight); err != nil {
 			result.DeleteTaskErr = err
 		}
 		allResults = append(allResults, result)
@@ -161,7 +172,7 @@ func safeExec(cb func() error) (err error) {
 }
 
 // helper that returns true when given bytes are equal to the "repeat" flag byte representation
-func isRepeatFlag(bz []byte) bool {
+func isRepeat(bz []byte) bool {
 	return bytes.Equal(bz, []byte{toByte(true)})
 }
 
