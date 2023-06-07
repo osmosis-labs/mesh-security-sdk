@@ -3,6 +3,7 @@ package osmosis.meshsecurity.v1beta1;
 
 import "cosmos/base/v1beta1/coin.proto";
 import "gogoproto/gogo.proto";
+import "amino/amino.proto";
 
 option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types";
 option (gogoproto.goproto_getters_all) = false;
@@ -19,4 +20,21 @@ message VirtualStakingMaxCapInfo {
   cosmos.base.v1beta1.Coin delegated = 2 [ (gogoproto.nullable) = false ];
   // Cap is the current max cap limit
   cosmos.base.v1beta1.Coin cap = 3 [ (gogoproto.nullable) = false ];
+}
+
+// Params defines the parameters for the x/meshsecurity module.
+message Params {
+  option (amino.name) = "meshsecurity/Params";
+  option (gogoproto.equal) = true;
+  option (gogoproto.goproto_stringer) = false;
+
+  // TotalContractsMaxCap is the maximum that the sum of all contract max caps
+  // must not exceed
+  cosmos.base.v1beta1.Coin total_contracts_max_cap = 1
+      [ (gogoproto.nullable) = false ];
+  // Epoch length is the number of blocks that defines an epoch
+  uint32 epoch_length = 2;
+  // MaxGasEndBlocker defines the maximum gas that can be spent in a contract
+  // sudo callback
+  uint32 max_gas_end_blocker = 3;
 }
