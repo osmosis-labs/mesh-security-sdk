@@ -37,3 +37,7 @@ func (k Keeper) GetRebalanceGasLimit(ctx sdk.Context) sdk.Gas {
 func (k Keeper) GetRebalanceEpochLength(ctx sdk.Context) uint64 {
 	return uint64(k.GetParams(ctx).EpochLength)
 }
+
+func (k Keeper) GetTotalContractsMaxCap(ctx sdk.Context) sdk.Coin {
+	return k.GetParams(ctx).TotalContractsMaxCap
+}

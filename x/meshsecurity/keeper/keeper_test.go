@@ -78,9 +78,27 @@ func TestSetMaxCapLimit(t *testing.T) {
 				return oneStakeCoin.AddAmount(math.NewInt(1))
 			},
 		},
+		"within total contracts max limit": {
+			setup: func(ctx sdk.Context) sdk.Coin {
+				p := k.GetParams(ctx)
+				p.TotalContractsMaxCap = oneStakeCoin
+				require.NoError(t, k.SetParams(ctx, p))
+				return oneStakeCoin
+			},
+		},
 		"non staking denom rejected": {
 			setup: func(_ sdk.Context) sdk.Coin {
 				return sdk.NewInt64Coin("NON", 1)
+			},
+			expErr: true,
+		},
+		"total contracts max exceeded - with other contract": {
+			setup: func(ctx sdk.Context) sdk.Coin {
+				p := k.GetParams(ctx)
+				p.TotalContractsMaxCap = oneStakeCoin
+				require.NoError(t, k.SetParams(ctx, p))
+				require.NoError(t, k.SetMaxCapLimit(ctx, rand.Bytes(32), oneStakeCoin))
+				return oneStakeCoin
 			},
 			expErr: true,
 		},
