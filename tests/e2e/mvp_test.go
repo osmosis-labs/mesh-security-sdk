@@ -149,8 +149,7 @@ func TestMVP(t *testing.T) {
 
 	// when an epoch ends, the delegation rebalance is triggered
 	doRebalance := func() {
-		rebalanceMsg := []byte(`{"rebalance":{}}`)
-		_, err = consumerApp.WasmKeeper.Sudo(consumerChain.GetContext(), consumerContracts.staking, rebalanceMsg)
+		err = consumerApp.MeshSecKeeper.Rebalance(consumerChain.GetContext(), consumerContracts.staking)
 		require.NoError(t, err)
 	}
 	doRebalance()

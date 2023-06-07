@@ -14,8 +14,8 @@ import (
 // EndBlocker is called after every block
 func EndBlocker(ctx sdk.Context, k *keeper.Keeper) {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
-
-	results, err := k.ExecScheduledTasks(ctx, types.SchedulerTaskRebalance, func(ctx sdk.Context, addr sdk.AccAddress) error {
+	epochLength := k.GetRebalanceEpochLength(ctx)
+	results, err := k.ExecScheduledTasks(ctx, types.SchedulerTaskRebalance, epochLength, func(ctx sdk.Context, addr sdk.AccAddress) error {
 		return k.Rebalance(ctx, addr)
 	})
 	if err != nil {

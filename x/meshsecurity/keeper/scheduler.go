@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"bytes"
+	"math"
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -11,13 +12,14 @@ import (
 )
 
 func (k Keeper) GetRebalanceGasLimit(ctx sdk.Context) sdk.Gas {
-	return 0 // todo: impl
+	return 500_000 // todo: impl with better defaults
 }
 
-func (k Keeper) GetRebalanceEpochLength(ctx sdk.Context) int64 {
-	return 0 // todo: impl
+func (k Keeper) GetRebalanceEpochLength(ctx sdk.Context) uint64 {
+	return 100 // todo: impl with better defaults
 }
 
+// deleteScheduledTask removes scheduled task from store
 func (k Keeper) deleteScheduledTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, execBlockHeight uint64) error {
 	storeKey, err := types.BuildSchedulerContractKey(tp, execBlockHeight, contract)
 	if err != nil {
@@ -28,6 +30,25 @@ func (k Keeper) deleteScheduledTask(ctx sdk.Context, tp types.SchedulerTaskType,
 	return nil
 }
 
+// ScheduleRebalanceTask schedule a rebalance task for the given virtual staking contract using params defined epoch length
+func (k Keeper) ScheduleRebalanceTask(ctx sdk.Context, contract sdk.AccAddress) error {
+	epochLength := k.GetRebalanceEpochLength(ctx)
+	nextExecBlock := uint64(ctx.BlockHeight()) + epochLength
+	return k.ScheduleTask(ctx, types.SchedulerTaskRebalance, contract, nextExecBlock, true)
+}
+
+// HasScheduledTask returns true if the contract has a task scheduled of the given type
+func (k Keeper) HasScheduledTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress) bool {
+	var result bool
+	err := k.IterateScheduledTasks(ctx, tp, math.MaxUint, func(addr sdk.AccAddress, _ bool) bool {
+		result = contract.Equals(addr) // not super efficient but as there should be only a small set
+		// of contracts and tasks lets not do a secondary index now
+		return result
+	})
+	return err == nil && result // we can ignore the unknown task type error and return false instead
+}
+
+// ScheduleTask register a new task to be executed at given block height
 func (k Keeper) ScheduleTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, execBlockHeight uint64, repeat bool) error {
 	if execBlockHeight < uint64(ctx.BlockHeight()) { // sanity check
 		return types.ErrInvalid.Wrapf("can not schedule for past block: %d", execBlockHeight)
@@ -47,16 +68,17 @@ func (k Keeper) ScheduleTask(ctx sdk.Context, tp types.SchedulerTaskType, contra
 	return nil
 }
 
-// callback interface to execute the rebalance action
-type rebalancer func(ctx sdk.Context, addr sdk.AccAddress) error
+// callback interface to execute a scheduled task
+type executor func(ctx sdk.Context, addr sdk.AccAddress) error
 
+// IterateScheduledTasks iterate of all scheduled task executions for the given type up to given block height (included)
 func (k Keeper) IterateScheduledTasks(ctx sdk.Context, tp types.SchedulerTaskType, height uint64, cb func(addr sdk.AccAddress, repeat bool) bool) error {
 	keyPrefix, err := types.BuildSchedulerKeyPrefix(tp, height)
 	if err != nil {
 		return err
 	}
 	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), keyPrefix)
-	iter := prefixStore.Iterator(nil, nil)
+	iter := prefixStore.Iterator(nil, sdk.Uint64ToBigEndian(height))
 	defer iter.Close()
 
 	for ; iter.Valid(); iter.Next() {
@@ -70,6 +92,7 @@ func (k Keeper) IterateScheduledTasks(ctx sdk.Context, tp types.SchedulerTaskTyp
 	return nil
 }
 
+// ExecResult are the results of a task execution
 type ExecResult struct {
 	Contract      sdk.AccAddress
 	ExecErr       error
@@ -80,7 +103,12 @@ type ExecResult struct {
 }
 
 // ExecScheduledTasks execute scheduled task at current height
-func (k Keeper) ExecScheduledTasks(pCtx sdk.Context, tp types.SchedulerTaskType, cb rebalancer) ([]ExecResult, error) {
+// The executor function is called within the scope of a new cached store. Any failure on execution
+// reverts the state of this sub call. Rescheduling or other state changes due to the scheduler provisioning
+// are not affected.
+// The result type contains more details information of execution or provisioning errors.
+// The given epoch length is used for re-scheduling the task
+func (k Keeper) ExecScheduledTasks(pCtx sdk.Context, tp types.SchedulerTaskType, epochLength uint64, cb executor) ([]ExecResult, error) {
 	var allResults []ExecResult
 	currentHeight := uint64(pCtx.BlockHeight())
 	// iterator is most gas cost-efficient currently
@@ -102,10 +130,9 @@ func (k Keeper) ExecScheduledTasks(pCtx sdk.Context, tp types.SchedulerTaskType,
 		result.GasUsed = gasMeter.GasConsumed()
 		types.EmitSchedulerExecutionEvent(pCtx, contract, err)
 
-		if repeat {
+		if repeat && epochLength != 0 {
 			// re-schedule
-			epochLength := k.GetRebalanceEpochLength(pCtx)
-			nextExecBlock := uint64(pCtx.BlockHeight() + epochLength)
+			nextExecBlock := uint64(pCtx.BlockHeight()) + epochLength
 			if err := k.ScheduleTask(pCtx, tp, contract, nextExecBlock, repeat); err != nil {
 				result.RescheduleErr = err
 			}
@@ -119,6 +146,7 @@ func (k Keeper) ExecScheduledTasks(pCtx sdk.Context, tp types.SchedulerTaskType,
 	return allResults, err
 }
 
+// execute callback with panics recovered
 func safeExec(cb func() error) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -128,10 +156,12 @@ func safeExec(cb func() error) (err error) {
 	return cb()
 }
 
+// helper that returns true when given bytes are equal to the "repeat" flag byte representation
 func isRepeatFlag(bz []byte) bool {
 	return bytes.Equal(bz, []byte{toByte(true)})
 }
 
+// converts boolean to byte representation
 func toByte(b bool) byte {
 	if b {
 		return 1
