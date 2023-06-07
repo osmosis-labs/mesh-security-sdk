@@ -22,8 +22,20 @@ import (
 func TestMVP(t *testing.T) {
 	// scenario:
 	// given a provider chain P and a consumer chain C
-	// when
-	// then
+	// when	 a user on P deposits an amount as collateral in the vault contract
+	// then	 it can be used as "lien" to stake local and to "cross stake" on chain C
+	// when  an amount is "cross staked" to a validator on chain C
+	//
+	// not fully implemented:
+	//
+	// and	 the ibc package is relayed
+	// then  the amount is converted into an amount in the chain C bonding token
+	// and   scheduled to be staked as synthetic token on the validator
+	// when  the next epoch is executed on chain C
+	// then  the synthetic tokens are minted and staked
+	// when  the user on chain P starts an undelegate
+	// ...
+
 	coord := NewIBCCoordinator(t, 2)
 	providerChain := coord.GetChain(ibctesting.GetChainID(1))
 	providerContracts := bootstrapProviderContracts(t, providerChain)
