@@ -82,6 +82,19 @@ func (k Keeper) SetMaxCapLimit(ctx sdk.Context, contract sdk.AccAddress, newAmou
 	if k.staking.BondDenom(ctx) != newAmount.Denom {
 		return sdkerrors.ErrInvalidCoins
 	}
+	// ensure that the total max cap amount for all contracts is not exceeded
+	total := math.ZeroInt()
+	k.IterateMaxCapLimit(ctx, func(addr sdk.AccAddress, m math.Int) bool {
+		if !addr.Equals(contract) {
+			total = total.Add(m)
+		}
+		return false
+	})
+	totalMaxCap := k.GetTotalContractsMaxCap(ctx)
+	if total.Add(newAmount.Amount).GT(totalMaxCap.Amount) {
+		return types.ErrInvalid.Wrapf("amount exceeds total available max cap (used %s of %s)", total, totalMaxCap)
+	}
+	// persist
 	store := ctx.KVStore(k.storeKey)
 	bz, err := newAmount.Amount.Marshal()
 	if err != nil { // always nil

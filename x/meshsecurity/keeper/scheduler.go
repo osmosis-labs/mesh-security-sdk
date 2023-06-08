@@ -11,14 +11,6 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
-func (k Keeper) GetRebalanceGasLimit(ctx sdk.Context) sdk.Gas {
-	return 500_000 // todo: impl with better defaults
-}
-
-func (k Keeper) GetRebalanceEpochLength(ctx sdk.Context) uint64 {
-	return 100 // todo: impl with better defaults
-}
-
 // deleteScheduledTask removes scheduled task from store
 func (k Keeper) deleteScheduledTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, execBlockHeight uint64) error {
 	storeKey, err := types.BuildSchedulerContractKey(tp, execBlockHeight, contract)

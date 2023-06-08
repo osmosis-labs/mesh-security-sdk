@@ -2,7 +2,7 @@ syntax = "proto3";
 package osmosis.meshsecurity.v1beta1;
 
 import "cosmos/base/v1beta1/coin.proto";
-import "osmosis/meshsecurity/v1beta1/types.proto";
+import "osmosis/meshsecurity/v1beta1/meshsecurity.proto";
 import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
 import "amino/amino.proto";
@@ -25,6 +25,11 @@ service Query {
       returns (QueryVirtualStakingMaxCapLimitsResponse) {
     option (google.api.http).get =
         "/osmosis/meshsecurity/v1beta1/max_cap_limits";
+  }
+
+  // Params queries the parameters of x/meshsecurity module.
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/osmosis/meshsecurity/v1beta1/params";
   }
 }
 
@@ -52,5 +57,16 @@ message QueryVirtualStakingMaxCapLimitsRequest {}
 // Query/VirtualStakingMaxCapLimits RPC method
 message QueryVirtualStakingMaxCapLimitsResponse {
   repeated VirtualStakingMaxCapInfo max_cap_infos = 1
+      [ (gogoproto.nullable) = false, (amino.dont_omitempty) = true ];
+}
+
+// QueryParamsRequest is the request type for the
+// Query/Params RPC method
+message QueryParamsRequest {}
+
+// QueryParamsResponse is the response type for the
+// Query/Params RPC method
+message QueryParamsResponse {
+  Params params = 1
       [ (gogoproto.nullable) = false, (amino.dont_omitempty) = true ];
 }

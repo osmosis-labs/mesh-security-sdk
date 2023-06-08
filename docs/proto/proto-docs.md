@@ -4,10 +4,13 @@
 
 ## Table of Contents
 
-- [osmosis/meshsecurity/v1beta1/types.proto](#osmosis/meshsecurity/v1beta1/types.proto)
+- [osmosis/meshsecurity/v1beta1/meshsecurity.proto](#osmosis/meshsecurity/v1beta1/meshsecurity.proto)
+    - [Params](#osmosis.meshsecurity.v1beta1.Params)
     - [VirtualStakingMaxCapInfo](#osmosis.meshsecurity.v1beta1.VirtualStakingMaxCapInfo)
   
 - [osmosis/meshsecurity/v1beta1/query.proto](#osmosis/meshsecurity/v1beta1/query.proto)
+    - [QueryParamsRequest](#osmosis.meshsecurity.v1beta1.QueryParamsRequest)
+    - [QueryParamsResponse](#osmosis.meshsecurity.v1beta1.QueryParamsResponse)
     - [QueryVirtualStakingMaxCapLimitRequest](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitRequest)
     - [QueryVirtualStakingMaxCapLimitResponse](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitResponse)
     - [QueryVirtualStakingMaxCapLimitsRequest](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitsRequest)
@@ -25,10 +28,27 @@
 
 
 
-<a name="osmosis/meshsecurity/v1beta1/types.proto"></a>
+<a name="osmosis/meshsecurity/v1beta1/meshsecurity.proto"></a>
 <p align="right"><a href="#top">Top</a></p>
 
-## osmosis/meshsecurity/v1beta1/types.proto
+## osmosis/meshsecurity/v1beta1/meshsecurity.proto
+
+
+
+<a name="osmosis.meshsecurity.v1beta1.Params"></a>
+
+### Params
+Params defines the parameters for the x/meshsecurity module.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `total_contracts_max_cap` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | TotalContractsMaxCap is the maximum that the sum of all contract max caps must not exceed |
+| `epoch_length` | [uint32](#uint32) |  | Epoch length is the number of blocks that defines an epoch |
+| `max_gas_end_blocker` | [uint32](#uint32) |  | MaxGasEndBlocker defines the maximum gas that can be spent in a contract sudo callback |
+
+
+
 
 
 
@@ -63,6 +83,33 @@ virtual staking max cap
 <p align="right"><a href="#top">Top</a></p>
 
 ## osmosis/meshsecurity/v1beta1/query.proto
+
+
+
+<a name="osmosis.meshsecurity.v1beta1.QueryParamsRequest"></a>
+
+### QueryParamsRequest
+QueryParamsRequest is the request type for the
+Query/Params RPC method
+
+
+
+
+
+
+<a name="osmosis.meshsecurity.v1beta1.QueryParamsResponse"></a>
+
+### QueryParamsResponse
+QueryParamsResponse is the response type for the
+Query/Params RPC method
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `params` | [Params](#osmosis.meshsecurity.v1beta1.Params) |  |  |
+
+
+
 
 
 
@@ -141,6 +188,7 @@ Query provides defines the gRPC querier service
 | ----------- | ------------ | ------------- | ------------| ------- | -------- |
 | `VirtualStakingMaxCapLimit` | [QueryVirtualStakingMaxCapLimitRequest](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitRequest) | [QueryVirtualStakingMaxCapLimitResponse](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitResponse) | VirtualStakingMaxCapLimit gets max cap limit for the given contract | GET|/osmosis/meshsecurity/v1beta1/max_cap_limit/{address}|
 | `VirtualStakingMaxCapLimits` | [QueryVirtualStakingMaxCapLimitsRequest](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitsRequest) | [QueryVirtualStakingMaxCapLimitsResponse](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitsResponse) | VirtualStakingMaxCapLimits gets max cap limits | GET|/osmosis/meshsecurity/v1beta1/max_cap_limits|
+| `Params` | [QueryParamsRequest](#osmosis.meshsecurity.v1beta1.QueryParamsRequest) | [QueryParamsResponse](#osmosis.meshsecurity.v1beta1.QueryParamsResponse) | Params queries the parameters of x/meshsecurity module. | GET|/osmosis/meshsecurity/v1beta1/params|
 
  <!-- end services -->
 

@@ -74,8 +74,8 @@ func setup(t testing.TB, chainID string, withGenesis bool, invCheckPeriod uint, 
 	return app, GenesisState{}
 }
 
-// NewWasmAppWithCustomOptions initializes a new MeshApp with custom options.
-func NewWasmAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOptions) *MeshApp {
+// NewMeshAppWithCustomOptions initializes a new MeshApp with custom options.
+func NewMeshAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOptions) *MeshApp {
 	t.Helper()
 
 	privVal := mock.NewPV()
