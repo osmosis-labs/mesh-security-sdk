@@ -5,7 +5,7 @@ VERSION := $(shell echo $(shell git describe --tags) | sed 's/^v//')
 COMMIT := $(shell git log -1 --format='%H')
 LEDGER_ENABLED ?= true
 BINDIR ?= $(GOPATH)/bin
-SIMAPP = .
+BUILD_DIR = ./build
 
 export GO111MODULE = on
 
@@ -76,8 +76,20 @@ ifeq ($(OS),Windows_NT)
 	$(error mesh demo server not supported)
 	exit 1
 else
-	go build -mod=readonly $(BUILD_FLAGS) -o build/meshd ./cmd/meshd
+	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILD_DIR)/meshd ./cmd/meshd
 endif
+
+build-vendored:
+	go build -mod=vendor $(BUILD_FLAGS) -o $(BUILD_DIR)/meshd ./cmd/meshd
+
+build-linux-static:
+	go mod vendor  # quick hack to make local dependencies work in Docker
+	mkdir -p $(BUILD_DIR)
+	docker build --tag osmosis/meshd:local ./
+	docker create --name meshd_temp osmosis/meshd:local
+	docker cp meshd_temp:/usr/bin/meshd $(BUILD_DIR)/
+	docker rm -f meshd_temp
+	rm -rf vendor/
 
 install:
 	go install -mod=readonly $(BUILD_FLAGS) ./cmd/meshd
@@ -106,6 +118,6 @@ test-sim-multi-seed-short: runsim
 	@$(BINDIR)/runsim -Jobs=4 -SimAppPkg=$(SIMAPP) -ExitOnFail 50 10 TestFullAppSimulation
 
 .PHONY: all \
-	go-mod-cache draw-deps clean build  \
+	go-mod-cache draw-deps clean build build-linux-static build-vendored \
 	test test-all test-build test-cover test-unit test-race \
 	proto-all proto-format proto-swagger-gen proto-lint proto-check-breaking
