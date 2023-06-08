@@ -589,6 +589,7 @@ func NewMeshApp(
 		keys[meshsectypes.StoreKey],
 		app.BankKeeper,
 		app.StakingKeeper,
+		&app.WasmKeeper, // ensure this is a pointer as we instantiate the keeper a bit later
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 

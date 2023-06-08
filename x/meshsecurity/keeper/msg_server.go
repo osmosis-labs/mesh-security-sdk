@@ -36,8 +36,15 @@ func (m msgServer) SetVirtualStakingMaxCap(goCtx context.Context, req *types.Msg
 	if err != nil {
 		return nil, errorsmod.Wrap(err, "contract")
 	}
-	if err := m.k.SetMaxCapLimit(sdk.UnwrapSDKContext(goCtx), acc, req.MaxCap); err != nil {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	if err := m.k.SetMaxCapLimit(ctx, acc, req.MaxCap); err != nil {
 		return nil, err
+	}
+	if !m.k.HasScheduledTask(ctx, types.SchedulerTaskRebalance, acc) {
+		if err := m.k.ScheduleRebalanceTask(ctx, acc); err != nil {
+			return nil, errorsmod.Wrap(err, "failed to schedule rebalance task")
+		}
 	}
 	return &types.MsgSetVirtualStakingMaxCapResponse{}, nil
 }

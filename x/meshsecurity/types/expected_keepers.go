@@ -56,3 +56,9 @@ type AccountKeeper interface {
 	GetModuleAddress(name string) sdk.AccAddress
 	GetModuleAccount(ctx sdk.Context, name string) authtypes.ModuleAccountI
 }
+
+// WasmKeeper abstract wasm keeper
+type WasmKeeper interface {
+	Sudo(ctx sdk.Context, contractAddress sdk.AccAddress, msg []byte) ([]byte, error)
+	HasContractInfo(ctx sdk.Context, contractAddress sdk.AccAddress) bool
+}
