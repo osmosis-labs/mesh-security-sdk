@@ -52,7 +52,7 @@ func TestCustomMeshSecDispatchMsg(t *testing.T) {
 				fn, asserts := captureDelegateCall(t, myContractAddr, myValidatorAddr, myAmount, sdk.OneDec())
 				return &msKeeperMock{DelegateFn: fn}, asserts
 			},
-			expEvents: []sdk.Event{sdk.NewEvent("delegate",
+			expEvents: []sdk.Event{sdk.NewEvent("instant_delegate",
 				sdk.NewAttribute("module", "meshsecurity"),
 				sdk.NewAttribute("validator", myValidatorAddr.String()),
 				sdk.NewAttribute("amount", myAmount.String()),
@@ -77,7 +77,7 @@ func TestCustomMeshSecDispatchMsg(t *testing.T) {
 				fn, asserts := captureCall(t, myContractAddr, myValidatorAddr, myAmount)
 				return &msKeeperMock{UndelegateFn: fn}, asserts
 			},
-			expEvents: []sdk.Event{sdk.NewEvent("unbond",
+			expEvents: []sdk.Event{sdk.NewEvent("instant_unbond",
 				sdk.NewAttribute("module", "meshsecurity"),
 				sdk.NewAttribute("validator", myValidatorAddr.String()),
 				sdk.NewAttribute("amount", myAmount.String()),

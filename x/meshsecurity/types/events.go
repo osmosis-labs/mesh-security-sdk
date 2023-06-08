@@ -10,8 +10,8 @@ const (
 	EventTypeSchedulerExec       = "scheduler_execution"
 	EventTypeSchedulerRegistered = "scheduler_registered"
 	EventTypeMaxCapLimitUpdated  = "max_cap_limit_updated"
-	EventTypeUnbond              = "unbond"
-	EventTypeDelegate            = "delegate"
+	EventTypeUnbond              = "instant_unbond"
+	EventTypeDelegate            = "instant_delegate"
 )
 
 const (
