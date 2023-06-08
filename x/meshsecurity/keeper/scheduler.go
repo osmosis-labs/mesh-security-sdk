@@ -32,11 +32,12 @@ func (k Keeper) ScheduleRebalanceTask(ctx sdk.Context, contract sdk.AccAddress) 
 	return k.ScheduleTask(ctx, types.SchedulerTaskRebalance, contract, nextExecBlock, true)
 }
 
-// HasScheduledTask returns true if the contract has a task scheduled of the given type
-func (k Keeper) HasScheduledTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress) bool {
+// HasScheduledTask returns true if the contract has a task scheduled of the given type and repeat setting
+func (k Keeper) HasScheduledTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, repeat bool) bool {
 	var result bool
-	err := k.IterateScheduledTasks(ctx, tp, math.MaxUint, func(addr sdk.AccAddress, _ uint64, _ bool) bool {
-		result = contract.Equals(addr) // not super efficient but as there should be only a small set
+	err := k.IterateScheduledTasks(ctx, tp, math.MaxUint, func(addr sdk.AccAddress, _ uint64, isRepeat bool) bool {
+		result = repeat == isRepeat &&
+			contract.Equals(addr) // not super efficient but as there should be only a small set
 		// of contracts and tasks lets not do a secondary index now
 		return result
 	})
@@ -89,7 +90,7 @@ func (k Keeper) IterateScheduledTasks(ctx sdk.Context, tp types.SchedulerTaskTyp
 		// cb returns true to stop early
 		key := iter.Key()
 		scheduledHeight := sdk.BigEndianToUint64(key[0:8])
-		if scheduledHeight > height ||
+		if scheduledHeight > height || // abort for future heights
 			cb(key[8:], scheduledHeight, isRepeat(iter.Value())) {
 			return nil
 		}

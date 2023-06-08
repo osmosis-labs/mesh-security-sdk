@@ -41,7 +41,7 @@ func (m msgServer) SetVirtualStakingMaxCap(goCtx context.Context, req *types.Msg
 	if err := m.k.SetMaxCapLimit(ctx, acc, req.MaxCap); err != nil {
 		return nil, err
 	}
-	if !m.k.HasScheduledTask(ctx, types.SchedulerTaskRebalance, acc) {
+	if !m.k.HasScheduledTask(ctx, types.SchedulerTaskRebalance, acc, true) {
 		if err := m.k.ScheduleRebalanceTask(ctx, acc); err != nil {
 			return nil, errorsmod.Wrap(err, "failed to schedule rebalance task")
 		}
