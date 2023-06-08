@@ -93,9 +93,14 @@ func (h CustomMsgHandler) handleBondMsg(ctx sdk.Context, actor sdk.AccAddress, b
 	if err != nil {
 		return nil, nil, err
 	}
-	// todo: events here?
-	// todo: response data format?
-	return []sdk.Event{}, nil, nil
+
+	return []sdk.Event{sdk.NewEvent(
+		types.EventTypeDelegate,
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		sdk.NewAttribute(types.AttributeKeyValidator, valAddr.String()),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
+		sdk.NewAttribute(types.AttributeKeyDelegator, actor.String()),
+	)}, nil, nil
 }
 
 func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress, bondMsg *contract.UnbondMsg) ([]sdk.Event, [][]byte, error) {
@@ -111,9 +116,14 @@ func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress,
 	if err != nil {
 		return nil, nil, err
 	}
-	// todo: events here?
-	// todo: response data format?
-	return []sdk.Event{}, nil, nil
+
+	return []sdk.Event{sdk.NewEvent(
+		types.EventTypeUnbond,
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		sdk.NewAttribute(types.AttributeKeyValidator, valAddr.String()),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
+		sdk.NewAttribute(sdk.AttributeKeySender, actor.String()),
+	)}, nil, nil
 }
 
 // AuthSourceFn is helper for simple AuthSource types

@@ -38,11 +38,12 @@ func TestCustomMeshSecDispatchMsg(t *testing.T) {
 		myValidatorAddr.String()))
 
 	specs := map[string]struct {
-		src     wasmvmtypes.CosmosMsg
-		auth    AuthSource
-		setup   func(*testing.T) (msKeeper, func())
-		expErr  error
-		expData [][]byte
+		src       wasmvmtypes.CosmosMsg
+		auth      AuthSource
+		setup     func(*testing.T) (msKeeper, func())
+		expErr    error
+		expData   [][]byte
+		expEvents []sdk.Event
 	}{
 		"handle bond msg - success": {
 			src:  wasmvmtypes.CosmosMsg{Custom: validBondMsg},
@@ -51,6 +52,12 @@ func TestCustomMeshSecDispatchMsg(t *testing.T) {
 				fn, asserts := captureDelegateCall(t, myContractAddr, myValidatorAddr, myAmount, sdk.OneDec())
 				return &msKeeperMock{DelegateFn: fn}, asserts
 			},
+			expEvents: []sdk.Event{sdk.NewEvent("instant_delegate",
+				sdk.NewAttribute("module", "meshsecurity"),
+				sdk.NewAttribute("validator", myValidatorAddr.String()),
+				sdk.NewAttribute("amount", myAmount.String()),
+				sdk.NewAttribute("delegator", myContractAddr.String()),
+			)},
 		},
 		"handle bond failed": {
 			src:  wasmvmtypes.CosmosMsg{Custom: validBondMsg},
@@ -70,6 +77,12 @@ func TestCustomMeshSecDispatchMsg(t *testing.T) {
 				fn, asserts := captureCall(t, myContractAddr, myValidatorAddr, myAmount)
 				return &msKeeperMock{UndelegateFn: fn}, asserts
 			},
+			expEvents: []sdk.Event{sdk.NewEvent("instant_unbond",
+				sdk.NewAttribute("module", "meshsecurity"),
+				sdk.NewAttribute("validator", myValidatorAddr.String()),
+				sdk.NewAttribute("amount", myAmount.String()),
+				sdk.NewAttribute("sender", myContractAddr.String()),
+			)},
 		},
 		"handle unbond failed": {
 			src:  wasmvmtypes.CosmosMsg{Custom: validUnbondMsg},
@@ -128,13 +141,14 @@ func TestCustomMeshSecDispatchMsg(t *testing.T) {
 			keeperMock, verify := spec.setup(t)
 			h := NewCustomMsgHandler(keeperMock, spec.auth)
 			var ctx sdk.Context
-			_, gotData, gotErr := h.DispatchMsg(ctx, myContractAddr, "", spec.src)
+			gotEvents, gotData, gotErr := h.DispatchMsg(ctx, myContractAddr, "", spec.src)
 			if spec.expErr != nil {
 				assert.ErrorIs(t, gotErr, spec.expErr)
 				return
 			}
 			require.NoError(t, gotErr)
 			assert.Equal(t, spec.expData, gotData)
+			assert.Equal(t, spec.expEvents, gotEvents)
 			verify()
 		})
 	}
