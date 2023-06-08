@@ -8,7 +8,6 @@ import (
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
 
@@ -96,11 +95,11 @@ func (h CustomMsgHandler) handleBondMsg(ctx sdk.Context, actor sdk.AccAddress, b
 	}
 
 	return []sdk.Event{sdk.NewEvent(
-		stakingtypes.EventTypeDelegate,
+		types.EventTypeDelegate,
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
-		sdk.NewAttribute(stakingtypes.AttributeKeyValidator, valAddr.String()),
+		sdk.NewAttribute(types.AttributeKeyValidator, valAddr.String()),
 		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
-		sdk.NewAttribute(stakingtypes.AttributeKeyDelegator, actor.String()),
+		sdk.NewAttribute(types.AttributeKeyDelegator, actor.String()),
 	)}, nil, nil
 }
 
@@ -119,9 +118,9 @@ func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress,
 	}
 
 	return []sdk.Event{sdk.NewEvent(
-		stakingtypes.EventTypeUnbond,
+		types.EventTypeUnbond,
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
-		sdk.NewAttribute(stakingtypes.AttributeKeyValidator, valAddr.String()),
+		sdk.NewAttribute(types.AttributeKeyValidator, valAddr.String()),
 		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
 		sdk.NewAttribute(sdk.AttributeKeySender, actor.String()),
 	)}, nil, nil

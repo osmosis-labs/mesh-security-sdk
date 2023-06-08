@@ -10,6 +10,8 @@ const (
 	EventTypeSchedulerExec       = "scheduler_execution"
 	EventTypeSchedulerRegistered = "scheduler_registered"
 	EventTypeMaxCapLimitUpdated  = "max_cap_limit_updated"
+	EventTypeUnbond              = "unbond"
+	EventTypeDelegate            = "delegate"
 )
 
 const (
@@ -18,6 +20,8 @@ const (
 	AttributeKeySchedulerExecSuccess = "execution_success"
 	AttributeKeySchedulerRepeat      = "repeat"
 	AttributeKeySchedulerExecError   = "error"
+	AttributeKeyValidator            = "validator"
+	AttributeKeyDelegator            = "delegator"
 )
 
 // EmitSchedulerExecutionEvent emits an event signalling a successful or failed scheduler execution and including the error
