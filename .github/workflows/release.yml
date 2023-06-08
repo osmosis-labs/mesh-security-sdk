@@ -1,0 +1,38 @@
+name: Release mesh-security
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+permissions:
+  contents: read
+
+jobs:
+  release:
+    permissions:
+      contents: write # for goreleaser/goreleaser-action to create a GitHub release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.20"
+          check-latest: true
+      - name: Build demo app artifact
+        run: make build-linux-static
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        id: create_release
+        with:
+          draft: false
+          prerelease: false
+          body_path: RELEASE_NOTES.md
+          files: |
+            demo/build/*
+            tests/e2e/build/*

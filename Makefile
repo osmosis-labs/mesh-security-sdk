@@ -23,6 +23,10 @@ install:
 build:
 	$(MAKE) -C demo build
 
+build-linux-static:
+	$(MAKE) -C demo build-linux-static
+	$(MAKE) -C tests/e2e build-linux
+
 ########################################
 ### Testing
 
@@ -79,5 +83,5 @@ proto-check-breaking:
 
 
 .PHONY: all install \
-	build test test-all \
+	build build-linux-static test test-all \
 	proto-all proto-format proto-swagger-gen proto-lint proto-check-breaking
