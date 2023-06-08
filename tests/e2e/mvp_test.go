@@ -3,6 +3,7 @@ package e2e
 import (
 	"encoding/base64"
 	"fmt"
+	"path/filepath"
 	"testing"
 
 	"cosmossdk.io/math"
@@ -182,9 +183,9 @@ type ProviderContracts struct {
 }
 
 func bootstrapProviderContracts(t *testing.T, chain *wasmibctesting.TestChain) ProviderContracts {
-	vaultCodeID := chain.StoreCodeFile("testdata/mesh_vault.wasm.gz").CodeID
-	proxyCodeID := chain.StoreCodeFile("testdata/mesh_native_staking_proxy.wasm.gz").CodeID
-	nativeStakingCodeID := chain.StoreCodeFile("testdata/mesh_native_staking.wasm.gz").CodeID
+	vaultCodeID := chain.StoreCodeFile(filepath.Join(wasmContractPath, "mesh_vault.wasm.gz")).CodeID
+	proxyCodeID := chain.StoreCodeFile(filepath.Join(wasmContractPath, "mesh_native_staking_proxy.wasm.gz")).CodeID
+	nativeStakingCodeID := chain.StoreCodeFile(filepath.Join(wasmContractPath, "mesh_native_staking.wasm.gz")).CodeID
 
 	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d}`, sdk.DefaultBondDenom, proxyCodeID))
 	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, sdk.DefaultBondDenom, nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
@@ -192,7 +193,7 @@ func bootstrapProviderContracts(t *testing.T, chain *wasmibctesting.TestChain) P
 
 	// external staking
 	unbondingPeriod := 21 * 24 * 60 * 60 // 21 days - make configurable?
-	extStakingCodeID := chain.StoreCodeFile("testdata/external_staking.wasm.gz").CodeID
+	extStakingCodeID := chain.StoreCodeFile(filepath.Join(wasmContractPath, "external_staking.wasm.gz")).CodeID
 	rewardToken := "todo" // ics20 token
 	initMsg = []byte(fmt.Sprintf(`{"denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q}`, sdk.DefaultBondDenom, vaultContract.String(), unbondingPeriod, rewardToken))
 	externalStakingContract := InstantiateContract(t, chain, extStakingCodeID, initMsg)
@@ -210,15 +211,15 @@ type ConsumerContract struct {
 }
 
 func bootstrapConsumerContracts(t *testing.T, consumerChain *wasmibctesting.TestChain) ConsumerContract {
-	codeID := consumerChain.StoreCodeFile("testdata/mesh_simple_price_feed.wasm.gz").CodeID
+	codeID := consumerChain.StoreCodeFile(filepath.Join(wasmContractPath, "mesh_simple_price_feed.wasm.gz")).CodeID
 	initMsg := []byte(fmt.Sprintf(`{"native_per_foreign": "%s"}`, "0.5")) // todo: configure price
 	priceFeedContract := InstantiateContract(t, consumerChain, codeID, initMsg)
 	// instantiate virtual staking contract
-	codeID = consumerChain.StoreCodeFile("testdata/mesh_virtual_staking.wasm.gz").CodeID
+	codeID = consumerChain.StoreCodeFile(filepath.Join(wasmContractPath, "mesh_virtual_staking.wasm.gz")).CodeID
 	initMsg = []byte(fmt.Sprintf(`{"denom": %q}`, sdk.DefaultBondDenom))
 	stakingContract := InstantiateContract(t, consumerChain, codeID, initMsg)
 	// instantiate converter
-	codeID = consumerChain.StoreCodeFile("testdata/mesh_converter.wasm.gz").CodeID
+	codeID = consumerChain.StoreCodeFile(filepath.Join(wasmContractPath, "mesh_converter.wasm.gz")).CodeID
 	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "virtual_staking": %q, "discount": "0.1"}`, priceFeedContract.String(), stakingContract.String())) // todo: configure price
 	converterContract := InstantiateContract(t, consumerChain, codeID, initMsg)
 
