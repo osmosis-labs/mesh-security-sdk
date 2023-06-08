@@ -74,7 +74,7 @@ func TestSetVirtualStakingMaxCap(t *testing.T) {
 			require.True(t, k.HasMaxCapLimit(ctx, myContract))
 			assert.Equal(t, spec.expLimit, k.GetMaxCapLimit(ctx, myContract))
 			// and scheduled
-			assert.True(t, k.HasScheduledTask(ctx, types.SchedulerTaskRebalance, myContract))
+			assert.True(t, k.HasScheduledTask(ctx, types.SchedulerTaskRebalance, myContract, true))
 		})
 	}
 }
