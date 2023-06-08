@@ -19,18 +19,18 @@ func EndBlocker(ctx sdk.Context, k *keeper.Keeper) {
 		return k.Rebalance(ctx, addr)
 	})
 	if err != nil {
-		panic(err) // todo: log or fail?
+		panic(fmt.Sprintf("task scheduler: %s", err)) // todo: log or fail?
 	}
 	for _, r := range results {
 		logger := keeper.ModuleLogger(ctx).
 			With("contract", r.Contract.String())
 		switch {
 		case r.ExecErr != nil:
-			logger.Error("failed to execute scheduled task")
+			logger.Error("failed to execute scheduled task", "cause", r.ExecErr)
 		case r.RescheduleErr != nil: // todo: log or fail?
-			panic(fmt.Sprintf("failed to reschedule task for contract %s", r.Contract.String()))
+			panic(fmt.Sprintf("failed to reschedule task for contract %q: %s", r.Contract.String(), r.RescheduleErr))
 		case r.DeleteTaskErr != nil:
-			logger.Error("failed to delete scheduled task after completion")
+			logger.Error("failed to delete scheduled task after completion", "cause", r.ExecErr)
 		default:
 			logger.Info("scheduled task executed successfully", "gas_used", r.GasUsed, "gas_limit", r.GasLimit)
 		}
