@@ -88,6 +88,8 @@ func (k Keeper) SetMaxCapLimit(ctx sdk.Context, contract sdk.AccAddress, newAmou
 		return errorsmod.Wrap(err, "marshal amount")
 	}
 	store.Set(types.BuildMaxCapLimitKey(contract), bz)
+
+	types.EmitMaxCapLimitUpdatedEvent(ctx, contract, newAmount)
 	return nil
 }
 

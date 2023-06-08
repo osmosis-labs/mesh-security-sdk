@@ -9,6 +9,7 @@ import (
 const (
 	EventTypeSchedulerExec       = "scheduler_execution"
 	EventTypeSchedulerRegistered = "scheduler_registered"
+	EventTypeMaxCapLimitUpdated  = "max_cap_limit_updated"
 )
 
 const (
@@ -50,6 +51,18 @@ func EmitSchedulerRegisteredEvent(ctx sdk.Context, contractAddr sdk.AccAddress, 
 			sdk.NewAttribute(AttributeKeyContractAddr, contractAddr.String()),
 			sdk.NewAttribute(AttributeKeySchedulerNextExec, fmt.Sprintf("%d", nextExecBlock)),
 			sdk.NewAttribute(AttributeKeySchedulerRepeat, fmt.Sprintf("%t", repeat)),
+		),
+	)
+}
+
+// EmitMaxCapLimitUpdatedEvent emits an event signalling that max cap limit is updated
+func EmitMaxCapLimitUpdatedEvent(ctx sdk.Context, contractAddr sdk.AccAddress, amount sdk.Coin) {
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			EventTypeMaxCapLimitUpdated,
+			sdk.NewAttribute(sdk.AttributeKeyModule, ModuleName),
+			sdk.NewAttribute(AttributeKeyContractAddr, contractAddr.String()),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, amount.String()),
 		),
 	)
 }

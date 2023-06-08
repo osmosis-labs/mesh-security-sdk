@@ -8,6 +8,7 @@ import (
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
 
@@ -93,9 +94,14 @@ func (h CustomMsgHandler) handleBondMsg(ctx sdk.Context, actor sdk.AccAddress, b
 	if err != nil {
 		return nil, nil, err
 	}
-	// todo: events here?
-	// todo: response data format?
-	return []sdk.Event{}, nil, nil
+
+	return []sdk.Event{sdk.NewEvent(
+		stakingtypes.EventTypeDelegate,
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		sdk.NewAttribute(stakingtypes.AttributeKeyValidator, valAddr.String()),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
+		sdk.NewAttribute(stakingtypes.AttributeKeyDelegator, actor.String()),
+	)}, nil, nil
 }
 
 func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress, bondMsg *contract.UnbondMsg) ([]sdk.Event, [][]byte, error) {
@@ -111,9 +117,14 @@ func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress,
 	if err != nil {
 		return nil, nil, err
 	}
-	// todo: events here?
-	// todo: response data format?
-	return []sdk.Event{}, nil, nil
+
+	return []sdk.Event{sdk.NewEvent(
+		stakingtypes.EventTypeUnbond,
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		sdk.NewAttribute(stakingtypes.AttributeKeyValidator, valAddr.String()),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
+		sdk.NewAttribute(sdk.AttributeKeySender, actor.String()),
+	)}, nil, nil
 }
 
 // AuthSourceFn is helper for simple AuthSource types
