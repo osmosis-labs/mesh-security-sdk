@@ -98,7 +98,7 @@ func (k Keeper) IterateScheduledTasks(ctx sdk.Context, tp types.SchedulerTaskTyp
 		// cb returns true to stop early
 		key := iter.Key()
 		scheduledHeight := sdk.BigEndianToUint64(key[0:8])
-		if scheduledHeight > height ||
+		if scheduledHeight > height || // abort for future heights
 			cb(key[8:], scheduledHeight, isRepeat(iter.Value())) {
 			return nil
 		}
