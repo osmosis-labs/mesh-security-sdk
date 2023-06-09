@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"math"
 
+	errorsmod "cosmossdk.io/errors"
+
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -11,19 +13,8 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
-// deleteScheduledTask removes scheduled task from store
-func (k Keeper) deleteScheduledTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, execBlockHeight uint64) error {
-	storeKey, err := types.BuildSchedulerContractKey(tp, execBlockHeight, contract)
-	if err != nil {
-		return err
-	}
-	store := ctx.KVStore(k.storeKey)
-	store.Delete(storeKey)
-	return nil
-}
-
-// ScheduleRebalanceTask schedule a rebalance task for the given virtual staking contract using params defined epoch length
-func (k Keeper) ScheduleRebalanceTask(ctx sdk.Context, contract sdk.AccAddress) error {
+// ScheduleRegularRebalanceTask schedule a rebalance task for the given virtual staking contract using params defined epoch length
+func (k Keeper) ScheduleRegularRebalanceTask(ctx sdk.Context, contract sdk.AccAddress) error {
 	if !k.wasm.HasContractInfo(ctx, contract) {
 		return types.ErrUnknown.Wrapf("contract: %s", contract.String())
 	}
@@ -35,10 +26,8 @@ func (k Keeper) ScheduleRebalanceTask(ctx sdk.Context, contract sdk.AccAddress) 
 // HasScheduledTask returns true if the contract has a task scheduled of the given type and repeat setting
 func (k Keeper) HasScheduledTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, repeat bool) bool {
 	var result bool
-	err := k.IterateScheduledTasks(ctx, tp, math.MaxUint, func(addr sdk.AccAddress, _ uint64, isRepeat bool) bool {
-		result = repeat == isRepeat &&
-			contract.Equals(addr) // not super efficient but as there should be only a small set
-		// of contracts and tasks lets not do a secondary index now
+	err := k.iterateScheduledContractTasks(ctx, tp, contract, math.MaxUint, func(_ uint64, isRepeat bool) bool {
+		result = repeat == isRepeat
 		return result
 	})
 	return err == nil && result // we can ignore the unknown task type error and return false instead
@@ -73,11 +62,8 @@ func (k Keeper) ScheduleTask(ctx sdk.Context, tp types.SchedulerTaskType, contra
 	return nil
 }
 
-// callback interface to execute a scheduled task
-type executor func(ctx sdk.Context, addr sdk.AccAddress) error
-
 // IterateScheduledTasks iterate of all scheduled task executions for the given type up to given block height (included)
-func (k Keeper) IterateScheduledTasks(ctx sdk.Context, tp types.SchedulerTaskType, height uint64, cb func(addr sdk.AccAddress, height uint64, repeat bool) bool) error {
+func (k Keeper) IterateScheduledTasks(ctx sdk.Context, tp types.SchedulerTaskType, maxHeight uint64, cb func(addr sdk.AccAddress, height uint64, repeat bool) bool) error {
 	keyPrefix, err := types.BuildSchedulerTypeKeyPrefix(tp)
 	if err != nil {
 		return err
@@ -90,12 +76,48 @@ func (k Keeper) IterateScheduledTasks(ctx sdk.Context, tp types.SchedulerTaskTyp
 		// cb returns true to stop early
 		key := iter.Key()
 		scheduledHeight := sdk.BigEndianToUint64(key[0:8])
-		if scheduledHeight > height || // abort for future heights
+		if scheduledHeight > maxHeight || // abort for future heights
 			cb(key[8:], scheduledHeight, isRepeat(iter.Value())) {
 			return nil
 		}
 	}
 	return nil
+}
+
+// DeleteAllScheduledTasks deletes all tasks of given type for the contract.
+func (k Keeper) DeleteAllScheduledTasks(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress) error {
+	var innerErr error
+	err := k.iterateScheduledContractTasks(ctx, tp, contract, math.MaxUint, func(height uint64, _ bool) bool {
+		if err := k.deleteScheduledTask(ctx, tp, contract, height); err != nil {
+			innerErr = errorsmod.Wrapf(err, "remove task height: %d", height)
+			return true
+		}
+		return false
+	})
+	if err != nil {
+		return errorsmod.Wrap(err, "remove all scheduled tasks")
+	}
+	return innerErr
+}
+
+// deleteScheduledTask removes scheduled task from store
+func (k Keeper) deleteScheduledTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, execBlockHeight uint64) error {
+	storeKey, err := types.BuildSchedulerContractKey(tp, execBlockHeight, contract)
+	if err != nil {
+		return err
+	}
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(storeKey)
+	return nil
+}
+
+// Iterate through all scheduled tasks for given task type and contract
+//
+// The implementation not super efficient but as there should be only a small set of contracts and tasks lets not do a secondary index, now
+func (k Keeper) iterateScheduledContractTasks(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, maxHeight uint64, cb func(height uint64, repeat bool) bool) error {
+	return k.IterateScheduledTasks(ctx, tp, maxHeight, func(addr sdk.AccAddress, height uint64, repeat bool) bool {
+		return addr.Equals(contract) && cb(height, repeat)
+	})
 }
 
 // ExecResult are the results of a task execution
@@ -108,6 +130,9 @@ type ExecResult struct {
 	GasLimit      sdk.Gas
 	NextRunHeight uint64
 }
+
+// callback interface to execute a scheduled task
+type executor func(ctx sdk.Context, addr sdk.AccAddress) error
 
 // ExecScheduledTasks execute scheduled task at current height
 // The executor function is called within the scope of a new cached store. Any failure on execution
