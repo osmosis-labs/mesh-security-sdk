@@ -33,7 +33,7 @@ func (k Keeper) HasScheduledTask(ctx sdk.Context, tp types.SchedulerTaskType, co
 	return err == nil && result // we can ignore the unknown task type error and return false instead
 }
 
-func (k Keeper) getScheduledTaskAt(ctx sdk.Context, tp types.SchedulerTaskType, height uint64, contract sdk.AccAddress) (repeat, exists bool) {
+func (k Keeper) getScheduledTaskAt(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, height uint64) (repeat, exists bool) {
 	key, err := types.BuildSchedulerContractKey(tp, height, contract)
 	if err != nil {
 		return false, false
