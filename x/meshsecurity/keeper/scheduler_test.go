@@ -113,11 +113,11 @@ func TestExecuteScheduledTask(t *testing.T) {
 			// and callback executed
 			assert.Equal(t, 1, execCount)
 			// and new execution scheduled
-			repeat, exists := k.getScheduledTaskAt(ctx, types.SchedulerTaskRebalance, gotRes[0].NextRunHeight, myContract)
+			repeat, exists := k.getScheduledTaskAt(ctx, types.SchedulerTaskRebalance, myContract, gotRes[0].NextRunHeight)
 			assert.Equal(t, spec.expRescheduled, exists)
 			assert.Equal(t, spec.repeat, repeat)
 			// and old entry removed
-			_, exists = k.getScheduledTaskAt(ctx, types.SchedulerTaskRebalance, currentHeight, myContract)
+			_, exists = k.getScheduledTaskAt(ctx, types.SchedulerTaskRebalance, myContract, currentHeight)
 			assert.False(t, exists)
 		})
 	}
@@ -187,9 +187,88 @@ func TestScheduleTask(t *testing.T) {
 				return
 			}
 			require.NoError(t, gotErr)
-			repeat, exists := k.getScheduledTaskAt(ctx, types.SchedulerTaskRebalance, spec.height, spec.contract)
+			repeat, exists := k.getScheduledTaskAt(ctx, types.SchedulerTaskRebalance, spec.contract, spec.height)
 			assert.True(t, exists)
 			assert.Equal(t, spec.expRepeat, repeat)
+		})
+	}
+}
+
+func TestDeleteAllScheduledTasks(t *testing.T) {
+	pCtx, keepers := CreateDefaultTestInput(t)
+	k := keepers.MeshKeeper
+	myContract := sdk.AccAddress(rand.Bytes(32))
+	myOtherContractWithScheduledTask := sdk.AccAddress(rand.Bytes(32))
+	currentHeight := uint64(pCtx.BlockHeight())
+
+	// set a scheduler to overwrite
+	err := k.ScheduleTask(pCtx, types.SchedulerTaskRebalance, myOtherContractWithScheduledTask, currentHeight+1, true)
+	require.NoError(t, err)
+	specs := map[string]struct {
+		setup   func(t *testing.T, ctx sdk.Context)
+		tp      types.SchedulerTaskType
+		expErr  bool
+		asserts func(t *testing.T, ctx sdk.Context)
+	}{
+		"current height": {
+			tp: types.SchedulerTaskRebalance,
+			setup: func(t *testing.T, ctx sdk.Context) {
+				require.NoError(t, k.ScheduleTask(ctx, types.SchedulerTaskRebalance, myContract, uint64(ctx.BlockHeight()), true))
+				require.NoError(t, k.ScheduleTask(ctx, types.SchedulerTaskRebalance, myContract, uint64(ctx.BlockHeight()), false))
+			},
+		},
+		"future height": {
+			tp: types.SchedulerTaskRebalance,
+			setup: func(t *testing.T, ctx sdk.Context) {
+				height := uint64(ctx.BlockHeight()) + 1
+				require.NoError(t, k.ScheduleTask(ctx, types.SchedulerTaskRebalance, myContract, height, true))
+				require.NoError(t, k.ScheduleTask(ctx, types.SchedulerTaskRebalance, myContract, height, false))
+			},
+		},
+		"multiple heights": {
+			tp: types.SchedulerTaskRebalance,
+			setup: func(t *testing.T, ctx sdk.Context) {
+				height := uint64(ctx.BlockHeight())
+				require.NoError(t, k.ScheduleTask(ctx, types.SchedulerTaskRebalance, myContract, height, true))
+				require.NoError(t, k.ScheduleTask(ctx, types.SchedulerTaskRebalance, myContract, height, false))
+				height++
+				require.NoError(t, k.ScheduleTask(ctx, types.SchedulerTaskRebalance, myContract, height, true))
+				require.NoError(t, k.ScheduleTask(ctx, types.SchedulerTaskRebalance, myContract, height, false))
+			},
+		},
+		"different type not removed": {
+			tp: types.SchedulerTaskRebalance,
+			setup: func(t *testing.T, ctx sdk.Context) {
+				require.NoError(t, k.ScheduleTask(ctx, types.SchedulerTaskType(0xff), myContract, uint64(ctx.BlockHeight()), true))
+			},
+			asserts: func(t *testing.T, ctx sdk.Context) {
+				assert.True(t, k.HasScheduledTask(ctx, types.SchedulerTaskType(0xff), myContract, true))
+			},
+		},
+		"unknown type": {
+			setup:  func(t *testing.T, ctx sdk.Context) {},
+			expErr: true,
+		},
+	}
+	for name, spec := range specs {
+		t.Run(name, func(t *testing.T) {
+			ctx, _ := pCtx.CacheContext()
+			spec.setup(t, ctx)
+			// when
+			gotErr := k.DeleteAllScheduledTasks(ctx, spec.tp, myContract)
+			// then
+			if spec.expErr {
+				require.Error(t, gotErr)
+				return
+			}
+			require.NoError(t, gotErr)
+			assert.False(t, k.HasScheduledTask(ctx, spec.tp, myContract, true))
+			assert.False(t, k.HasScheduledTask(ctx, spec.tp, myContract, false))
+			// and other contract data not touched
+			assert.True(t, k.HasScheduledTask(ctx, spec.tp, myOtherContractWithScheduledTask, true))
+			if spec.asserts != nil {
+				spec.asserts(t, ctx)
+			}
 		})
 	}
 }
