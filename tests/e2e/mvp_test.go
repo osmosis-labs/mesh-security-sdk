@@ -8,9 +8,11 @@ import (
 	"cosmossdk.io/math"
 
 	wasmibctesting "github.com/CosmWasm/wasmd/x/wasm/ibctesting"
+	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	channeltypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 	ibctesting "github.com/cosmos/ibc-go/v7/testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,16 +38,47 @@ func TestMVP(t *testing.T) {
 	// when  the user on chain P starts an undelegate
 	// ...
 
-	coord := NewIBCCoordinator(t, 2)
-	providerChain := coord.GetChain(ibctesting.GetChainID(1))
-	providerContracts := bootstrapProviderContracts(t, providerChain)
-	consumerChain := coord.GetChain(ibctesting.GetChainID(2))
-	consumerApp := consumerChain.App.(*app.MeshApp)
+	var (
+		coord         = NewIBCCoordinator(t, 2)
+		consumerChain = coord.GetChain(ibctesting.GetChainID(2))
+		providerChain = coord.GetChain(ibctesting.GetChainID(1))
+		consumerApp   = consumerChain.App.(*app.MeshApp)
+		ibcPath       = wasmibctesting.NewPath(consumerChain, providerChain)
+	)
+	// coord.CreateTransferChannels(ibcPath)
+	coord.SetupConnections(ibcPath)
 
-	path := wasmibctesting.NewPath(providerChain, consumerChain)
-	coord.SetupConnections(path)
-
+	// setup contracts on both chains
 	consumerContracts := bootstrapConsumerContracts(t, consumerChain)
+	converterPortID := wasmkeeper.PortIDForContract(consumerContracts.converter)
+	providerContracts := bootstrapProviderContracts(t, providerChain, ibcPath.EndpointA.ConnectionID, converterPortID)
+
+	// setup ibc control path: consumer -> provider (direction matters)
+	ibcPath.EndpointB.ChannelConfig = &ibctesting.ChannelConfig{
+		PortID: wasmkeeper.PortIDForContract(providerContracts.externalStaking),
+		Order:  channeltypes.UNORDERED,
+	}
+	ibcPath.EndpointA.ChannelConfig = &ibctesting.ChannelConfig{
+		PortID: converterPortID,
+		Order:  channeltypes.UNORDERED,
+	}
+	t.Logf("%s -> %s\n", ibcPath.EndpointA.ChannelConfig.PortID, ibcPath.EndpointB.ChannelConfig.PortID)
+	coord.CreateChannels(ibcPath)
+	// when ibc package is relayed
+	require.NotEmpty(t, consumerChain.PendingSendPackets)
+	coord.RelayAndAckPendingPackets(ibcPath)
+	// then the active set should be stored in the ext staking contract
+	// list_remote_validators
+	queryProvContract := func(contract string, query Query) map[string]any {
+		qRsp := make(map[string]any)
+		err := providerChain.SmartQuery(contract, query, &qRsp)
+		require.NoError(t, err)
+		return qRsp
+	}
+	// then
+	qRsp := queryProvContract(providerContracts.externalStaking.String(), Query{"list_remote_validators": {}})
+	require.Len(t, qRsp["validators"], 4, qRsp)
+
 	// ensure nothing staked
 	valAddr := sdk.ValAddress(consumerChain.Vals.Validators[0].Address)
 	_, found := consumerApp.StakingKeeper.GetDelegation(consumerChain.GetContext(), consumerContracts.staking, valAddr)
@@ -79,14 +112,7 @@ func TestMVP(t *testing.T) {
 	})
 	require.NoError(t, err)
 	// then query contract state
-	queryProvContract := func(contract string, query Query) map[string]any {
-		qRsp := make(map[string]any)
-		err = providerChain.SmartQuery(contract, query, &qRsp)
-		require.NoError(t, err)
-		return qRsp
-	}
-
-	qRsp := queryProvContract(providerContracts.vault.String(), Query{
+	qRsp = queryProvContract(providerContracts.vault.String(), Query{
 		"account": {"account": providerChain.SenderAccount.GetAddress().String()},
 	})
 	assert.Equal(t, "100000000", qRsp["free"], qRsp)
@@ -181,7 +207,7 @@ type ProviderContracts struct {
 	externalStaking sdk.AccAddress
 }
 
-func bootstrapProviderContracts(t *testing.T, chain *wasmibctesting.TestChain) ProviderContracts {
+func bootstrapProviderContracts(t *testing.T, chain *wasmibctesting.TestChain, connId, portID string) ProviderContracts {
 	vaultCodeID := chain.StoreCodeFile(buildPathToWasm("mesh_vault.wasm")).CodeID
 	proxyCodeID := chain.StoreCodeFile(buildPathToWasm("mesh_native_staking_proxy.wasm")).CodeID
 	nativeStakingCodeID := chain.StoreCodeFile(buildPathToWasm("mesh_native_staking.wasm")).CodeID
@@ -194,7 +220,10 @@ func bootstrapProviderContracts(t *testing.T, chain *wasmibctesting.TestChain) P
 	unbondingPeriod := 21 * 24 * 60 * 60 // 21 days - make configurable?
 	extStakingCodeID := chain.StoreCodeFile(buildPathToWasm("external_staking.wasm")).CodeID
 	rewardToken := "todo" // ics20 token
-	initMsg = []byte(fmt.Sprintf(`{"denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q}`, sdk.DefaultBondDenom, vaultContract.String(), unbondingPeriod, rewardToken))
+	initMsg = []byte(fmt.Sprintf(
+		`{"remote_contact": {"connection_id":%q, "port_id":%q}, "denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q}`,
+		connId, portID, sdk.DefaultBondDenom, vaultContract.String(), unbondingPeriod, rewardToken))
+	t.Log(string(initMsg))
 	externalStakingContract := InstantiateContract(t, chain, extStakingCodeID, initMsg)
 
 	return ProviderContracts{

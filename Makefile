@@ -37,6 +37,9 @@ test:
 	$(MAKE) -C x test
 	$(MAKE) -C tests/e2e/ test
 
+test-system:
+	$(MAKE) -C tests/e2e/ test
+
 ###############################################################################
 ###                                Linting                                  ###
 ###############################################################################
@@ -83,5 +86,5 @@ proto-check-breaking:
 
 
 .PHONY: all install \
-	build build-linux-static test test-all \
+	build build-linux-static test test-all test-system \
 	proto-all proto-format proto-swagger-gen proto-lint proto-check-breaking
