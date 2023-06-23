@@ -62,23 +62,21 @@ func TestMVP(t *testing.T) {
 		PortID: converterPortID,
 		Order:  channeltypes.UNORDERED,
 	}
-	t.Logf("%s -> %s\n", ibcPath.EndpointA.ChannelConfig.PortID, ibcPath.EndpointB.ChannelConfig.PortID)
 	coord.CreateChannels(ibcPath)
+
 	// when ibc package is relayed
 	require.NotEmpty(t, consumerChain.PendingSendPackets)
 	coord.RelayAndAckPendingPackets(ibcPath)
+
 	// then the active set should be stored in the ext staking contract
-	// list_remote_validators
-	queryProvContract := func(contract string, query Query) map[string]any {
-		qRsp := make(map[string]any)
-		err := providerChain.SmartQuery(contract, query, &qRsp)
-		require.NoError(t, err)
-		return qRsp
-	}
-	// then
+	queryProvContract := Querier(t, providerChain)
+	// and contain all active validator addresses
 	qRsp := queryProvContract(providerContracts.externalStaking.String(), Query{"list_remote_validators": {}})
 	require.Len(t, qRsp["validators"], 4, qRsp)
 
+	// todo: compare validator addresses
+
+	// ----------------------------
 	// ensure nothing staked
 	valAddr := sdk.ValAddress(consumerChain.Vals.Validators[0].Address)
 	_, found := consumerApp.StakingKeeper.GetDelegation(consumerChain.GetContext(), consumerContracts.staking, valAddr)
@@ -202,6 +200,15 @@ func TestMVP(t *testing.T) {
 
 type Query map[string]map[string]any
 
+func Querier(t *testing.T, chain *wasmibctesting.TestChain) func(contract string, query Query) map[string]any {
+	return func(contract string, query Query) map[string]any {
+		qRsp := make(map[string]any)
+		err := chain.SmartQuery(contract, query, &qRsp)
+		require.NoError(t, err)
+		return qRsp
+	}
+}
+
 type ProviderContracts struct {
 	vault           sdk.AccAddress
 	externalStaking sdk.AccAddress
@@ -242,17 +249,18 @@ func bootstrapConsumerContracts(t *testing.T, consumerChain *wasmibctesting.Test
 	codeID := consumerChain.StoreCodeFile(buildPathToWasm("mesh_simple_price_feed.wasm")).CodeID
 	initMsg := []byte(fmt.Sprintf(`{"native_per_foreign": "%s"}`, "0.5")) // todo: configure price
 	priceFeedContract := InstantiateContract(t, consumerChain, codeID, initMsg)
-	// instantiate virtual staking contract
-	codeID = consumerChain.StoreCodeFile(buildPathToWasm("mesh_virtual_staking.wasm")).CodeID
-	initMsg = []byte(fmt.Sprintf(`{"denom": %q}`, sdk.DefaultBondDenom))
-	stakingContract := InstantiateContract(t, consumerChain, codeID, initMsg)
+	// virtual staking is setup by the consumer
+	virtStakeCodeID := consumerChain.StoreCodeFile(buildPathToWasm("mesh_virtual_staking.wasm")).CodeID
 	// instantiate converter
 	codeID = consumerChain.StoreCodeFile(buildPathToWasm("mesh_converter.wasm")).CodeID
-	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "virtual_staking": %q, "discount": "0.1"}`, priceFeedContract.String(), stakingContract.String())) // todo: configure price
+	discount := "0.1" // todo: configure price
+	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d}`,
+		priceFeedContract.String(), discount, sdk.DefaultBondDenom, virtStakeCodeID))
 	converterContract := InstantiateContract(t, consumerChain, codeID, initMsg)
 
+	staking := Querier(t, consumerChain)(converterContract.String(), Query{"config": {}})["virtual_staking"]
 	return ConsumerContract{
-		staking:   stakingContract,
+		staking:   sdk.MustAccAddressFromBech32(staking.(string)),
 		priceFeed: priceFeedContract,
 		converter: converterContract,
 	}
