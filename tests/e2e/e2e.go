@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/CosmWasm/wasmd/x/wasm"
@@ -17,6 +18,18 @@ import (
 
 	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
 )
+
+var (
+	wasmContractPath    string
+	wasmContractGZipped bool
+)
+
+func buildPathToWasm(fileName string) string {
+	if wasmContractGZipped {
+		fileName += ".gz"
+	}
+	return filepath.Join(wasmContractPath, fileName)
+}
 
 // NewIBCCoordinator initializes Coordinator with N meshd TestChain instances
 func NewIBCCoordinator(t *testing.T, n int, opts ...[]wasmkeeper.Option) *ibctesting.Coordinator {
