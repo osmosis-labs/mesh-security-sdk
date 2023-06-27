@@ -27,15 +27,14 @@ func TestMVP(t *testing.T) {
 	// when	 a user on P deposits an amount as collateral in the vault contract
 	// then	 it can be used as "lien" to stake local and to "cross stake" on chain C
 	// when  an amount is "cross staked" to a validator on chain C
-	//
-	// not fully implemented:
-	//
 	// and	 the ibc package is relayed
 	// then  the amount is converted into an amount in the chain C bonding token
 	// and   scheduled to be staked as synthetic token on the validator
 	// when  the next epoch is executed on chain C
 	// then  the synthetic tokens are minted and staked
+	//
 	// when  the user on chain P starts an undelegate
+	//
 	// ...
 
 	var (
@@ -107,23 +106,23 @@ func TestMVP(t *testing.T) {
 
 	// Stake Locally - A user triggers a local staking action to a chosen validator. They then can manage their delegation and vote via the local staking contract.
 	myLocalValidatorAddr := sdk.ValAddress(providerChain.Vals.Validators[0].Address).String()
-	execMsg = fmt.Sprintf(`{"stake_local":{"amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
-		sdk.DefaultBondDenom, 50_000_000,
+	execLocalStakingMsg := fmt.Sprintf(`{"stake_local":{"amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
+		sdk.DefaultBondDenom, 30_000_000,
 		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myLocalValidatorAddr))))
-	providerCli.MustExecVault(execMsg)
+	providerCli.MustExecVault(execLocalStakingMsg)
 
-	assert.Equal(t, 50_000_000, providerCli.QueryVaultFreeBalance())
+	assert.Equal(t, 70_000_000, providerCli.QueryVaultFreeBalance())
 
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
 
 	execMsg = fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
 		providerContracts.externalStaking.String(),
-		sdk.DefaultBondDenom, 40_000_000,
+		sdk.DefaultBondDenom, 80_000_000,
 		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myExtValidatorAddr))))
 	providerCli.MustExecVault(execMsg)
 
 	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
-	assert.NotEqual(t, 50_000_000, providerCli.QueryVaultFreeBalance()) // todo: set correct number
+	require.Equal(t, 20_000_000, providerCli.QueryVaultFreeBalance()) // = 70 (free)  + 30 (local) - 80 (remote staked)
 
 	// then
 	qRsp = providerCli.QueryExtStaking(Query{
@@ -132,7 +131,7 @@ func TestMVP(t *testing.T) {
 			"validator": myExtValidatorAddr,
 		},
 	})
-	assert.Equal(t, "40000000", qRsp["stake"], qRsp)
+	assert.Equal(t, "80000000", qRsp["stake"], qRsp)
 	assert.Empty(t, qRsp["pending_unbonds"])
 
 	// consumer chain
@@ -145,16 +144,16 @@ func TestMVP(t *testing.T) {
 	consumerCli.ExecNewEpoch()
 
 	// then the total delegated amount is updated
-	consumerCli.assertTotalDelegated(math.NewInt(18_000_000)) // 40_000_000 /2 * (1 -0.1)
+	consumerCli.assertTotalDelegated(math.NewInt(36_000_000)) // 80_000_000 /2 * (1 -0.1)
 
 	// and the delegated amount is updated for the validator
-	consumerCli.assertShare(myExtValidator, 18) // 18_000_000 / 1_000_000 # default sdk factor
+	consumerCli.assertShare(myExtValidator, math.LegacyNewDec(36)) // 36_000_000 / 1_000_000 # default sdk factor
 
 	// provider chain
 	// ==============
 	//
 	// Cross Stake - A user undelegates
-	execMsg = fmt.Sprintf(`{"unstake":{"validator":"%s", "amount":{"denom":"%s", "amount":"20000000"}}}`, myExtValidator.String(), sdk.DefaultBondDenom)
+	execMsg = fmt.Sprintf(`{"unstake":{"validator":"%s", "amount":{"denom":"%s", "amount":"30000000"}}}`, myExtValidator.String(), sdk.DefaultBondDenom)
 	providerCli.MustExecExtStaking(execMsg)
 
 	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
@@ -166,10 +165,10 @@ func TestMVP(t *testing.T) {
 			"validator": myExtValidatorAddr,
 		},
 	})
-	assert.Equal(t, "20000000", qRsp["stake"], qRsp)
+	require.Equal(t, "50000000", qRsp["stake"], qRsp)
 	require.Len(t, qRsp["pending_unbonds"], 1)
 	unbonds := qRsp["pending_unbonds"].([]any)[0].(map[string]any)
-	assert.Equal(t, "20000000", unbonds["amount"], qRsp)
+	assert.Equal(t, "30000000", unbonds["amount"], qRsp)
 
 	// consumer chain
 	// ====================
@@ -177,32 +176,37 @@ func TestMVP(t *testing.T) {
 	consumerCli.ExecNewEpoch()
 
 	// then the total delegated amount is updated
-	consumerCli.assertTotalDelegated(math.NewInt(9000000)) // (40_000_000 - 20_000_000) /2 * (1 -0.1)
-	consumerCli.assertShare(myExtValidator, 9)             // 20_000_000 / 1_000_000 # default sdk factor
+	consumerCli.assertTotalDelegated(math.NewInt(22_500_000))                  // (80_000_000 - 30_000_000) /2 * (1 -0.1)
+	consumerCli.assertShare(myExtValidator, math.LegacyNewDecWithPrec(225, 1)) // 27_000_000 / 1_000_000 # default sdk factor
 
 	// provider chain
 	// ==============
 	//
 	// A user withdraws the undelegated amount
 
-	assert.NotEqual(t, 50_000_000, providerCli.QueryVaultFreeBalance()) // todo: set correct number
+	require.Equal(t, 20_000_000, providerCli.QueryVaultFreeBalance())
 
 	releaseData := unbonds["release_at"].(string)
 	require.NotEmpty(t, releaseData)
 	at, err := strconv.Atoi(releaseData)
 	require.NoError(t, err)
 	releasedAt := time.Unix(0, int64(at)).UTC()
-	t.Logf("+++: %s\n", releasedAt.String())
-
+	// update system time
 	coord.CurrentTime = releasedAt.Add(time.Minute)
 	coord.UpdateTime()
 	coord.CommitBlock(providerChain, consumerChain)
 
 	providerCli.MustExecExtStaking(`{"withdraw_unbonded":{}}`)
-	coord.CommitBlock(providerChain, consumerChain)
+	assert.Equal(t, 50_000_000, providerCli.QueryVaultFreeBalance())
 
-	assert.NotEqual(t, 50_000_000, providerCli.QueryVaultFreeBalance()) // todo: set correct number
-
-	// gotBalance := providerChain.Balance(providerChain.SenderAccount.GetAddress(), "stake")
-	// assert.Equal(t, sdk.NewInt64Coin("stake", 10_000_000), gotBalance.Sub(startBalance))
+	// provider chain
+	// ==============
+	//
+	// A user unstakes some free amount from the vault
+	balanceBefore := providerChain.Balance(providerChain.SenderAccount.GetAddress(), "stake")
+	providerCli.MustExecVault(`{"unbond":{"amount":{"denom":"stake", "amount": "30000000"}}}`)
+	// then
+	assert.Equal(t, 20_000_000, providerCli.QueryVaultFreeBalance())
+	balanceAfter := providerChain.Balance(providerChain.SenderAccount.GetAddress(), "stake")
+	assert.Equal(t, math.NewInt(30_000_000), balanceAfter.Sub(balanceBefore).Amount)
 }

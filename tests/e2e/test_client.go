@@ -179,8 +179,8 @@ func (p *TestConsumerClient) assertTotalDelegated(expTotalDelegated math.Int) {
 	assert.Equal(p.t, sdk.NewCoin(sdk.DefaultBondDenom, expTotalDelegated), usedAmount)
 }
 
-func (p *TestConsumerClient) assertShare(val sdk.ValAddress, exp int64) {
+func (p *TestConsumerClient) assertShare(val sdk.ValAddress, exp math.LegacyDec) {
 	del, found := p.app.StakingKeeper.GetDelegation(p.chain.GetContext(), p.contracts.staking, val)
 	require.True(p.t, found)
-	assert.Equal(p.t, math.LegacyNewDec(exp), del.Shares)
+	assert.Equal(p.t, exp, del.Shares)
 }
