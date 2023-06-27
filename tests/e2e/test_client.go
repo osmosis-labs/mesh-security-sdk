@@ -105,8 +105,10 @@ func (p TestProviderClient) QueryVaultFreeBalance() int {
 	qRsp := p.QueryVault(Query{
 		"account": {"account": p.chain.SenderAccount.GetAddress().String()},
 	})
-	require.NotEmpty(p.t, qRsp["free"], qRsp)
-	r, err := strconv.Atoi(qRsp["free"].(string))
+	require.NotEmpty(p.t, qRsp["account"], qRsp)
+	acct := qRsp["account"].(map[string]any)
+	require.NotEmpty(p.t, acct["free"], qRsp)
+	r, err := strconv.Atoi(acct["free"].(string))
 	require.NoError(p.t, err, qRsp)
 	return r
 }
