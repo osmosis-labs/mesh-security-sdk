@@ -93,6 +93,23 @@ func (p TestProviderClient) mustExec(contract sdk.AccAddress, payload string, fu
 	return rsp
 }
 
+func (p TestProviderClient) VaultShouldFail(payload string, funds ...sdk.Coin) error {
+	return p.execShouldFail(p.contracts.vault, payload, funds)
+}
+
+// This will execute the contract and assert that it fails, returning the error if desired.
+// (Unlike most functions, it will panic on failure, returning error is success case)
+func (p TestProviderClient) execShouldFail(contract sdk.AccAddress, payload string, funds []sdk.Coin) error {
+	resp, err := p.chain.SendMsgs(&wasmtypes.MsgExecuteContract{
+		Sender:   p.chain.SenderAccount.GetAddress().String(),
+		Contract: contract.String(),
+		Msg:      []byte(payload),
+		Funds:    funds,
+	})
+	require.Error(p.t, err, "Response: %v", resp)
+	return err
+}
+
 func (p TestProviderClient) QueryExtStaking(q Query) map[string]any {
 	return Querier(p.t, p.chain)(p.contracts.externalStaking.String(), q)
 }
