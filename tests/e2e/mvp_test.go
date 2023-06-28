@@ -3,14 +3,16 @@ package e2e
 import (
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"testing"
+	"time"
 
 	"cosmossdk.io/math"
 
 	wasmibctesting "github.com/CosmWasm/wasmd/x/wasm/ibctesting"
-	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	"github.com/cosmos/cosmos-sdk/baseapp"
+	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	channeltypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 	ibctesting "github.com/cosmos/ibc-go/v7/testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,206 +27,194 @@ func TestMVP(t *testing.T) {
 	// when	 a user on P deposits an amount as collateral in the vault contract
 	// then	 it can be used as "lien" to stake local and to "cross stake" on chain C
 	// when  an amount is "cross staked" to a validator on chain C
-	//
-	// not fully implemented:
-	//
 	// and	 the ibc package is relayed
 	// then  the amount is converted into an amount in the chain C bonding token
 	// and   scheduled to be staked as synthetic token on the validator
 	// when  the next epoch is executed on chain C
 	// then  the synthetic tokens are minted and staked
+	//
 	// when  the user on chain P starts an undelegate
+	//
 	// ...
 
-	coord := NewIBCCoordinator(t, 2)
-	providerChain := coord.GetChain(ibctesting.GetChainID(1))
-	providerContracts := bootstrapProviderContracts(t, providerChain)
-	consumerChain := coord.GetChain(ibctesting.GetChainID(2))
-	consumerApp := consumerChain.App.(*app.MeshApp)
+	var (
+		coord         = NewIBCCoordinator(t, 2)
+		consumerChain = coord.GetChain(ibctesting.GetChainID(2))
+		providerChain = coord.GetChain(ibctesting.GetChainID(1))
+		consumerApp   = consumerChain.App.(*app.MeshApp)
+		ibcPath       = wasmibctesting.NewPath(consumerChain, providerChain)
+	)
+	coord.SetupConnections(ibcPath)
 
-	path := wasmibctesting.NewPath(providerChain, consumerChain)
-	coord.SetupConnections(path)
+	// setup contracts on both chains
+	consumerCli := NewConsumerClient(t, consumerChain)
+	consumerContracts := consumerCli.BootstrapContracts()
+	converterPortID := wasmkeeper.PortIDForContract(consumerContracts.converter)
+	providerCli := NewProviderClient(t, providerChain)
+	providerContracts := providerCli.BootstrapContracts(ibcPath.EndpointA.ConnectionID, converterPortID)
 
-	consumerContracts := bootstrapConsumerContracts(t, consumerChain)
-	// ensure nothing staked
-	valAddr := sdk.ValAddress(consumerChain.Vals.Validators[0].Address)
-	_, found := consumerApp.StakingKeeper.GetDelegation(consumerChain.GetContext(), consumerContracts.staking, valAddr)
+	// setup ibc control path: consumer -> provider (direction matters)
+	ibcPath.EndpointB.ChannelConfig = &ibctesting.ChannelConfig{
+		PortID: wasmkeeper.PortIDForContract(providerContracts.externalStaking),
+		Order:  channeltypes.UNORDERED,
+	}
+	ibcPath.EndpointA.ChannelConfig = &ibctesting.ChannelConfig{
+		PortID: converterPortID,
+		Order:  channeltypes.UNORDERED,
+	}
+	coord.CreateChannels(ibcPath)
+
+	// when ibc package is relayed
+	require.NotEmpty(t, consumerChain.PendingSendPackets)
+	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
+
+	// then the active set should be stored in the ext staking contract
+	// and contain all active validator addresses
+	qRsp := providerCli.QueryExtStaking(Query{"list_remote_validators": {}})
+	require.Len(t, qRsp["validators"], 4, qRsp)
+	for _, v := range consumerChain.Vals.Validators {
+		require.Contains(t, qRsp["validators"], sdk.ValAddress(v.Address).String())
+	}
+
+	// ----------------------------
+	// ensure nothing staked by the virtual staking contract yet
+	myExtValidator := sdk.ValAddress(consumerChain.Vals.Validators[0].Address)
+	myExtValidatorAddr := myExtValidator.String()
+	_, found := consumerApp.StakingKeeper.GetDelegation(consumerChain.GetContext(), consumerContracts.staking, myExtValidator)
 	require.False(t, found)
 
 	// add authority to mint/burn virtual tokens gov proposal
-	payloadMsg := &types.MsgSetVirtualStakingMaxCap{
+	govProposal := &types.MsgSetVirtualStakingMaxCap{
 		Authority: consumerApp.MeshSecKeeper.GetAuthority(),
 		Contract:  consumerContracts.staking.String(),
 		MaxCap:    sdk.NewInt64Coin(sdk.DefaultBondDenom, 1_000_000_000),
 	}
-
-	proposalID := submitGovProposal(t, consumerChain, payloadMsg)
-	voteAndPassGovProposal(t, coord, consumerChain, proposalID)
+	consumerCli.MustExecGovProposal(govProposal)
 
 	// then the max cap limit is persisted
-	q := baseapp.QueryServiceTestHelper{GRPCQueryRouter: consumerApp.GRPCQueryRouter(), Ctx: consumerChain.GetContext()}
-	var rsp types.QueryVirtualStakingMaxCapLimitResponse
-	err := q.Invoke(nil, "/osmosis.meshsecurity.v1beta1.Query/VirtualStakingMaxCapLimit", &types.QueryVirtualStakingMaxCapLimitRequest{Address: consumerContracts.staking.String()}, &rsp)
-	require.NoError(t, err)
+	rsp := consumerCli.QueryMaxCap()
 	assert.Equal(t, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1_000_000_000), rsp.Cap)
 
 	// provider chain
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
-	_, err = providerChain.SendMsgs(&wasmtypes.MsgExecuteContract{
-		Sender:   providerChain.SenderAccount.GetAddress().String(),
-		Contract: providerContracts.vault.String(),
-		Msg:      []byte(`{"bond":{}}`),
-		Funds:    sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 100_000_000)),
-	})
-	require.NoError(t, err)
-	// then query contract state
-	queryProvContract := func(contract string, query Query) map[string]any {
-		qRsp := make(map[string]any)
-		err = providerChain.SmartQuery(contract, query, &qRsp)
-		require.NoError(t, err)
-		return qRsp
-	}
+	execMsg := `{"bond":{}}`
+	providerCli.MustExecVault(execMsg, sdk.NewInt64Coin(sdk.DefaultBondDenom, 100_000_000))
 
-	qRsp := queryProvContract(providerContracts.vault.String(), Query{
-		"account": {"account": providerChain.SenderAccount.GetAddress().String()},
-	})
-	assert.Equal(t, "100000000", qRsp["free"], qRsp)
+	// then query contract state
+	assert.Equal(t, 100_000_000, providerCli.QueryVaultFreeBalance())
 
 	// Stake Locally - A user triggers a local staking action to a chosen validator. They then can manage their delegation and vote via the local staking contract.
-	myValidatorAddr := sdk.ValAddress(providerChain.Vals.Validators[0].Address).String()
-	stakeMsg := fmt.Sprintf(`{"validator": "%s"}`, myValidatorAddr)
-	_, err = providerChain.SendMsgs(&wasmtypes.MsgExecuteContract{
-		Sender:   providerChain.SenderAccount.GetAddress().String(),
-		Contract: providerContracts.vault.String(),
-		Msg: []byte(fmt.Sprintf(`{"stake_local":{"amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
-			sdk.DefaultBondDenom, 50_000_000,
-			base64.StdEncoding.EncodeToString([]byte(stakeMsg)))),
-	})
-	require.NoError(t, err)
+	myLocalValidatorAddr := sdk.ValAddress(providerChain.Vals.Validators[0].Address).String()
+	execLocalStakingMsg := fmt.Sprintf(`{"stake_local":{"amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
+		sdk.DefaultBondDenom, 30_000_000,
+		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myLocalValidatorAddr))))
+	providerCli.MustExecVault(execLocalStakingMsg)
+
+	assert.Equal(t, 70_000_000, providerCli.QueryVaultFreeBalance())
+
+	// // Failure mode of cross-stake... trying to stake to an unknown validator
+	execMsg = fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
+		providerContracts.externalStaking.String(),
+		sdk.DefaultBondDenom, 80_000_000,
+		base64.StdEncoding.EncodeToString([]byte(`{"validator": "BAD-VALIDATOR"}`)))
+	_ = providerCli.MustFailExecVault(execMsg)
+	// // no change to free balance
+	assert.Equal(t, 70_000_000, providerCli.QueryVaultFreeBalance())
 
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
-	_, err = providerChain.SendMsgs(&wasmtypes.MsgExecuteContract{
-		Sender:   providerChain.SenderAccount.GetAddress().String(),
-		Contract: providerContracts.vault.String(),
-		Msg: []byte(fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
-			providerContracts.externalStaking.String(),
-			sdk.DefaultBondDenom, 40_000_000,
-			base64.StdEncoding.EncodeToString([]byte(stakeMsg)))),
-	})
-	require.NoError(t, err)
+	execMsg = fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
+		providerContracts.externalStaking.String(),
+		sdk.DefaultBondDenom, 80_000_000,
+		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myExtValidatorAddr))))
+	providerCli.MustExecVault(execMsg)
+
+	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
+	require.Equal(t, 20_000_000, providerCli.QueryVaultFreeBalance()) // = 70 (free)  + 30 (local) - 80 (remote staked)
 
 	// then
-	qRsp = queryProvContract(providerContracts.externalStaking.String(), Query{
+	qRsp = providerCli.QueryExtStaking(Query{
 		"stake": {
 			"user":      providerChain.SenderAccount.GetAddress().String(),
-			"validator": myValidatorAddr,
+			"validator": myExtValidatorAddr,
 		},
 	})
-	assert.Equal(t, "40000000", qRsp["stake"], qRsp)
+	assert.Equal(t, "80000000", qRsp["stake"], qRsp)
 	assert.Empty(t, qRsp["pending_unbonds"])
 
-	// consumer chain tests
+	// consumer chain
 	// ====================
-	// until fully ibc enabled
-
-	// when staking contract is instructed to bond tokens
-	doExecStaking := func(payload string) {
-		_, err = consumerChain.SendMsgs(&wasmtypes.MsgExecuteContract{
-			Sender:   consumerChain.SenderAccount.GetAddress().String(),
-			Contract: consumerContracts.staking.String(),
-			Msg:      []byte(payload),
-		})
-		require.NoError(t, err)
-	}
-	doExecStaking(fmt.Sprintf(`{"bond":{"validator":"%s", "amount":{"denom":"%s", "amount":"10000000"}}}`, valAddr.String(), sdk.DefaultBondDenom))
-
+	//
 	// then delegated amount is not updated before the epoch
-
-	assertTotalDelegated := func(expTotalDelegated math.Int) {
-		usedAmount := consumerApp.MeshSecKeeper.GetTotalDelegated(consumerChain.GetContext(), consumerContracts.staking)
-		assert.Equal(t, sdk.NewCoin(sdk.DefaultBondDenom, expTotalDelegated), usedAmount)
-	}
-	assertTotalDelegated(math.ZeroInt())
+	consumerCli.assertTotalDelegated(math.ZeroInt()) // ensure nothing cross staked yet
 
 	// when an epoch ends, the delegation rebalance is triggered
-	doRebalance := func() {
-		epochLength := consumerApp.MeshSecKeeper.GetRebalanceEpochLength(consumerChain.GetContext())
-		coord.CommitNBlocks(consumerChain, epochLength)
-	}
-	doRebalance()
+	consumerCli.ExecNewEpoch()
 
 	// then the total delegated amount is updated
-	assertTotalDelegated(math.NewInt(10_000_000))
+	consumerCli.assertTotalDelegated(math.NewInt(36_000_000)) // 80_000_000 /2 * (1 -0.1)
 
 	// and the delegated amount is updated for the validator
-	assertShare := func(exp int64) {
-		del, found := consumerApp.StakingKeeper.GetDelegation(consumerChain.GetContext(), consumerContracts.staking, valAddr)
-		require.True(t, found)
-		assert.Equal(t, math.LegacyNewDec(exp), del.Shares)
-	}
-	assertShare(10)
+	consumerCli.assertShare(myExtValidator, math.LegacyNewDec(36)) // 36_000_000 / 1_000_000 # default sdk factor
 
-	// when undelegated
-	doExecStaking(fmt.Sprintf(`{"unbond":{"validator":"%s", "amount":{"denom":"%s", "amount":"1000000"}}}`, valAddr.String(), sdk.DefaultBondDenom))
-	// when an epoch ends, the delegation rebalance is triggered
-	doRebalance()
-	// then undelegated and burned
-	assertTotalDelegated(math.NewInt(9_000_000))
-	assertShare(9)
-}
+	// provider chain
+	// ==============
+	//
+	// Cross Stake - A user undelegates
+	execMsg = fmt.Sprintf(`{"unstake":{"validator":"%s", "amount":{"denom":"%s", "amount":"30000000"}}}`, myExtValidator.String(), sdk.DefaultBondDenom)
+	providerCli.MustExecExtStaking(execMsg)
 
-type Query map[string]map[string]any
+	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
 
-type ProviderContracts struct {
-	vault           sdk.AccAddress
-	externalStaking sdk.AccAddress
-}
+	// then
+	qRsp = providerCli.QueryExtStaking(Query{
+		"stake": {
+			"user":      providerChain.SenderAccount.GetAddress().String(),
+			"validator": myExtValidatorAddr,
+		},
+	})
+	require.Equal(t, "50000000", qRsp["stake"], qRsp)
+	require.Len(t, qRsp["pending_unbonds"], 1)
+	unbonds := qRsp["pending_unbonds"].([]any)[0].(map[string]any)
+	assert.Equal(t, "30000000", unbonds["amount"], qRsp)
 
-func bootstrapProviderContracts(t *testing.T, chain *wasmibctesting.TestChain) ProviderContracts {
-	vaultCodeID := chain.StoreCodeFile(buildPathToWasm("mesh_vault.wasm")).CodeID
-	proxyCodeID := chain.StoreCodeFile(buildPathToWasm("mesh_native_staking_proxy.wasm")).CodeID
-	nativeStakingCodeID := chain.StoreCodeFile(buildPathToWasm("mesh_native_staking.wasm")).CodeID
+	// consumer chain
+	// ====================
 
-	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d}`, sdk.DefaultBondDenom, proxyCodeID))
-	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, sdk.DefaultBondDenom, nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
-	vaultContract := InstantiateContract(t, chain, vaultCodeID, initMsg)
+	consumerCli.ExecNewEpoch()
 
-	// external staking
-	unbondingPeriod := 21 * 24 * 60 * 60 // 21 days - make configurable?
-	extStakingCodeID := chain.StoreCodeFile(buildPathToWasm("external_staking.wasm")).CodeID
-	rewardToken := "todo" // ics20 token
-	initMsg = []byte(fmt.Sprintf(`{"denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q}`, sdk.DefaultBondDenom, vaultContract.String(), unbondingPeriod, rewardToken))
-	externalStakingContract := InstantiateContract(t, chain, extStakingCodeID, initMsg)
+	// then the total delegated amount is updated
+	consumerCli.assertTotalDelegated(math.NewInt(22_500_000))                  // (80_000_000 - 30_000_000) /2 * (1 -0.1)
+	consumerCli.assertShare(myExtValidator, math.LegacyNewDecWithPrec(225, 1)) // 27_000_000 / 1_000_000 # default sdk factor
 
-	return ProviderContracts{
-		vault:           vaultContract,
-		externalStaking: externalStakingContract,
-	}
-}
+	// provider chain
+	// ==============
+	//
+	// A user withdraws the undelegated amount
 
-type ConsumerContract struct {
-	staking   sdk.AccAddress
-	priceFeed sdk.AccAddress
-	converter sdk.AccAddress
-}
+	require.Equal(t, 20_000_000, providerCli.QueryVaultFreeBalance())
 
-func bootstrapConsumerContracts(t *testing.T, consumerChain *wasmibctesting.TestChain) ConsumerContract {
-	codeID := consumerChain.StoreCodeFile(buildPathToWasm("mesh_simple_price_feed.wasm")).CodeID
-	initMsg := []byte(fmt.Sprintf(`{"native_per_foreign": "%s"}`, "0.5")) // todo: configure price
-	priceFeedContract := InstantiateContract(t, consumerChain, codeID, initMsg)
-	// instantiate virtual staking contract
-	codeID = consumerChain.StoreCodeFile(buildPathToWasm("mesh_virtual_staking.wasm")).CodeID
-	initMsg = []byte(fmt.Sprintf(`{"denom": %q}`, sdk.DefaultBondDenom))
-	stakingContract := InstantiateContract(t, consumerChain, codeID, initMsg)
-	// instantiate converter
-	codeID = consumerChain.StoreCodeFile(buildPathToWasm("mesh_converter.wasm")).CodeID
-	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "virtual_staking": %q, "discount": "0.1"}`, priceFeedContract.String(), stakingContract.String())) // todo: configure price
-	converterContract := InstantiateContract(t, consumerChain, codeID, initMsg)
+	releaseData := unbonds["release_at"].(string)
+	require.NotEmpty(t, releaseData)
+	at, err := strconv.Atoi(releaseData)
+	require.NoError(t, err)
+	releasedAt := time.Unix(0, int64(at)).UTC()
+	// update system time
+	coord.CurrentTime = releasedAt.Add(time.Minute)
+	coord.UpdateTime()
+	coord.CommitBlock(providerChain, consumerChain)
 
-	return ConsumerContract{
-		staking:   stakingContract,
-		priceFeed: priceFeedContract,
-		converter: converterContract,
-	}
+	providerCli.MustExecExtStaking(`{"withdraw_unbonded":{}}`)
+	assert.Equal(t, 50_000_000, providerCli.QueryVaultFreeBalance())
+
+	// provider chain
+	// ==============
+	//
+	// A user unstakes some free amount from the vault
+	balanceBefore := providerChain.Balance(providerChain.SenderAccount.GetAddress(), "stake")
+	providerCli.MustExecVault(`{"unbond":{"amount":{"denom":"stake", "amount": "30000000"}}}`)
+	// then
+	assert.Equal(t, 20_000_000, providerCli.QueryVaultFreeBalance())
+	balanceAfter := providerChain.Balance(providerChain.SenderAccount.GetAddress(), "stake")
+	assert.Equal(t, math.NewInt(30_000_000), balanceAfter.Sub(balanceBefore).Amount)
 }

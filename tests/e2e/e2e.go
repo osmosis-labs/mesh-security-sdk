@@ -1,11 +1,11 @@
 package e2e
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/CosmWasm/wasmd/x/wasm"
 	"github.com/CosmWasm/wasmd/x/wasm/ibctesting"
-	wasmibctesting "github.com/CosmWasm/wasmd/x/wasm/ibctesting"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	"github.com/cometbft/cometbft/types"
@@ -17,6 +17,18 @@ import (
 
 	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
 )
+
+var (
+	wasmContractPath    string
+	wasmContractGZipped bool
+)
+
+func buildPathToWasm(fileName string) string {
+	if wasmContractGZipped {
+		fileName += ".gz"
+	}
+	return filepath.Join(wasmContractPath, fileName)
+}
 
 // NewIBCCoordinator initializes Coordinator with N meshd TestChain instances
 func NewIBCCoordinator(t *testing.T, n int, opts ...[]wasmkeeper.Option) *ibctesting.Coordinator {
@@ -40,7 +52,7 @@ func submitGovProposal(t *testing.T, chain *ibctesting.TestChain, msgs ...sdk.Ms
 	return id
 }
 
-func voteAndPassGovProposal(t *testing.T, coord *ibctesting.Coordinator, chain *ibctesting.TestChain, proposalID uint64) {
+func voteAndPassGovProposal(t *testing.T, chain *ibctesting.TestChain, proposalID uint64) {
 	vote := govv1.NewMsgVote(chain.SenderAccount.GetAddress(), proposalID, govv1.OptionYes, "testing")
 	_, err := chain.SendMsgs(vote)
 	require.NoError(t, err)
@@ -48,6 +60,7 @@ func voteAndPassGovProposal(t *testing.T, coord *ibctesting.Coordinator, chain *
 	chainApp := chain.App.(*app.MeshApp)
 	govParams := chainApp.GovKeeper.GetParams(chain.GetContext())
 
+	coord := chain.Coordinator
 	coord.IncrementTimeBy(*govParams.VotingPeriod)
 	coord.CommitBlock(chain)
 
@@ -56,7 +69,7 @@ func voteAndPassGovProposal(t *testing.T, coord *ibctesting.Coordinator, chain *
 	require.Equal(t, rsp.Proposal.Status, govv1.ProposalStatus_PROPOSAL_STATUS_PASSED)
 }
 
-func InstantiateContract(t *testing.T, chain *wasmibctesting.TestChain, codeID uint64, initMsg []byte, funds ...sdk.Coin) sdk.AccAddress {
+func InstantiateContract(t *testing.T, chain *ibctesting.TestChain, codeID uint64, initMsg []byte, funds ...sdk.Coin) sdk.AccAddress {
 	instantiateMsg := &wasmtypes.MsgInstantiateContract{
 		Sender: chain.SenderAccount.GetAddress().String(),
 		Admin:  chain.SenderAccount.GetAddress().String(),
