@@ -47,24 +47,26 @@ type ProviderContracts struct {
 }
 
 func (p *TestProviderClient) BootstrapContracts(connId, portID string) ProviderContracts {
-	t := p.t
-	chain := p.chain
-	vaultCodeID := chain.StoreCodeFile(buildPathToWasm("mesh_vault.wasm")).CodeID
-	proxyCodeID := chain.StoreCodeFile(buildPathToWasm("mesh_native_staking_proxy.wasm")).CodeID
-	nativeStakingCodeID := chain.StoreCodeFile(buildPathToWasm("mesh_native_staking.wasm")).CodeID
+	var (
+		unbondingPeriod  = 21 * 24 * 60 * 60 // 21 days - make configurable?
+		maxLocalSlashing = "0.10"
+		maxExtSlashing   = "0.05"
+		rewardToken      = "todo" // ics20 token
+	)
+	vaultCodeID := p.chain.StoreCodeFile(buildPathToWasm("mesh_vault.wasm")).CodeID
+	proxyCodeID := p.chain.StoreCodeFile(buildPathToWasm("mesh_native_staking_proxy.wasm")).CodeID
+	nativeStakingCodeID := p.chain.StoreCodeFile(buildPathToWasm("mesh_native_staking.wasm")).CodeID
 
-	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d}`, sdk.DefaultBondDenom, proxyCodeID))
+	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d, "max_slashing": %q }`, sdk.DefaultBondDenom, proxyCodeID, maxLocalSlashing))
 	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, sdk.DefaultBondDenom, nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
-	vaultContract := InstantiateContract(t, chain, vaultCodeID, initMsg)
+	vaultContract := InstantiateContract(p.t, p.chain, vaultCodeID, initMsg)
 
 	// external staking
-	unbondingPeriod := 21 * 24 * 60 * 60 // 21 days - make configurable?
-	extStakingCodeID := chain.StoreCodeFile(buildPathToWasm("external_staking.wasm")).CodeID
-	rewardToken := "todo" // ics20 token
+	extStakingCodeID := p.chain.StoreCodeFile(buildPathToWasm("external_staking.wasm")).CodeID
 	initMsg = []byte(fmt.Sprintf(
-		`{"remote_contact": {"connection_id":%q, "port_id":%q}, "denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q}`,
-		connId, portID, sdk.DefaultBondDenom, vaultContract.String(), unbondingPeriod, rewardToken))
-	externalStakingContract := InstantiateContract(t, chain, extStakingCodeID, initMsg)
+		`{"remote_contact": {"connection_id":%q, "port_id":%q}, "denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q, "max_slashing": %q }`,
+		connId, portID, sdk.DefaultBondDenom, vaultContract.String(), unbondingPeriod, rewardToken, maxExtSlashing))
+	externalStakingContract := InstantiateContract(p.t, p.chain, extStakingCodeID, initMsg)
 
 	r := ProviderContracts{
 		vault:           vaultContract,
