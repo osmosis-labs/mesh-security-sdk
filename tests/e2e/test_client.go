@@ -93,13 +93,13 @@ func (p TestProviderClient) mustExec(contract sdk.AccAddress, payload string, fu
 	return rsp
 }
 
-func (p TestProviderClient) VaultShouldFail(payload string, funds ...sdk.Coin) error {
-	return p.execShouldFail(p.contracts.vault, payload, funds)
+func (p TestProviderClient) MustFailExecVault(payload string, funds ...sdk.Coin) error {
+	return p.mustFailExec(p.contracts.vault, payload, funds)
 }
 
 // This will execute the contract and assert that it fails, returning the error if desired.
 // (Unlike most functions, it will panic on failure, returning error is success case)
-func (p TestProviderClient) execShouldFail(contract sdk.AccAddress, payload string, funds []sdk.Coin) error {
+func (p TestProviderClient) mustFailExec(contract sdk.AccAddress, payload string, funds []sdk.Coin) error {
 	resp, err := p.chain.SendMsgs(&wasmtypes.MsgExecuteContract{
 		Sender:   p.chain.SenderAccount.GetAddress().String(),
 		Contract: contract.String(),
@@ -107,6 +107,9 @@ func (p TestProviderClient) execShouldFail(contract sdk.AccAddress, payload stri
 		Funds:    funds,
 	})
 	require.Error(p.t, err, "Response: %v", resp)
+	// workaround sequence issue until wasmd testchain code is updated
+	p.chain.NextBlock()
+	require.NoError(p.t, p.chain.SenderAccount.SetSequence(p.chain.SenderAccount.GetSequence()+1))
 	return err
 }
 

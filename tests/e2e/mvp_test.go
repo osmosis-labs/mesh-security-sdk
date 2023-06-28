@@ -113,20 +113,14 @@ func TestMVP(t *testing.T) {
 
 	assert.Equal(t, 70_000_000, providerCli.QueryVaultFreeBalance())
 
-	// @alpe these lines pass, but when I run them, the following providerCli.MustExecVault(execMsg) fails with
-	// account sequence mismatch, expected 20, got 19: incorrect account sequence
-	// Because TestChain only updates sequence on success...
-	// https://github.com/CosmWasm/wasmd/blob/main/x/wasm/ibctesting/chain.go#L372-L383
-	// At error should happen at the bottom, when all processed, not an early return
-	//
 	// // Failure mode of cross-stake... trying to stake to an unknown validator
-	// execMsg = fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
-	// 	providerContracts.externalStaking.String(),
-	// 	sdk.DefaultBondDenom, 80_000_000,
-	// 	base64.StdEncoding.EncodeToString([]byte(`{"validator": "BAD-VALIDATOR"}`)))
-	// providerCli.VaultShouldFail(execMsg)
+	execMsg = fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
+		providerContracts.externalStaking.String(),
+		sdk.DefaultBondDenom, 80_000_000,
+		base64.StdEncoding.EncodeToString([]byte(`{"validator": "BAD-VALIDATOR"}`)))
+	_ = providerCli.MustFailExecVault(execMsg)
 	// // no change to free balance
-	// assert.Equal(t, 70_000_000, providerCli.QueryVaultFreeBalance())
+	assert.Equal(t, 70_000_000, providerCli.QueryVaultFreeBalance())
 
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
 	execMsg = fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
