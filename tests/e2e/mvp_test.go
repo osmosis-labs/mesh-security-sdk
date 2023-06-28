@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	ibctransfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
+
 	"cosmossdk.io/math"
 
 	wasmibctesting "github.com/CosmWasm/wasmd/x/wasm/ibctesting"
@@ -62,6 +64,20 @@ func TestMVP(t *testing.T) {
 		PortID: converterPortID,
 		Order:  channeltypes.UNORDERED,
 	}
+	coord.CreateChannels(ibcPath)
+	ibcPath.EndpointB.ChannelConfig = &ibctesting.ChannelConfig{
+		PortID:  ibctransfertypes.ModuleName,
+		Version: ibctransfertypes.Version,
+		Order:   channeltypes.UNORDERED,
+	}
+	ibcPath.EndpointA.ChannelConfig = &ibctesting.ChannelConfig{
+		PortID:  ibctransfertypes.ModuleName,
+		Version: ibctransfertypes.Version,
+		Order:   channeltypes.UNORDERED,
+	}
+	// clear channel state to establish new one
+	ibcPath.EndpointA.ChannelID = ""
+	ibcPath.EndpointB.ChannelID = ""
 	coord.CreateChannels(ibcPath)
 
 	// when ibc package is relayed
@@ -217,4 +233,17 @@ func TestMVP(t *testing.T) {
 	assert.Equal(t, 20_000_000, providerCli.QueryVaultFreeBalance())
 	balanceAfter := providerChain.Balance(providerChain.SenderAccount.GetAddress(), "stake")
 	assert.Equal(t, math.NewInt(30_000_000), balanceAfter.Sub(balanceBefore).Amount)
+
+	// ----------------------
+	// Claim rewards
+	//
+	// provider chain
+	// ==============
+	consumerCli.ExecNewEpoch()
+	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
+	consumerCli.ExecNewEpoch()
+	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
+
+	qRsp = providerCli.QueryExtStaking(Query{"all_pending_rewards": {"user": providerChain.SenderAccount.GetAddress().String()}})
+	t.Logf("+++> %#v\n", qRsp)
 }
