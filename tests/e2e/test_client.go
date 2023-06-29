@@ -51,21 +51,22 @@ func (p *TestProviderClient) BootstrapContracts(connId, portID string) ProviderC
 		unbondingPeriod  = 21 * 24 * 60 * 60 // 21 days - make configurable?
 		maxLocalSlashing = "0.10"
 		maxExtSlashing   = "0.05"
-		rewardToken      = "todo" // ics20 token
+		rewardTokenDenom = sdk.DefaultBondDenom
+		localTokenDenom  = sdk.DefaultBondDenom
 	)
 	vaultCodeID := p.chain.StoreCodeFile(buildPathToWasm("mesh_vault.wasm")).CodeID
 	proxyCodeID := p.chain.StoreCodeFile(buildPathToWasm("mesh_native_staking_proxy.wasm")).CodeID
 	nativeStakingCodeID := p.chain.StoreCodeFile(buildPathToWasm("mesh_native_staking.wasm")).CodeID
 
-	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d, "max_slashing": %q }`, sdk.DefaultBondDenom, proxyCodeID, maxLocalSlashing))
-	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, sdk.DefaultBondDenom, nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
+	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d, "max_slashing": %q }`, localTokenDenom, proxyCodeID, maxLocalSlashing))
+	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, localTokenDenom, nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
 	vaultContract := InstantiateContract(p.t, p.chain, vaultCodeID, initMsg)
 
 	// external staking
 	extStakingCodeID := p.chain.StoreCodeFile(buildPathToWasm("external_staking.wasm")).CodeID
 	initMsg = []byte(fmt.Sprintf(
 		`{"remote_contact": {"connection_id":%q, "port_id":%q}, "denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q, "max_slashing": %q }`,
-		connId, portID, sdk.DefaultBondDenom, vaultContract.String(), unbondingPeriod, rewardToken, maxExtSlashing))
+		connId, portID, localTokenDenom, vaultContract.String(), unbondingPeriod, rewardTokenDenom, maxExtSlashing))
 	externalStakingContract := InstantiateContract(p.t, p.chain, extStakingCodeID, initMsg)
 
 	r := ProviderContracts{
@@ -109,9 +110,6 @@ func (p TestProviderClient) mustFailExec(contract sdk.AccAddress, payload string
 		Funds:    funds,
 	})
 	require.Error(p.t, err, "Response: %v", resp)
-	// workaround sequence issue until wasmd testchain code is updated
-	p.chain.NextBlock()
-	require.NoError(p.t, p.chain.SenderAccount.SetSequence(p.chain.SenderAccount.GetSequence()+1))
 	return err
 }
 
@@ -157,16 +155,20 @@ func (p *TestConsumerClient) BootstrapContracts() ConsumerContract {
 	msModule := p.app.ModuleManager.Modules[types.ModuleName].(*meshsecurity.AppModule)
 	msModule.SetAsyncTaskRspHandler(meshsecurity.PanicOnErrorExecutionResponseHandler())
 
+	var ( // todo: configure
+		tokenRatio  = "0.5"
+		discount    = "0.1"
+		remoteDenom = sdk.DefaultBondDenom
+	)
 	codeID := p.chain.StoreCodeFile(buildPathToWasm("mesh_simple_price_feed.wasm")).CodeID
-	initMsg := []byte(fmt.Sprintf(`{"native_per_foreign": "%s"}`, "0.5")) // todo: configure price
+	initMsg := []byte(fmt.Sprintf(`{"native_per_foreign": "%s"}`, tokenRatio))
 	priceFeedContract := InstantiateContract(p.t, p.chain, codeID, initMsg)
 	// virtual staking is setup by the consumer
 	virtStakeCodeID := p.chain.StoreCodeFile(buildPathToWasm("mesh_virtual_staking.wasm")).CodeID
 	// instantiate converter
 	codeID = p.chain.StoreCodeFile(buildPathToWasm("mesh_converter.wasm")).CodeID
-	discount := "0.1" // todo: configure price
 	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d}`,
-		priceFeedContract.String(), discount, sdk.DefaultBondDenom, virtStakeCodeID))
+		priceFeedContract.String(), discount, remoteDenom, virtStakeCodeID))
 	converterContract := InstantiateContract(p.t, p.chain, codeID, initMsg)
 
 	staking := Querier(p.t, p.chain)(converterContract.String(), Query{"config": {}})["virtual_staking"]
@@ -180,8 +182,14 @@ func (p *TestConsumerClient) BootstrapContracts() ConsumerContract {
 }
 
 func (p *TestConsumerClient) ExecNewEpoch() {
-	epochLength := p.app.MeshSecKeeper.GetRebalanceEpochLength(p.chain.GetContext())
-	p.chain.Coordinator.CommitNBlocks(p.chain, epochLength)
+	execHeight, ok := p.app.MeshSecKeeper.GetNextScheduledTaskHeight(p.chain.GetContext(), types.SchedulerTaskRebalance, p.contracts.staking)
+	require.True(p.t, ok)
+	if ch := uint64(p.chain.GetContext().BlockHeight()); ch < execHeight {
+		p.chain.Coordinator.CommitNBlocks(p.chain, execHeight-ch)
+	}
+	rsp := p.chain.NextBlock()
+	// capture events
+	p.t.Logf("### EVENTS: %#v\n", rsp.Events)
 }
 
 // MustExecGovProposal submit and vote yes on proposal

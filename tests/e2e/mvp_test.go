@@ -1,13 +1,17 @@
 package e2e
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"strconv"
 	"testing"
 	"time"
 
-	ibctransfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
+	"github.com/cosmos/cosmos-sdk/types/address"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
+	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 
 	"cosmossdk.io/math"
 
@@ -45,6 +49,8 @@ func TestMVP(t *testing.T) {
 		providerChain = coord.GetChain(ibctesting.GetChainID(1))
 		consumerApp   = consumerChain.App.(*app.MeshApp)
 		ibcPath       = wasmibctesting.NewPath(consumerChain, providerChain)
+		providerDenom = sdk.DefaultBondDenom
+		consumerDenom = sdk.DefaultBondDenom
 	)
 	coord.SetupConnections(ibcPath)
 
@@ -52,6 +58,9 @@ func TestMVP(t *testing.T) {
 	consumerCli := NewConsumerClient(t, consumerChain)
 	consumerContracts := consumerCli.BootstrapContracts()
 	converterPortID := wasmkeeper.PortIDForContract(consumerContracts.converter)
+	// add some fees so that we can distribute something
+	consumerChain.DefaultMsgFees = sdk.NewCoins(sdk.NewCoin(consumerDenom, math.NewInt(1_000_000)))
+
 	providerCli := NewProviderClient(t, providerChain)
 	providerContracts := providerCli.BootstrapContracts(ibcPath.EndpointA.ConnectionID, converterPortID)
 
@@ -64,20 +73,6 @@ func TestMVP(t *testing.T) {
 		PortID: converterPortID,
 		Order:  channeltypes.UNORDERED,
 	}
-	coord.CreateChannels(ibcPath)
-	ibcPath.EndpointB.ChannelConfig = &ibctesting.ChannelConfig{
-		PortID:  ibctransfertypes.ModuleName,
-		Version: ibctransfertypes.Version,
-		Order:   channeltypes.UNORDERED,
-	}
-	ibcPath.EndpointA.ChannelConfig = &ibctesting.ChannelConfig{
-		PortID:  ibctransfertypes.ModuleName,
-		Version: ibctransfertypes.Version,
-		Order:   channeltypes.UNORDERED,
-	}
-	// clear channel state to establish new one
-	ibcPath.EndpointA.ChannelID = ""
-	ibcPath.EndpointB.ChannelID = ""
 	coord.CreateChannels(ibcPath)
 
 	// when ibc package is relayed
@@ -103,19 +98,19 @@ func TestMVP(t *testing.T) {
 	govProposal := &types.MsgSetVirtualStakingMaxCap{
 		Authority: consumerApp.MeshSecKeeper.GetAuthority(),
 		Contract:  consumerContracts.staking.String(),
-		MaxCap:    sdk.NewInt64Coin(sdk.DefaultBondDenom, 1_000_000_000),
+		MaxCap:    sdk.NewInt64Coin(consumerDenom, 1_000_000_000),
 	}
 	consumerCli.MustExecGovProposal(govProposal)
 
 	// then the max cap limit is persisted
 	rsp := consumerCli.QueryMaxCap()
-	assert.Equal(t, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1_000_000_000), rsp.Cap)
+	assert.Equal(t, sdk.NewInt64Coin(consumerDenom, 1_000_000_000), rsp.Cap)
 
 	// provider chain
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
 	execMsg := `{"bond":{}}`
-	providerCli.MustExecVault(execMsg, sdk.NewInt64Coin(sdk.DefaultBondDenom, 100_000_000))
+	providerCli.MustExecVault(execMsg, sdk.NewInt64Coin(providerDenom, 100_000_000))
 
 	// then query contract state
 	assert.Equal(t, 100_000_000, providerCli.QueryVaultFreeBalance())
@@ -123,7 +118,7 @@ func TestMVP(t *testing.T) {
 	// Stake Locally - A user triggers a local staking action to a chosen validator. They then can manage their delegation and vote via the local staking contract.
 	myLocalValidatorAddr := sdk.ValAddress(providerChain.Vals.Validators[0].Address).String()
 	execLocalStakingMsg := fmt.Sprintf(`{"stake_local":{"amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
-		sdk.DefaultBondDenom, 30_000_000,
+		providerDenom, 30_000_000,
 		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myLocalValidatorAddr))))
 	providerCli.MustExecVault(execLocalStakingMsg)
 
@@ -132,7 +127,7 @@ func TestMVP(t *testing.T) {
 	// // Failure mode of cross-stake... trying to stake to an unknown validator
 	execMsg = fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
 		providerContracts.externalStaking.String(),
-		sdk.DefaultBondDenom, 80_000_000,
+		providerDenom, 80_000_000,
 		base64.StdEncoding.EncodeToString([]byte(`{"validator": "BAD-VALIDATOR"}`)))
 	_ = providerCli.MustFailExecVault(execMsg)
 	// // no change to free balance
@@ -141,7 +136,7 @@ func TestMVP(t *testing.T) {
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
 	execMsg = fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
 		providerContracts.externalStaking.String(),
-		sdk.DefaultBondDenom, 80_000_000,
+		providerDenom, 80_000_000,
 		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myExtValidatorAddr))))
 	providerCli.MustExecVault(execMsg)
 
@@ -177,7 +172,7 @@ func TestMVP(t *testing.T) {
 	// ==============
 	//
 	// Cross Stake - A user undelegates
-	execMsg = fmt.Sprintf(`{"unstake":{"validator":"%s", "amount":{"denom":"%s", "amount":"30000000"}}}`, myExtValidator.String(), sdk.DefaultBondDenom)
+	execMsg = fmt.Sprintf(`{"unstake":{"validator":"%s", "amount":{"denom":"%s", "amount":"30000000"}}}`, myExtValidator.String(), providerDenom)
 	providerCli.MustExecExtStaking(execMsg)
 
 	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
@@ -197,7 +192,8 @@ func TestMVP(t *testing.T) {
 	// consumer chain
 	// ====================
 
-	consumerCli.ExecNewEpoch()
+	consumerCli.ExecNewEpoch() // x
+	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
 
 	// then the total delegated amount is updated
 	consumerCli.assertTotalDelegated(math.NewInt(22_500_000))                  // (80_000_000 - 30_000_000) /2 * (1 -0.1)
@@ -215,10 +211,13 @@ func TestMVP(t *testing.T) {
 	at, err := strconv.Atoi(releaseData)
 	require.NoError(t, err)
 	releasedAt := time.Unix(0, int64(at)).UTC()
-	// update system time
-	coord.CurrentTime = releasedAt.Add(time.Minute)
-	coord.UpdateTime()
-	coord.CommitBlock(providerChain, consumerChain)
+	// update system time with healthy ibc clients
+	for coord.CurrentTime.Before(releasedAt.Add(time.Minute)) {
+		coord.CurrentTime = coord.CurrentTime.Add(96 * time.Hour)
+		coord.UpdateTime()
+		require.NoError(t, ibcPath.EndpointA.UpdateClient())
+		require.NoError(t, ibcPath.EndpointB.UpdateClient())
+	}
 
 	providerCli.MustExecExtStaking(`{"withdraw_unbonded":{}}`)
 	assert.Equal(t, 50_000_000, providerCli.QueryVaultFreeBalance())
@@ -228,22 +227,44 @@ func TestMVP(t *testing.T) {
 	//
 	// A user unstakes some free amount from the vault
 	balanceBefore := providerChain.Balance(providerChain.SenderAccount.GetAddress(), "stake")
-	providerCli.MustExecVault(`{"unbond":{"amount":{"denom":"stake", "amount": "30000000"}}}`)
+	providerCli.MustExecVault(fmt.Sprintf(`{"unbond":{"amount":{"denom":"%s", "amount": "30000000"}}}`, providerDenom))
 	// then
 	assert.Equal(t, 20_000_000, providerCli.QueryVaultFreeBalance())
-	balanceAfter := providerChain.Balance(providerChain.SenderAccount.GetAddress(), "stake")
+	balanceAfter := providerChain.Balance(providerChain.SenderAccount.GetAddress(), providerDenom)
 	assert.Equal(t, math.NewInt(30_000_000), balanceAfter.Sub(balanceBefore).Amount)
 
 	// ----------------------
 	// Claim rewards
-	//
+	// ----------------------
 	// provider chain
 	// ==============
+	consumerChain.DefaultMsgFees = sdk.NewCoins(sdk.NewInt64Coin(consumerDenom, 100_000_000_000))
+	_, err = consumerChain.SendMsgs(banktypes.NewMsgSend(
+		consumerChain.SenderAccount.GetAddress(),
+		bytes.Repeat([]byte{0x1}, address.Len),
+		sdk.NewCoins(sdk.NewInt64Coin(consumerDenom, 1)),
+	))
+	require.NoError(t, err)
+	consumerChain.DefaultMsgFees = sdk.NewCoins(sdk.NewInt64Coin(consumerDenom, 0))
+
+	r, err := distrkeeper.NewQuerier(consumerCli.app.DistrKeeper).ValidatorOutstandingRewards(sdk.WrapSDKContext(consumerChain.GetContext()),
+		&distrtypes.QueryValidatorOutstandingRewardsRequest{ValidatorAddress: myExtValidator.String()})
+	require.NoError(t, err)
+	t.Logf("+++> %#v\n", r)
+	r2, err := distrkeeper.NewQuerier(consumerCli.app.DistrKeeper).DelegationRewards(sdk.WrapSDKContext(consumerChain.GetContext()),
+		&distrtypes.QueryDelegationRewardsRequest{ValidatorAddress: myExtValidator.String(), DelegatorAddress: consumerCli.contracts.staking.String()})
+	require.NoError(t, err)
+	t.Logf("+++> %#v\n", r2)
+
 	consumerCli.ExecNewEpoch()
 	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
-	consumerCli.ExecNewEpoch()
-	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
+	r2, err = distrkeeper.NewQuerier(consumerCli.app.DistrKeeper).DelegationRewards(sdk.WrapSDKContext(consumerChain.GetContext()),
+		&distrtypes.QueryDelegationRewardsRequest{ValidatorAddress: myExtValidator.String(), DelegatorAddress: consumerCli.contracts.staking.String()})
+	require.NoError(t, err)
+	t.Logf("+++> %#v\n", r2)
 
 	qRsp = providerCli.QueryExtStaking(Query{"all_pending_rewards": {"user": providerChain.SenderAccount.GetAddress().String()}})
 	t.Logf("+++> %#v\n", qRsp)
+
+	//"withdraw_rewards"
 }
