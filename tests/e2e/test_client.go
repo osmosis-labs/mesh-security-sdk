@@ -20,10 +20,40 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
+// Query is a query type used in tests only
 type Query map[string]map[string]any
 
-func Querier(t *testing.T, chain *ibctesting.TestChain) func(contract string, query Query) map[string]any {
-	return func(contract string, query Query) map[string]any {
+// QueryResponse is a response type used in tests only
+type QueryResponse map[string]any
+
+// To can be used to navigate through the map structure
+func (q QueryResponse) To(path ...string) QueryResponse {
+	r, ok := q[path[0]]
+	if !ok {
+		panic(fmt.Sprintf("key %q does not exist", path[0]))
+	}
+	var x QueryResponse = r.(map[string]any)
+	if len(path) == 1 {
+		return x
+	}
+	return x.To(path[1:]...)
+}
+
+func (q QueryResponse) Array(key string) []QueryResponse {
+	val, ok := q[key]
+	if !ok {
+		panic(fmt.Sprintf("key %q does not exist", key))
+	}
+	sl := val.([]any)
+	result := make([]QueryResponse, len(sl))
+	for i, v := range sl {
+		result[i] = v.(map[string]any)
+	}
+	return result
+}
+
+func Querier(t *testing.T, chain *ibctesting.TestChain) func(contract string, query Query) QueryResponse {
+	return func(contract string, query Query) QueryResponse {
 		qRsp := make(map[string]any)
 		err := chain.SmartQuery(contract, query, &qRsp)
 		require.NoError(t, err)
@@ -113,11 +143,11 @@ func (p TestProviderClient) mustFailExec(contract sdk.AccAddress, payload string
 	return err
 }
 
-func (p TestProviderClient) QueryExtStaking(q Query) map[string]any {
+func (p TestProviderClient) QueryExtStaking(q Query) QueryResponse {
 	return Querier(p.t, p.chain)(p.contracts.externalStaking.String(), q)
 }
 
-func (p TestProviderClient) QueryVault(q Query) map[string]any {
+func (p TestProviderClient) QueryVault(q Query) QueryResponse {
 	return Querier(p.t, p.chain)(p.contracts.vault.String(), q)
 }
 

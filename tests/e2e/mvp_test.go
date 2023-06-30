@@ -1,15 +1,15 @@
 package e2e
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/cometbft/cometbft/libs/rand"
+
 	"github.com/cosmos/cosmos-sdk/types/address"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 
@@ -186,7 +186,7 @@ func TestMVP(t *testing.T) {
 	})
 	require.Equal(t, "50000000", qRsp["stake"], qRsp)
 	require.Len(t, qRsp["pending_unbonds"], 1)
-	unbonds := qRsp["pending_unbonds"].([]any)[0].(map[string]any)
+	unbonds := qRsp.Array("pending_unbonds")[0]
 	assert.Equal(t, "30000000", unbonds["amount"], qRsp)
 
 	// consumer chain
@@ -238,33 +238,33 @@ func TestMVP(t *testing.T) {
 	// ----------------------
 	// provider chain
 	// ==============
-	consumerChain.DefaultMsgFees = sdk.NewCoins(sdk.NewInt64Coin(consumerDenom, 100_000_000_000))
-	_, err = consumerChain.SendMsgs(banktypes.NewMsgSend(
-		consumerChain.SenderAccount.GetAddress(),
-		bytes.Repeat([]byte{0x1}, address.Len),
-		sdk.NewCoins(sdk.NewInt64Coin(consumerDenom, 1)),
-	))
-	require.NoError(t, err)
-	consumerChain.DefaultMsgFees = sdk.NewCoins(sdk.NewInt64Coin(consumerDenom, 0))
 
-	r, err := distrkeeper.NewQuerier(consumerCli.app.DistrKeeper).ValidatorOutstandingRewards(sdk.WrapSDKContext(consumerChain.GetContext()),
-		&distrtypes.QueryValidatorOutstandingRewardsRequest{ValidatorAddress: myExtValidator.String()})
-	require.NoError(t, err)
-	t.Logf("+++> %#v\n", r)
-	r2, err := distrkeeper.NewQuerier(consumerCli.app.DistrKeeper).DelegationRewards(sdk.WrapSDKContext(consumerChain.GetContext()),
+	// assert rewards exist
+	rewardsResp, err := distrkeeper.NewQuerier(consumerCli.app.DistrKeeper).DelegationRewards(sdk.WrapSDKContext(consumerChain.GetContext()),
 		&distrtypes.QueryDelegationRewardsRequest{ValidatorAddress: myExtValidator.String(), DelegatorAddress: consumerCli.contracts.staking.String()})
 	require.NoError(t, err)
-	t.Logf("+++> %#v\n", r2)
+	require.False(t, rewardsResp.Rewards.AmountOf(consumerDenom).IsZero())
 
+	// when claimed in epoch
 	consumerCli.ExecNewEpoch()
 	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
-	r2, err = distrkeeper.NewQuerier(consumerCli.app.DistrKeeper).DelegationRewards(sdk.WrapSDKContext(consumerChain.GetContext()),
-		&distrtypes.QueryDelegationRewardsRequest{ValidatorAddress: myExtValidator.String(), DelegatorAddress: consumerCli.contracts.staking.String()})
-	require.NoError(t, err)
-	t.Logf("+++> %#v\n", r2)
 
+	// then should be tracked on provider side
 	qRsp = providerCli.QueryExtStaking(Query{"all_pending_rewards": {"user": providerChain.SenderAccount.GetAddress().String()}})
-	t.Logf("+++> %#v\n", qRsp)
+	myRewardsAmount := qRsp.Array("rewards")[0].To("rewards", "rewards")["amount"]
+	v, err := strconv.Atoi(myRewardsAmount.(string))
+	require.NoError(t, err)
+	require.NotEmpty(t, v)
 
-	//"withdraw_rewards"
+	// and when claimed
+	targetAddr := sdk.AccAddress(rand.Bytes(address.Len))
+	gotBalance := consumerChain.Balance(targetAddr, consumerDenom).Amount
+	require.Equal(t, math.ZeroInt(), gotBalance)
+	providerCli.MustExecExtStaking(fmt.Sprintf(`{"withdraw_rewards":{"validator": %q, "remote_recipient": %q}}`, myExtValidatorAddr, targetAddr.String()))
+	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
+
+	// then should be on destination account
+	gotBalance = consumerChain.Balance(targetAddr, consumerDenom).Amount
+	require.Equal(t, myRewardsAmount, gotBalance.String())
+	t.Log("got Rewards: " + gotBalance.String())
 }
