@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 
 	"cosmossdk.io/math"
@@ -116,31 +117,51 @@ func (p TestProviderClient) MustExecExtStaking(payload string, funds ...sdk.Coin
 }
 
 func (p TestProviderClient) mustExec(contract sdk.AccAddress, payload string, funds []sdk.Coin) *sdk.Result {
+	rsp, err := p.Exec(contract, payload, funds...)
+	require.NoError(p.t, err)
+	return rsp
+}
+
+func (p TestProviderClient) Exec(contract sdk.AccAddress, payload string, funds ...sdk.Coin) (*sdk.Result, error) {
 	rsp, err := p.chain.SendMsgs(&wasmtypes.MsgExecuteContract{
 		Sender:   p.chain.SenderAccount.GetAddress().String(),
 		Contract: contract.String(),
 		Msg:      []byte(payload),
 		Funds:    funds,
 	})
-	require.NoError(p.t, err)
-	return rsp
+	return rsp, err
 }
 
 func (p TestProviderClient) MustFailExecVault(payload string, funds ...sdk.Coin) error {
-	return p.mustFailExec(p.contracts.vault, payload, funds)
+	rsp, err := p.Exec(p.contracts.vault, payload, funds...)
+	require.Error(p.t, err, "Response: %v", rsp)
+	return err
 }
 
-// This will execute the contract and assert that it fails, returning the error if desired.
-// (Unlike most functions, it will panic on failure, returning error is success case)
-func (p TestProviderClient) mustFailExec(contract sdk.AccAddress, payload string, funds []sdk.Coin) error {
-	resp, err := p.chain.SendMsgs(&wasmtypes.MsgExecuteContract{
-		Sender:   p.chain.SenderAccount.GetAddress().String(),
-		Contract: contract.String(),
-		Msg:      []byte(payload),
-		Funds:    funds,
-	})
-	require.Error(p.t, err, "Response: %v", resp)
+func (p TestProviderClient) MustExecStakeRemote(val string, amt sdk.Coin) {
+	require.NoError(p.t, p.ExecStakeRemote(val, amt))
+}
+
+func (p TestProviderClient) ExecStakeRemote(val string, amt sdk.Coin) error {
+	payload := fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%s"}, "msg":%q}}`,
+		p.contracts.externalStaking.String(),
+		amt.Denom, amt.Amount.String(),
+		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, val))))
+	_, err := p.Exec(p.contracts.vault, payload)
 	return err
+}
+
+func (p TestProviderClient) QueryExtStakingAmount(user, validator string) int {
+	qRsp := p.QueryExtStaking(Query{
+		"stake": {
+			"user":      user,
+			"validator": validator,
+		},
+	})
+	require.Contains(p.t, qRsp, "stake")
+	r, err := strconv.Atoi(qRsp["stake"].(string))
+	require.NoError(p.t, err)
+	return r
 }
 
 func (p TestProviderClient) QueryExtStaking(q Query) QueryResponse {
@@ -218,8 +239,27 @@ func (p *TestConsumerClient) ExecNewEpoch() {
 		p.chain.Coordinator.CommitNBlocks(p.chain, execHeight-ch)
 	}
 	rsp := p.chain.NextBlock()
-	// capture events
-	p.t.Logf("### EVENTS: %#v\n", rsp.Events)
+	// ensure capture events do not contain a contract error
+	for _, e := range rsp.Events {
+		if !strings.HasPrefix(e.Type, "wasm") {
+			continue
+		}
+		for _, a := range e.Attributes {
+			if strings.HasSuffix(a.String(), "error") {
+				p.t.Fatalf("received error event: %s in %#v", a.Value, rsp.Events)
+			}
+		}
+	}
+}
+
+// add authority to mint/burn virtual tokens gov proposal
+func (p *TestConsumerClient) MustEnableVirtualStaking(maxCap sdk.Coin) {
+	govProposal := &types.MsgSetVirtualStakingMaxCap{
+		Authority: p.app.MeshSecKeeper.GetAuthority(),
+		Contract:  p.contracts.staking.String(),
+		MaxCap:    maxCap,
+	}
+	p.MustExecGovProposal(govProposal)
 }
 
 // MustExecGovProposal submit and vote yes on proposal

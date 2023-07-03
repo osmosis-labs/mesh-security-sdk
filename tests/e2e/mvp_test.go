@@ -7,24 +7,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cometbft/cometbft/libs/rand"
-
-	"github.com/cosmos/cosmos-sdk/types/address"
-	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
-	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
-
 	"cosmossdk.io/math"
 
 	wasmibctesting "github.com/CosmWasm/wasmd/x/wasm/ibctesting"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
+	"github.com/cometbft/cometbft/libs/rand"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/address"
+	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
+	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	channeltypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 	ibctesting "github.com/cosmos/ibc-go/v7/testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
-	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
 func TestMVP(t *testing.T) {
@@ -44,13 +41,14 @@ func TestMVP(t *testing.T) {
 	// ...
 
 	var (
-		coord         = NewIBCCoordinator(t, 2)
-		consumerChain = coord.GetChain(ibctesting.GetChainID(2))
-		providerChain = coord.GetChain(ibctesting.GetChainID(1))
-		consumerApp   = consumerChain.App.(*app.MeshApp)
-		ibcPath       = wasmibctesting.NewPath(consumerChain, providerChain)
-		providerDenom = sdk.DefaultBondDenom
-		consumerDenom = sdk.DefaultBondDenom
+		coord            = NewIBCCoordinator(t, 2)
+		consumerChain    = coord.GetChain(ibctesting.GetChainID(2))
+		providerChain    = coord.GetChain(ibctesting.GetChainID(1))
+		consumerApp      = consumerChain.App.(*app.MeshApp)
+		ibcPath          = wasmibctesting.NewPath(consumerChain, providerChain)
+		providerDenom    = sdk.DefaultBondDenom
+		consumerDenom    = sdk.DefaultBondDenom
+		myProvChainActor = providerChain.SenderAccount.GetAddress().String()
 	)
 	coord.SetupConnections(ibcPath)
 
@@ -89,18 +87,12 @@ func TestMVP(t *testing.T) {
 
 	// ----------------------------
 	// ensure nothing staked by the virtual staking contract yet
-	myExtValidator := sdk.ValAddress(consumerChain.Vals.Validators[0].Address)
+	myExtValidator := sdk.ValAddress(consumerChain.Vals.Validators[1].Address)
 	myExtValidatorAddr := myExtValidator.String()
 	_, found := consumerApp.StakingKeeper.GetDelegation(consumerChain.GetContext(), consumerContracts.staking, myExtValidator)
 	require.False(t, found)
 
-	// add authority to mint/burn virtual tokens gov proposal
-	govProposal := &types.MsgSetVirtualStakingMaxCap{
-		Authority: consumerApp.MeshSecKeeper.GetAuthority(),
-		Contract:  consumerContracts.staking.String(),
-		MaxCap:    sdk.NewInt64Coin(consumerDenom, 1_000_000_000),
-	}
-	consumerCli.MustExecGovProposal(govProposal)
+	consumerCli.MustEnableVirtualStaking(sdk.NewInt64Coin(consumerDenom, 1_000_000_000))
 
 	// then the max cap limit is persisted
 	rsp := consumerCli.QueryMaxCap()
@@ -124,21 +116,15 @@ func TestMVP(t *testing.T) {
 
 	assert.Equal(t, 70_000_000, providerCli.QueryVaultFreeBalance())
 
-	// // Failure mode of cross-stake... trying to stake to an unknown validator
-	execMsg = fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
-		providerContracts.externalStaking.String(),
-		providerDenom, 80_000_000,
-		base64.StdEncoding.EncodeToString([]byte(`{"validator": "BAD-VALIDATOR"}`)))
-	_ = providerCli.MustFailExecVault(execMsg)
-	// // no change to free balance
+	// Failure mode of cross-stake... trying to stake to an unknown validator
+	err := providerCli.ExecStakeRemote("BAD-VALIDATOR", sdk.NewInt64Coin(providerDenom, 80_000_000))
+	require.Error(t, err)
+	// no change to free balance
 	assert.Equal(t, 70_000_000, providerCli.QueryVaultFreeBalance())
 
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
-	execMsg = fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
-		providerContracts.externalStaking.String(),
-		providerDenom, 80_000_000,
-		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myExtValidatorAddr))))
-	providerCli.MustExecVault(execMsg)
+	err = providerCli.ExecStakeRemote(myExtValidatorAddr, sdk.NewInt64Coin(providerDenom, 80_000_000))
+	require.NoError(t, err)
 
 	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
 	require.Equal(t, 20_000_000, providerCli.QueryVaultFreeBalance()) // = 70 (free)  + 30 (local) - 80 (remote staked)
@@ -146,7 +132,7 @@ func TestMVP(t *testing.T) {
 	// then
 	qRsp = providerCli.QueryExtStaking(Query{
 		"stake": {
-			"user":      providerChain.SenderAccount.GetAddress().String(),
+			"user":      myProvChainActor,
 			"validator": myExtValidatorAddr,
 		},
 	})
@@ -180,11 +166,11 @@ func TestMVP(t *testing.T) {
 	// then
 	qRsp = providerCli.QueryExtStaking(Query{
 		"stake": {
-			"user":      providerChain.SenderAccount.GetAddress().String(),
+			"user":      myProvChainActor,
 			"validator": myExtValidatorAddr,
 		},
 	})
-	require.Equal(t, "50000000", qRsp["stake"], qRsp)
+	require.Equal(t, 50_000_000, providerCli.QueryExtStakingAmount(myProvChainActor, myExtValidatorAddr))
 	require.Len(t, qRsp["pending_unbonds"], 1)
 	unbonds := qRsp.Array("pending_unbonds")[0]
 	assert.Equal(t, "30000000", unbonds["amount"], qRsp)
@@ -250,7 +236,7 @@ func TestMVP(t *testing.T) {
 	require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
 
 	// then should be tracked on provider side
-	qRsp = providerCli.QueryExtStaking(Query{"all_pending_rewards": {"user": providerChain.SenderAccount.GetAddress().String()}})
+	qRsp = providerCli.QueryExtStaking(Query{"all_pending_rewards": {"user": myProvChainActor}})
 	myRewardsAmount := qRsp.Array("rewards")[0].To("rewards", "rewards")["amount"]
 	v, err := strconv.Atoi(myRewardsAmount.(string))
 	require.NoError(t, err)
@@ -267,4 +253,15 @@ func TestMVP(t *testing.T) {
 	gotBalance = consumerChain.Balance(targetAddr, consumerDenom).Amount
 	require.Equal(t, myRewardsAmount, gotBalance.String())
 	t.Log("got Rewards: " + gotBalance.String())
+	for _, v := range consumerChain.Vals.Validators {
+		del, found := consumerCli.app.StakingKeeper.GetDelegation(consumerCli.chain.GetContext(), consumerCli.contracts.staking, sdk.ValAddress(v.Address))
+		if !found {
+			val, ok := consumerCli.app.StakingKeeper.GetValidator(consumerCli.chain.GetContext(), sdk.ValAddress(v.Address))
+			require.True(t, ok)
+			t.Logf("skipping: %#v\n", val)
+			continue
+		}
+		require.True(t, found)
+		t.Logf("::%s", del.Shares)
+	}
 }
