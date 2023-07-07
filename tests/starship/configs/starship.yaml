@@ -1,0 +1,46 @@
+chains:
+  - name: provider
+    type: custom
+    numValidators: 1
+    image: anmol1696/meshd:latest
+    home: /root/.meshd
+    binary: meshd
+    prefix: mesh
+    denom: ustake
+    coins: 100000000000000ustake
+    hdPath: m/44'/118'/0'/0/0
+    coinType: 118
+    repo: https://github.com/osmosis/mesh-security-sdk
+    ports:
+      rest: 1313
+      rpc: 26653
+      faucet: 8003
+  - name: consumer
+    type: custom
+    numValidators: 1
+    image: anmol1696/meshd:latest
+    home: /root/.meshd
+    binary: meshd
+    prefix: mesh
+    denom: ustake
+    coins: 100000000000000ustake
+    hdPath: m/44'/118'/0'/0/0
+    coinType: 118
+    repo: https://github.com/osmosis/mesh-security-sdk
+    ports:
+      rest: 1317
+      rpc: 26657
+      faucet: 8007
+
+relayers:
+  - name: provider-consumer
+    type: hermes
+    replicas: 1
+    chains:
+      - provider
+      - consumer
+
+registry:
+  enabled: true
+  ports:
+    rest: 8081

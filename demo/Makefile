@@ -82,17 +82,24 @@ endif
 build-vendored:
 	go build -mod=vendor $(BUILD_FLAGS) -o $(BUILD_DIR)/meshd ./cmd/meshd
 
-build-linux-static:
+docker-build:
 	go mod vendor  # quick hack to make local dependencies work in Docker
 	mkdir -p $(BUILD_DIR)
-	docker build --tag osmosis/meshd:local ./
-	docker create --name meshd_temp osmosis/meshd:local
-	docker cp meshd_temp:/usr/bin/meshd $(BUILD_DIR)/
-	docker rm -f meshd_temp
+	docker buildx build --platform linux/amd64,linux/arm64 --tag anmol1696/meshd:latest ./ --push
 	rm -rf vendor/
 
 install:
 	go install -mod=readonly $(BUILD_FLAGS) ./cmd/meshd
+
+########################################
+### Docker
+
+.PHONY: docker-build-linux
+docker-build-linux:
+	docker buildx build --platform linux/amd64 --tag anmol1696/meshd:latest ./ --push
+
+docker-build-arm64:
+	docker buildx build --platform linux/arm64 --build-arg ARCH=darwin --tag anmol1696/meshd:latest ./ --load
 
 ########################################
 ### Testing
