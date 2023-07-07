@@ -33,6 +33,17 @@ func (k Keeper) HasScheduledTask(ctx sdk.Context, tp types.SchedulerTaskType, co
 	return err == nil && result // we can ignore the unknown task type error and return false instead
 }
 
+// GetNextScheduledTaskHeight returns height for task to execute
+func (k Keeper) GetNextScheduledTaskHeight(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress) (height uint64, found bool) {
+	err := k.iterateScheduledContractTasks(ctx, tp, contract, math.MaxUint, func(atHeight uint64, _ bool) bool {
+		height = atHeight
+		found = true
+		return true
+	})
+	found = err == nil && found // we can ignore the unknown task type error and return false instead
+	return
+}
+
 func (k Keeper) getScheduledTaskAt(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, height uint64) (repeat, exists bool) {
 	key, err := types.BuildSchedulerContractKey(tp, height, contract)
 	if err != nil {
