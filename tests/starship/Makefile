@@ -7,6 +7,12 @@ all: test
 test:
 	go test -mod=readonly -race ./...
 
+build-setup:
+	go build -o build/ ./setup
+
+run-setup:
+	cd setup && go run ./...
+
 build:
 	CGO_ENABLED=1 go test -c -mod=readonly -o $(BUILD_DIR)/mesh-security.e2e.test
 
@@ -23,7 +29,7 @@ FILE = configs/starship.yaml
 
 HELM_REPO = starship
 HELM_CHART = devnet
-HELM_VERSION = v0.1.39-rc0
+HELM_VERSION = v0.1.39-rc2
 
 .PHONY: check
 setup-deps:
@@ -36,6 +42,9 @@ setup-helm:
 
 install:
 	helm install -f $(FILE) $(NAME) $(HELM_REPO)/$(HELM_CHART) --version $(HELM_VERSION)
+
+debug:
+	helm install -f $(FILE) $(NAME) $(HELM_REPO)/$(HELM_CHART) --version $(HELM_VERSION) --dry-run --debug
 
 delete:
 	-helm delete $(NAME)
