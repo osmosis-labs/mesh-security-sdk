@@ -1,11 +1,19 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 	starship "github.com/cosmology-tech/starship/clients/go/client"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmos/go-bip39"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"os"
+	"testing"
+	"time"
 
 	lens "github.com/strangelove-ventures/lens/client"
 	"go.uber.org/zap"
@@ -73,6 +81,15 @@ func NewClient(name string, logger *zap.Logger, starshipClient *starship.ChainCl
 	return chainClient, nil
 }
 
+func (c *Client) GetHeight() (int64, error) {
+	status, err := c.Client.RPCClient.Status(context.Background())
+	if err != nil {
+		return -1, err
+	}
+
+	return status.SyncInfo.LatestBlockHeight, nil
+}
+
 func (c *Client) Initialize() error {
 	keyName := fmt.Sprintf("client-%s-%s", c.ChainID, c.Name)
 
@@ -118,4 +135,59 @@ func (c *Client) CreateWallet(keyName, mnemonic string) (string, error) {
 	}
 
 	return walletAddr, nil
+}
+
+// StakeTokens self stakes tokens from the client address
+func (c *Client) StakeTokens(valAddr string, amount int, denom string) error {
+	stakeMsg := &stakingtypes.MsgDelegate{
+		DelegatorAddress: c.Address,
+		ValidatorAddress: valAddr,
+		Amount:           sdk.NewInt64Coin(denom, int64(amount)),
+	}
+
+	_, err := c.Client.SendMsg(context.Background(), stakeMsg, "")
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+// WaitForTx will wait for the tx to complete, fail if not able to find tx
+func (c *Client) WaitForTx(t *testing.T, txHex string) {
+	var tx *coretypes.ResultTx
+	var err error
+	require.Eventuallyf(t,
+		func() bool {
+			tx, err = c.Client.QueryTx(context.Background(), txHex, false)
+			if err != nil {
+				return false
+			}
+			if tx.TxResult.Code == 0 {
+				return true
+			}
+			return false
+		},
+		300*time.Second,
+		time.Second,
+		"waited for too long, still txn not successfull",
+	)
+	require.NotNil(t, tx)
+}
+
+// WaitForHeight will wait till the chain reaches the block height
+func (c *Client) WaitForHeight(t *testing.T, height int64) {
+	require.Eventuallyf(t,
+		func() bool {
+			curHeight, err := c.GetHeight()
+			assert.NoError(t, err)
+			if curHeight >= height {
+				return true
+			}
+			return false
+		},
+		300*time.Second,
+		5*time.Second,
+		"waited for too long, still height did not reach desired block height",
+	)
 }

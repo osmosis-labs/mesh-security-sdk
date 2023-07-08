@@ -85,7 +85,7 @@ build-vendored:
 docker-build:
 	go mod vendor  # quick hack to make local dependencies work in Docker
 	mkdir -p $(BUILD_DIR)
-	docker buildx build --platform linux/amd64,linux/arm64 --tag anmol1696/meshd:latest ./ --push
+	docker buildx build --platform linux/amd64,linux/arm64 --tag anmol1696/meshd:local ./ --push
 	rm -rf vendor/
 
 install:

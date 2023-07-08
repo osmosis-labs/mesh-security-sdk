@@ -2,11 +2,16 @@ package e2e
 
 import (
 	"context"
+	"cosmossdk.io/math"
 	"encoding/base64"
 	_ "encoding/base64"
 	"fmt"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
+	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
+	"time"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	_ "github.com/cosmology-tech/starship/clients/go/client"
@@ -19,8 +24,27 @@ type Query map[string]map[string]any
 func Querier(t *testing.T, chain *Client) func(contract string, query Query) map[string]any {
 	return func(contract string, query Query) map[string]any {
 		qRsp := make(map[string]any)
-		err := SmartQuery(chain, contract, query, &qRsp)
-		require.NoError(t, err)
+		require.Eventuallyf(t,
+			func() bool {
+				qRsp = make(map[string]any)
+				err := SmartQuery(chain, contract, query, &qRsp)
+				if err != nil {
+					require.Contains(t, err.Error(), "Value is already write locked")
+					fmt.Printf("smart query error (ignored): %s\n", err)
+					return false
+				}
+				require.NoError(t, err)
+				_, ok := qRsp["locked"]
+				if ok {
+					return false
+				}
+				return true
+			},
+			180*time.Second,
+			time.Second,
+			"locked contract response for too long: %v",
+			qRsp,
+		)
 		return qRsp
 	}
 }
@@ -57,8 +81,8 @@ func (p *TestProviderClient) BootstrapContracts(connId, portID string) ProviderC
 	require.NotEmpty(t, proxyCodeID)
 	require.NotEmpty(t, nativeStakingCodeID)
 
-	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d}`, sdk.DefaultBondDenom, proxyCodeID))
-	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, sdk.DefaultBondDenom, nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
+	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d}`, "ustake", proxyCodeID))
+	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, "ustake", nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
 	contracts := InstantiateContract(t, p.chain, vaultCodeID, initMsg)
 
 	fmt.Printf("contracts: %v\n", contracts)
@@ -74,7 +98,7 @@ func (p *TestProviderClient) BootstrapContracts(connId, portID string) ProviderC
 	rewardToken := "ustake" // ics20 token
 	initMsg = []byte(fmt.Sprintf(
 		`{"remote_contact": {"connection_id":%q, "port_id":%q}, "denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q}`,
-		connId, portID, sdk.DefaultBondDenom, vaultContract.String(), unbondingPeriod, rewardToken))
+		connId, portID, "ustake", vaultContract.String(), unbondingPeriod, rewardToken))
 	externalStakingContract := InstantiateContract(t, p.chain, extStakingCodeID, initMsg)[0]
 
 	r := ProviderContracts{
@@ -82,6 +106,7 @@ func (p *TestProviderClient) BootstrapContracts(connId, portID string) ProviderC
 		externalStaking:       externalStakingContract,
 		nativeStakingContract: nativeStakingContract,
 	}
+	fmt.Printf("Provider Contracts:\n  valut: %s\n  externalStaking: %s\n  nativeStaking: %s\n", r.vault.String(), r.externalStaking.String(), r.nativeStakingContract.String())
 	p.contracts = r
 	return r
 }
@@ -132,9 +157,23 @@ func (p TestProviderClient) QueryVault(q Query) map[string]any {
 }
 
 func (p TestProviderClient) QueryVaultFreeBalance() int {
-	qRsp := p.QueryVault(Query{
-		"account": {"account": p.chain.Address},
-	})
+	qRsp := map[string]any{}
+	require.Eventuallyf(p.t,
+		func() bool {
+			qRsp = p.QueryVault(Query{
+				"account": {"account": p.chain.Address},
+			})
+			_, ok := qRsp["locked"]
+			if ok {
+				return false
+			}
+			return true
+		},
+		60*time.Second,
+		time.Second,
+		"valut token locked for too long: %v",
+		qRsp,
+	)
 	require.NotEmpty(p.t, qRsp["account"], qRsp)
 	acct := qRsp["account"].(map[string]any)
 	require.NotEmpty(p.t, acct["free"], qRsp)
@@ -181,7 +220,7 @@ func (p *TestConsumerClient) BootstrapContracts() ConsumerContract {
 
 	discount := "0.1" // todo: configure price
 	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d}`,
-		priceFeedContract.String(), discount, sdk.DefaultBondDenom, virtStakeCodeID))
+		priceFeedContract.String(), discount, "ustake", virtStakeCodeID))
 	// bug in lens that returns second contract instantiated
 	contracts := InstantiateContract(p.t, p.chain, codeID, initMsg)
 	converterContract := contracts[0]
@@ -192,37 +231,58 @@ func (p *TestConsumerClient) BootstrapContracts() ConsumerContract {
 		priceFeed: priceFeedContract,
 		converter: converterContract,
 	}
-	fmt.Printf("r is: %v\n", r)
+	fmt.Printf("Consumer Contracts:\n  staking: %s\n  priceFeed: %s\n  converter: %s\n", r.staking.String(), r.priceFeed.String(), r.converter.String())
 	p.contracts = r
 	return r
 }
 
-//func (p *TestConsumerClient) ExecNewEpoch() {
-//	epochLength := p.app.MeshSecKeeper.GetRebalanceEpochLength(p.chain.GetContext())
-//	p.chain.Coordinator.CommitNBlocks(p.chain, epochLength)
-//}
+func (p *TestConsumerClient) ExecNewEpoch() {
+	// get current block + 100, wait for that block.
+	curHeight, err := p.chain.GetHeight()
+	require.NoError(p.t, err)
+	p.chain.WaitForHeight(p.t, curHeight+100)
+}
 
-//// MustExecGovProposal submit and vote yes on proposal
-//func (p *TestConsumerClient) MustExecGovProposal(msg *types.MsgSetVirtualStakingMaxCap) {
-//	proposalID := submitGovProposal(p.t, p.chain, msg)
-//	voteAndPassGovProposal(p.t, p.chain, proposalID)
-//}
+// MustExecGovProposal submit and vote yes on proposal
+func (p *TestConsumerClient) MustExecGovProposal(msg *types.MsgSetVirtualStakingMaxCap) {
+	proposalID := submitGovProposal(p.t, p.chain, msg)
+	voteAndPassGovProposal(p.t, p.chain, proposalID)
+}
 
-//func (p *TestConsumerClient) QueryMaxCap() types.QueryVirtualStakingMaxCapLimitResponse {
-//	q := baseapp.QueryServiceTestHelper{GRPCQueryRouter: p.app.GRPCQueryRouter(), Ctx: p.chain.GetContext()}
-//	var rsp types.QueryVirtualStakingMaxCapLimitResponse
-//	err := q.Invoke(nil, "/osmosis.meshsecurity.v1beta1.Query/VirtualStakingMaxCapLimit", &types.QueryVirtualStakingMaxCapLimitRequest{Address: p.contracts.staking.String()}, &rsp)
-//	require.NoError(p.t, err)
-//	return rsp
-//}
+func (p *TestConsumerClient) QueryMaxCap() types.QueryVirtualStakingMaxCapLimitResponse {
+	q := &types.QueryVirtualStakingMaxCapLimitRequest{Address: p.contracts.staking.String()}
+	rsp, err := types.NewQueryClient(p.chain.Client).VirtualStakingMaxCapLimit(context.Background(), q)
+	require.NoError(p.t, err)
+	return *rsp
+}
 
-//func (p *TestConsumerClient) assertTotalDelegated(expTotalDelegated math.Int) {
-//	usedAmount := p.app.MeshSecKeeper.GetTotalDelegated(p.chain.GetContext(), p.contracts.staking)
-//	assert.Equal(p.t, sdk.NewCoin(sdk.DefaultBondDenom, expTotalDelegated), usedAmount)
-//}
-//
-//func (p *TestConsumerClient) assertShare(val sdk.ValAddress, exp math.LegacyDec) {
-//	del, found := p.app.StakingKeeper.GetDelegation(p.chain.GetContext(), p.contracts.staking, val)
-//	require.True(p.t, found)
-//	assert.Equal(p.t, exp, del.Shares)
-//}
+func (p *TestConsumerClient) assertTotalDelegated(expTotalDelegated math.Int) {
+	delegations, err := stakingtypes.NewQueryClient(p.chain.Client).DelegatorDelegations(context.Background(), &stakingtypes.QueryDelegatorDelegationsRequest{
+		DelegatorAddr: p.contracts.staking.String(),
+		Pagination:    nil,
+	})
+	assert.NoError(p.t, err)
+	if expTotalDelegated == sdk.ZeroInt() {
+		assert.Nil(p.t, delegations.DelegationResponses)
+		return
+	}
+	actualDelegated := sdk.NewCoin("ustake", sdk.ZeroInt())
+	for _, delegation := range delegations.DelegationResponses {
+		actualDelegated = actualDelegated.Add(delegation.Balance)
+	}
+	assert.Equal(p.t, sdk.NewCoin("ustake", expTotalDelegated), actualDelegated)
+}
+
+func (p *TestConsumerClient) assertShare(val string, exp math.LegacyDec) {
+	fmt.Printf("consumer chain: staking contract %v\n", p.contracts.staking.String())
+	delegations, err := stakingtypes.NewQueryClient(p.chain.Client).DelegatorDelegations(context.Background(), &stakingtypes.QueryDelegatorDelegationsRequest{
+		DelegatorAddr: p.contracts.staking.String(),
+		Pagination:    nil,
+	})
+	require.NoError(p.t, err)
+	for _, delegation := range delegations.DelegationResponses {
+		if delegation.Delegation.ValidatorAddress == val {
+			assert.Equal(p.t, exp, delegation.Delegation.Shares)
+		}
+	}
+}

@@ -70,7 +70,7 @@ func StoreCode(chain *Client, byteCode []byte) (wasmtypes.MsgStoreCodeResponse, 
 		}
 	}
 
-	fmt.Printf("response for storeCode: %v\n", resp)
+	fmt.Printf("response for storeCodeID: %v\n", resp.CodeID)
 
 	return resp, nil
 }
@@ -101,7 +101,7 @@ func SmartQuery(chain *Client, contractAddr string, queryMsg interface{}, respon
 		return err
 	}
 
-	fmt.Printf("smart query response: %s", res.String())
+	fmt.Printf("smart query response: %s\n", res.String())
 
 	if res.Code != 0 {
 		return fmt.Errorf("query failed: (%d) %s", res.Code, res.Log)
