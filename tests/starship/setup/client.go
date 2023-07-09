@@ -26,22 +26,24 @@ type Client struct {
 	Name        string
 	Address     string
 	ChainID     string
+	Denom       string
 	ChainConfig *lens.ChainClientConfig
 	Client      *lens.ChainClient
 }
 
 func NewClient(name string, logger *zap.Logger, starshipClient *starship.ChainClient, modulesBasics []module.AppModuleBasic) (*Client, error) {
+	// fetch chain registry from the local registry
+	registry, err := starshipClient.GetChainRegistry()
+	if err != nil {
+		return nil, err
+	}
+
 	chainClient := &Client{
 		Name:    name,
 		Logger:  logger,
 		Config:  starshipClient.Config,
 		ChainID: starshipClient.ChainID,
-	}
-
-	// fetch chain registry from the local registry
-	registry, err := starshipClient.GetChainRegistry()
-	if err != nil {
-		return nil, err
+		Denom:   registry.Fees.FeeTokens[0].Denom,
 	}
 
 	ccc := &lens.ChainClientConfig{

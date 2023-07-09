@@ -78,8 +78,8 @@ func (p *ProviderClient) BootstrapContracts(connId, portID string) (*ProviderCon
 	nativeStakingCodeResp, err := StoreCodeFile(p.chain, buildPathToWasm("mesh_native_staking.wasm"))
 	nativeStakingCodeID := nativeStakingCodeResp.CodeID
 
-	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d}`, "ustake", proxyCodeID))
-	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, "ustake", nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
+	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d}`, p.chain.Denom, proxyCodeID))
+	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, p.chain.Denom, nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
 	contracts, err := InstantiateContract(p.chain, vaultCodeID, initMsg)
 	if err != nil {
 		return nil, err
@@ -89,16 +89,16 @@ func (p *ProviderClient) BootstrapContracts(connId, portID string) (*ProviderCon
 	nativeStakingContract := contracts[1]
 
 	// external staking
-	unbondingPeriod := 21 * 24 * 60 * 60 // 21 days - make configurable?
+	unbondingPeriod := 100 // 100s - make configurable?
 	extStaking, err := StoreCodeFile(p.chain, buildPathToWasm("external_staking.wasm"))
 	if err != nil {
 		return nil, err
 	}
 	extStakingCodeID := extStaking.CodeID
-	rewardToken := "ustake" // ics20 token
+	rewardToken := "ujuno" // ics20 token
 	initMsg = []byte(fmt.Sprintf(
 		`{"remote_contact": {"connection_id":%q, "port_id":%q}, "denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q}`,
-		connId, portID, "ustake", vaultContract.String(), unbondingPeriod, rewardToken))
+		connId, portID, p.chain.Denom, vaultContract.String(), unbondingPeriod, rewardToken))
 	externalStakingContracts, err := InstantiateContract(p.chain, extStakingCodeID, initMsg)
 	if err != nil {
 		return nil, err
@@ -241,9 +241,10 @@ func (p *ConsumerClient) BootstrapContracts() (*ConsumerContract, error) {
 	}
 	codeID = code.CodeID
 
-	discount := "0.1" // todo: configure price
+	discount := "0.1"      // todo: configure price
+	remoteToken := "uosmo" // todo: figure out if this is correct
 	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d}`,
-		priceFeedContract.String(), discount, "ustake", virtStakeCodeID))
+		priceFeedContract.String(), discount, remoteToken, virtStakeCodeID))
 	// bug in lens that returns second contract instantiated
 	contracts, err := InstantiateContract(p.chain, codeID, initMsg)
 	if err != nil {

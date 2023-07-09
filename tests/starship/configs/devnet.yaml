@@ -6,8 +6,8 @@ chains:
     home: /root/.meshd
     binary: meshd
     prefix: mesh
-    denom: ustake
-    coins: 100000000000000ustake
+    denom: uosmo
+    coins: 100000000000000uosmo
     hdPath: m/44'/118'/0'/0/0
     coinType: 118
     repo: https://github.com/osmosis/mesh-security-sdk
@@ -29,8 +29,8 @@ chains:
     home: /root/.meshd
     binary: meshd
     prefix: mesh
-    denom: ustake
-    coins: 100000000000000ustake
+    denom: ujuno
+    coins: 100000000000000ujuno
     hdPath: m/44'/118'/0'/0/0
     coinType: 118
     repo: https://github.com/osmosis/mesh-security-sdk

@@ -34,7 +34,7 @@ func buildPathToWasm(fileName string) string {
 
 func submitGovProposal(chain *Client, msgs ...sdk.Msg) (uint64, error) {
 	// fetch gov params from the local
-	initialDeposit := sdk.NewCoins(sdk.NewCoin("ustake", sdk.NewInt(10000000)))
+	initialDeposit := sdk.NewCoins(sdk.NewCoin(chain.Denom, sdk.NewInt(10000000)))
 	govMsg, err := govv1.NewMsgSubmitProposal(msgs, initialDeposit, chain.Address, "", "my title", "my summary")
 	if err != nil {
 		return 0, err

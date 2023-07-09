@@ -96,7 +96,7 @@ func MeshSecurity() error {
 	myExtValidatorAddr := validators.Validators[0].OperatorAddress
 
 	// stake tokens from the client address
-	err = consumerClient.StakeTokens(myExtValidatorAddr, 5000000, "ustake")
+	err = consumerClient.StakeTokens(myExtValidatorAddr, 5000000, consumerClient.Denom)
 	if err != nil {
 		return err
 	}
