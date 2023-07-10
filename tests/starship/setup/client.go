@@ -1,4 +1,4 @@
-package main
+package setup
 
 import (
 	"context"
@@ -32,7 +32,7 @@ type Client struct {
 }
 
 func NewClient(name string, logger *zap.Logger, starshipClient *starship.ChainClient, modulesBasics []module.AppModuleBasic) (*Client, error) {
-	// fetch chain registry from the local registry
+	// fetch Chain registry from the local registry
 	registry, err := starshipClient.GetChainRegistry()
 	if err != nil {
 		return nil, err
@@ -177,7 +177,7 @@ func (c *Client) WaitForTx(t *testing.T, txHex string) {
 	require.NotNil(t, tx)
 }
 
-// WaitForHeight will wait till the chain reaches the block height
+// WaitForHeight will wait till the Chain reaches the block height
 func (c *Client) WaitForHeight(t *testing.T, height int64) {
 	require.Eventuallyf(t,
 		func() bool {

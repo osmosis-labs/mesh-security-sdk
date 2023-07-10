@@ -1,7 +1,7 @@
 chains:
   - name: provider
     type: custom
-    numValidators: 2
+    numValidators: 4
     image: anmol1696/meshd:local
     home: /root/.meshd
     binary: meshd
@@ -24,7 +24,7 @@ chains:
         memory: 1Gi
   - name: consumer
     type: custom
-    numValidators: 2
+    numValidators: 4
     image: anmol1696/meshd:local
     home: /root/.meshd
     binary: meshd
@@ -62,6 +62,11 @@ registry:
   enabled: true
   ports:
     rest: 8081
+
+explorer:
+  enabled: true
+  ports:
+    rest: 8080
 
 service:
   type: LoadBalancer

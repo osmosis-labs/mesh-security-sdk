@@ -1,4 +1,4 @@
-package main
+package setup
 
 import (
 	"context"
@@ -50,37 +50,39 @@ func Querier(chain *Client) func(contract string, query Query) map[string]any {
 }
 
 type ProviderClient struct {
-	chain     *Client
-	contracts *ProviderContracts
+	Chain               *Client
+	Contracts           *ProviderContracts
+	wasmContractPath    string
+	wasmContractGZipped bool
 }
 
-func NewProviderClient(chain *Client) *ProviderClient {
-	return &ProviderClient{chain: chain}
+func NewProviderClient(chain *Client, wasmContractPath string, wasmContractGZipped bool) *ProviderClient {
+	return &ProviderClient{Chain: chain, wasmContractPath: wasmContractPath, wasmContractGZipped: wasmContractGZipped}
 }
 
 type ProviderContracts struct {
-	vault                 sdk.AccAddress
-	nativeStakingContract sdk.AccAddress
-	externalStaking       sdk.AccAddress
+	Vault                 sdk.AccAddress
+	NativeStakingContract sdk.AccAddress
+	ExternalStaking       sdk.AccAddress
 }
 
 func (p *ProviderClient) BootstrapContracts(connId, portID string) (*ProviderContracts, error) {
-	vaultCodeResp, err := StoreCodeFile(p.chain, buildPathToWasm("mesh_vault.wasm"))
+	vaultCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_vault.wasm", p.wasmContractGZipped))
 	if err != nil {
 		return nil, err
 	}
 	vaultCodeID := vaultCodeResp.CodeID
-	proxyCodeResp, err := StoreCodeFile(p.chain, buildPathToWasm("mesh_native_staking_proxy.wasm"))
+	proxyCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_native_staking_proxy.wasm", p.wasmContractGZipped))
 	if err != nil {
 		return nil, err
 	}
 	proxyCodeID := proxyCodeResp.CodeID
-	nativeStakingCodeResp, err := StoreCodeFile(p.chain, buildPathToWasm("mesh_native_staking.wasm"))
+	nativeStakingCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_native_staking.wasm", p.wasmContractGZipped))
 	nativeStakingCodeID := nativeStakingCodeResp.CodeID
 
-	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d}`, p.chain.Denom, proxyCodeID))
-	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, p.chain.Denom, nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
-	contracts, err := InstantiateContract(p.chain, vaultCodeID, initMsg)
+	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d}`, p.Chain.Denom, proxyCodeID))
+	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, p.Chain.Denom, nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
+	contracts, err := InstantiateContract(p.Chain, vaultCodeID, initMsg)
 	if err != nil {
 		return nil, err
 	}
@@ -88,44 +90,44 @@ func (p *ProviderClient) BootstrapContracts(connId, portID string) (*ProviderCon
 	vaultContract := contracts[0]
 	nativeStakingContract := contracts[1]
 
-	// external staking
+	// external Staking
 	unbondingPeriod := 100 // 100s - make configurable?
-	extStaking, err := StoreCodeFile(p.chain, buildPathToWasm("external_staking.wasm"))
+	extStaking, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "external_staking.wasm", p.wasmContractGZipped))
 	if err != nil {
 		return nil, err
 	}
 	extStakingCodeID := extStaking.CodeID
-	rewardToken := "ujuno" // ics20 token
+	rewardToken := "ibc/ujuno" // ics20 token
 	initMsg = []byte(fmt.Sprintf(
 		`{"remote_contact": {"connection_id":%q, "port_id":%q}, "denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q}`,
-		connId, portID, p.chain.Denom, vaultContract.String(), unbondingPeriod, rewardToken))
-	externalStakingContracts, err := InstantiateContract(p.chain, extStakingCodeID, initMsg)
+		connId, portID, p.Chain.Denom, vaultContract.String(), unbondingPeriod, rewardToken))
+	externalStakingContracts, err := InstantiateContract(p.Chain, extStakingCodeID, initMsg)
 	if err != nil {
 		return nil, err
 	}
 	externalStakingContract := externalStakingContracts[0]
 
 	r := &ProviderContracts{
-		vault:                 vaultContract,
-		externalStaking:       externalStakingContract,
-		nativeStakingContract: nativeStakingContract,
+		Vault:                 vaultContract,
+		ExternalStaking:       externalStakingContract,
+		NativeStakingContract: nativeStakingContract,
 	}
-	fmt.Printf("Provider Contracts:\n  valut: %s\n  externalStaking: %s\n  nativeStaking: %s\n", r.vault.String(), r.externalStaking.String(), r.nativeStakingContract.String())
-	p.contracts = r
+	fmt.Printf("Provider Contracts:\n  valut: %s\n  ExternalStaking: %s\n  nativeStaking: %s\n", r.Vault.String(), r.ExternalStaking.String(), r.NativeStakingContract.String())
+	p.Contracts = r
 	return r, nil
 }
 
 func (p ProviderClient) MustExecVault(payload string, funds ...sdk.Coin) (*sdk.TxResponse, error) {
-	return p.mustExec(p.contracts.vault, payload, funds)
+	return p.mustExec(p.Contracts.Vault, payload, funds)
 }
 
 func (p ProviderClient) MustExecExtStaking(payload string, funds ...sdk.Coin) (*sdk.TxResponse, error) {
-	return p.mustExec(p.contracts.externalStaking, payload, funds)
+	return p.mustExec(p.Contracts.ExternalStaking, payload, funds)
 }
 
 func (p ProviderClient) mustExec(contract sdk.AccAddress, payload string, funds []sdk.Coin) (*sdk.TxResponse, error) {
-	rsp, err := p.chain.Client.SendMsg(context.Background(), &wasmtypes.MsgExecuteContract{
-		Sender:   p.chain.Address,
+	rsp, err := p.Chain.Client.SendMsg(context.Background(), &wasmtypes.MsgExecuteContract{
+		Sender:   p.Chain.Address,
 		Contract: contract.String(),
 		Msg:      []byte(payload),
 		Funds:    funds,
@@ -137,14 +139,14 @@ func (p ProviderClient) mustExec(contract sdk.AccAddress, payload string, funds 
 }
 
 func (p ProviderClient) MustFailExecVault(payload string, funds ...sdk.Coin) error {
-	return p.mustFailExec(p.contracts.vault, payload, funds)
+	return p.mustFailExec(p.Contracts.Vault, payload, funds)
 }
 
 // This will execute the contract and assert that it fails, returning the error if desired.
 // (Unlike most functions, it will panic on failure, returning error is success case)
 func (p ProviderClient) mustFailExec(contract sdk.AccAddress, payload string, funds []sdk.Coin) error {
-	resp, err := p.chain.Client.SendMsg(context.Background(), &wasmtypes.MsgExecuteContract{
-		Sender:   p.chain.Address,
+	resp, err := p.Chain.Client.SendMsg(context.Background(), &wasmtypes.MsgExecuteContract{
+		Sender:   p.Chain.Address,
 		Contract: contract.String(),
 		Msg:      []byte(payload),
 		Funds:    funds,
@@ -157,11 +159,11 @@ func (p ProviderClient) mustFailExec(contract sdk.AccAddress, payload string, fu
 }
 
 func (p ProviderClient) QueryExtStaking(q Query) map[string]any {
-	return Querier(p.chain)(p.contracts.externalStaking.String(), q)
+	return Querier(p.Chain)(p.Contracts.ExternalStaking.String(), q)
 }
 
 func (p ProviderClient) QueryVault(q Query) map[string]any {
-	return Querier(p.chain)(p.contracts.vault.String(), q)
+	return Querier(p.Chain)(p.Contracts.Vault.String(), q)
 }
 
 func (p ProviderClient) QueryVaultFreeBalance() int {
@@ -169,7 +171,7 @@ func (p ProviderClient) QueryVaultFreeBalance() int {
 	err := Eventually(
 		func() bool {
 			qRsp = p.QueryVault(Query{
-				"account": {"account": p.chain.Address},
+				"account": {"account": p.Chain.Address},
 			})
 			_, ok := qRsp["locked"]
 			if ok {
@@ -194,18 +196,20 @@ func (p ProviderClient) QueryVaultFreeBalance() int {
 }
 
 type ConsumerClient struct {
-	chain     *Client
-	contracts *ConsumerContract
+	Chain               *Client
+	Contracts           *ConsumerContract
+	wasmContractPath    string
+	wasmContractGZipped bool
 }
 
-func NewConsumerClient(chain *Client) *ConsumerClient {
-	return &ConsumerClient{chain: chain}
+func NewConsumerClient(chain *Client, wasmContractPath string, wasmContractGZipped bool) *ConsumerClient {
+	return &ConsumerClient{Chain: chain, wasmContractPath: wasmContractPath, wasmContractGZipped: wasmContractGZipped}
 }
 
 type ConsumerContract struct {
-	staking   sdk.AccAddress
-	priceFeed sdk.AccAddress
-	converter sdk.AccAddress
+	Staking   sdk.AccAddress
+	PriceFeed sdk.AccAddress
+	Converter sdk.AccAddress
 }
 
 func (p *ConsumerClient) BootstrapContracts() (*ConsumerContract, error) {
@@ -214,28 +218,28 @@ func (p *ConsumerClient) BootstrapContracts() (*ConsumerContract, error) {
 	//msModule := p.app.ModuleManager.Modules[types.ModuleName].(*meshsecurity.AppModule)
 	//msModule.SetAsyncTaskRspHandler(meshsecurity.PanicOnErrorExecutionResponseHandler())
 
-	code, err := StoreCodeFile(p.chain, buildPathToWasm("mesh_simple_price_feed.wasm"))
+	code, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_simple_price_feed.wasm", p.wasmContractGZipped))
 	if err != nil {
 		return nil, err
 	}
 	codeID := code.CodeID
 
 	initMsg := []byte(fmt.Sprintf(`{"native_per_foreign": "%s"}`, "0.5")) // todo: configure price
-	priceFeedContracts, err := InstantiateContract(p.chain, codeID, initMsg)
+	priceFeedContracts, err := InstantiateContract(p.Chain, codeID, initMsg)
 	if err != nil {
 		return nil, err
 	}
 	priceFeedContract := priceFeedContracts[0]
 
-	// virtual staking is setup by the consumer
-	virtStakeCode, err := StoreCodeFile(p.chain, buildPathToWasm("mesh_virtual_staking.wasm"))
+	// virtual Staking is setup by the consumer
+	virtStakeCode, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_virtual_staking.wasm", p.wasmContractGZipped))
 	if err != nil {
 		return nil, err
 	}
 	virtStakeCodeID := virtStakeCode.CodeID
 
-	// instantiate converter
-	code, err = StoreCodeFile(p.chain, buildPathToWasm("mesh_converter.wasm"))
+	// instantiate Converter
+	code, err = StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_converter.wasm", p.wasmContractGZipped))
 	if err != nil {
 		return nil, err
 	}
@@ -246,19 +250,19 @@ func (p *ConsumerClient) BootstrapContracts() (*ConsumerContract, error) {
 	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d}`,
 		priceFeedContract.String(), discount, remoteToken, virtStakeCodeID))
 	// bug in lens that returns second contract instantiated
-	contracts, err := InstantiateContract(p.chain, codeID, initMsg)
+	contracts, err := InstantiateContract(p.Chain, codeID, initMsg)
 	if err != nil {
 		return nil, err
 	}
 	converterContract, virtualStakingContract := contracts[0], contracts[1]
 
 	r := &ConsumerContract{
-		staking:   virtualStakingContract,
-		priceFeed: priceFeedContract,
-		converter: converterContract,
+		Staking:   virtualStakingContract,
+		PriceFeed: priceFeedContract,
+		Converter: converterContract,
 	}
-	fmt.Printf("Consumer Contracts:\n  staking: %s\n  priceFeed: %s\n  converter: %s\n", r.staking.String(), r.priceFeed.String(), r.converter.String())
-	p.contracts = r
+	fmt.Printf("Consumer Contracts:\n  Staking: %s\n  PriceFeed: %s\n  Converter: %s\n", r.Staking.String(), r.PriceFeed.String(), r.Converter.String())
+	p.Contracts = r
 	return r, nil
 }
 
@@ -269,19 +273,19 @@ func (p *ConsumerClient) ExecNewEpoch() {
 
 // MustExecGovProposal submit and vote yes on proposal
 func (p *ConsumerClient) MustExecGovProposal(msg *types.MsgSetVirtualStakingMaxCap) {
-	proposalID, err := submitGovProposal(p.chain, msg)
+	proposalID, err := submitGovProposal(p.Chain, msg)
 	if err != nil {
 		panic(err)
 	}
-	err = voteAndPassGovProposal(p.chain, proposalID)
+	err = voteAndPassGovProposal(p.Chain, proposalID)
 	if err != nil {
 		panic(err)
 	}
 }
 
 func (p *ConsumerClient) QueryMaxCap() types.QueryVirtualStakingMaxCapLimitResponse {
-	q := &types.QueryVirtualStakingMaxCapLimitRequest{Address: p.contracts.staking.String()}
-	rsp, err := types.NewQueryClient(p.chain.Client).VirtualStakingMaxCapLimit(context.Background(), q)
+	q := &types.QueryVirtualStakingMaxCapLimitRequest{Address: p.Contracts.Staking.String()}
+	rsp, err := types.NewQueryClient(p.Chain.Client).VirtualStakingMaxCapLimit(context.Background(), q)
 	if err != nil {
 		panic(err)
 	}

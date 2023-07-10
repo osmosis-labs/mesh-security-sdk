@@ -1,4 +1,4 @@
-module github.com/osmosis-labs/mesh-security-sdk/tests/e2e
+module github.com/osmosis-labs/mesh-security-sdk/tests/starship
 
 go 1.19
 

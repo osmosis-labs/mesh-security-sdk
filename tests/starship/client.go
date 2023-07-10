@@ -1,4 +1,4 @@
-package e2e
+package starship
 
 import (
 	"context"
@@ -26,22 +26,24 @@ type Client struct {
 	Name        string
 	Address     string
 	ChainID     string
+	Denom       string
 	ChainConfig *lens.ChainClientConfig
 	Client      *lens.ChainClient
 }
 
 func NewClient(name string, logger *zap.Logger, starshipClient *starship.ChainClient, modulesBasics []module.AppModuleBasic) (*Client, error) {
+	// fetch chain registry from the local registry
+	registry, err := starshipClient.GetChainRegistry()
+	if err != nil {
+		return nil, err
+	}
+
 	chainClient := &Client{
 		Name:    name,
 		Logger:  logger,
 		Config:  starshipClient.Config,
 		ChainID: starshipClient.ChainID,
-	}
-
-	// fetch chain registry from the local registry
-	registry, err := starshipClient.GetChainRegistry()
-	if err != nil {
-		return nil, err
+		Denom:   registry.Fees.FeeTokens[0].Denom,
 	}
 
 	ccc := &lens.ChainClientConfig{
@@ -53,7 +55,7 @@ func NewClient(name string, logger *zap.Logger, starshipClient *starship.ChainCl
 		SignModeStr:    "direct",
 		AccountPrefix:  *registry.Bech32Prefix,
 		GasAdjustment:  1.5,
-		GasPrices:      fmt.Sprintf("%f%s", registry.Fees.FeeTokens[0].HighGasPrice, registry.Fees.FeeTokens[0].Denom),
+		GasPrices:      fmt.Sprintf("%f%s", registry.Fees.FeeTokens[0].HighGasPrice, chainClient.Denom),
 		MinGasAmount:   10000,
 		Slip44:         int(registry.Slip44),
 		Modules:        modulesBasics,

@@ -25,11 +25,11 @@ build-linux:
 ###                          Starship Helm Charts                           ###
 ###############################################################################
 NAME = mesh-security
-FILE = configs/starship.yaml
+FILE = configs/devnet.yaml
 
 HELM_REPO = starship
 HELM_CHART = devnet
-HELM_VERSION = v0.1.39-rc2
+HELM_VERSION = v0.1.39-rc4
 
 .PHONY: check
 setup-deps:

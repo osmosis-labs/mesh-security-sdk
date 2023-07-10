@@ -1,4 +1,4 @@
-package main
+package setup
 
 import (
 	"bytes"
@@ -19,13 +19,7 @@ import (
 	"github.com/cosmos/gogoproto/proto"
 )
 
-var (
-	wasmContractPath    string
-	wasmContractGZipped bool
-	configFile          string
-)
-
-func buildPathToWasm(fileName string) string {
+func buildPathToWasm(wasmContractPath string, fileName string, wasmContractGZipped bool) string {
 	if wasmContractGZipped {
 		fileName += ".gz"
 	}
