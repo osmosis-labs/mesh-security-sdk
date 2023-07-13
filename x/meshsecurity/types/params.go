@@ -10,7 +10,7 @@ import (
 func DefaultParams(denom string) Params {
 	return Params{ // todo: revisit and set proper defaults
 		TotalContractsMaxCap: sdk.NewCoin(denom, math.NewInt(10_000_000_000)),
-		EpochLength:          1_000,
+		EpochLength:          100,
 		MaxGasEndBlocker:     500_000,
 	}
 }
