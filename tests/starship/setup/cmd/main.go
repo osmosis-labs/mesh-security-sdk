@@ -12,9 +12,9 @@ var (
 )
 
 func main() {
-	flag.StringVar(&WasmContractPath, "Contracts-path", "../../testdata", "Set path to dir with gzipped wasm Contracts")
+	flag.StringVar(&WasmContractPath, "Contracts-path", "../testdata", "Set path to dir with gzipped wasm Contracts")
 	flag.BoolVar(&WasmContractGZipped, "gzipped", true, "Use `.gz` file ending when set")
-	flag.StringVar(&ConfigFile, "config", "../../configs/starship.yaml", "starship config file for the infra")
+	flag.StringVar(&ConfigFile, "config", "../configs/starship.yaml", "starship config file for the infra")
 	flag.Parse()
 
 	_, _, err := setup.MeshSecurity(ConfigFile, WasmContractPath, WasmContractGZipped)

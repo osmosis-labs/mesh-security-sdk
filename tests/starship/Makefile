@@ -5,10 +5,10 @@ BUILD_DIR = ./build
 all: test
 
 test:
-	go test -mod=readonly -race ./...
+	go test -mod=readonly -v -race ./...
 
 build-setup:
-	go build -o build/ ./setup
+	cd setup && go build cmd/... -o build/ ./setup
 
 run-setup:
 	cd setup && go run ./...
