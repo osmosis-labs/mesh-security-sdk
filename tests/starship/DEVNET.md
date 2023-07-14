@@ -7,19 +7,19 @@
 Chain-id: `provider`
 Denom: `uosmo`
 
-Host: `ac455e48cce834e60a7ebdae648dc73d-382195732.ap-southeast-1.elb.amazonaws.com`
+Host: `af776f7a0c6b74a0592cd0f960db567a-587001225.ap-southeast-1.elb.amazonaws.com`
 
 Ports:
-* RPC: [26657](http://ac455e48cce834e60a7ebdae648dc73d-382195732.ap-southeast-1.elb.amazonaws.com:26657/status)
-* Rest: [1317](http://ac455e48cce834e60a7ebdae648dc73d-382195732.ap-southeast-1.elb.amazonaws.com:1317)
-* Faucet: [8000](http://ac455e48cce834e60a7ebdae648dc73d-382195732.ap-southeast-1.elb.amazonaws.com:8000)
+* RPC: [26657](http://af776f7a0c6b74a0592cd0f960db567a-587001225.ap-southeast-1.elb.amazonaws.com:26657/status)
+* Rest: [1317](http://af776f7a0c6b74a0592cd0f960db567a-587001225.ap-southeast-1.elb.amazonaws.com:1317)
+* Faucet: [8000](http://af776f7a0c6b74a0592cd0f960db567a-587001225.ap-southeast-1.elb.amazonaws.com:8000)
 
 Get tokens from faucet
 ```bash
 curl --header "Content-Type: application/json" \
   --request POST \
   --data '{"denom":"ustake","address":"mesh1yre6ac7qfgyfgvh58ph0rgw627rhw766y430qq"}' \
-  http://ac455e48cce834e60a7ebdae648dc73d-382195732.ap-southeast-1.elb.amazonaws.com:8000/credit
+  http://af776f7a0c6b74a0592cd0f960db567a-587001225.ap-southeast-1.elb.amazonaws.com:8000/credit
 ```
 
 ```
@@ -35,19 +35,19 @@ Chain-id: `consumer`
 Denom: `ujuno`
 Prefix: `mesh`
 
-Host: `a2fec3c7e87014bfeaa3ae755158ce9e-885015271.ap-southeast-1.elb.amazonaws.com`
+Host: `ae972d435ccad4ff3875cc05f31be3cb-209753913.ap-southeast-1.elb.amazonaws.com`
 
 Ports:
-* RPC: [26657](http://a2fec3c7e87014bfeaa3ae755158ce9e-885015271.ap-southeast-1.elb.amazonaws.com:26657/status)
-* Rest: [1317](http://a2fec3c7e87014bfeaa3ae755158ce9e-885015271.ap-southeast-1.elb.amazonaws.com:1317/status)
-* Faucet: [8000](http://a2fec3c7e87014bfeaa3ae755158ce9e-885015271.ap-southeast-1.elb.amazonaws.com:8000/status)
+* RPC: [26657](http://ae972d435ccad4ff3875cc05f31be3cb-209753913.ap-southeast-1.elb.amazonaws.com:26657/status)
+* Rest: [1317](http://ae972d435ccad4ff3875cc05f31be3cb-209753913.ap-southeast-1.elb.amazonaws.com:1317/status)
+* Faucet: [8000](http://ae972d435ccad4ff3875cc05f31be3cb-209753913.ap-southeast-1.elb.amazonaws.com:8000/status)
 
 Get tokens from faucet
 ```bash
 curl --header "Content-Type: application/json" \
   --request POST \
   --data '{"denom":"ustake","address":"mesh1yre6ac7qfgyfgvh58ph0rgw627rhw766y430qq"}' \
-  http://a2fec3c7e87014bfeaa3ae755158ce9e-885015271.ap-southeast-1.elb.amazonaws.com:8000/credit
+  http://ae972d435ccad4ff3875cc05f31be3cb-209753913.ap-southeast-1.elb.amazonaws.com:8000/credit
 ```
 
 ```
@@ -59,11 +59,11 @@ Consumer Contracts:
 
 ## Chain Registry
 
-Host: `a5d3c50ca6a6245d3ab6bd54d64a559f-1780147229.ap-southeast-1.elb.amazonaws.com`
+Host: `ad0908a89b64a448085c9bcbe933367c-597205196.ap-southeast-1.elb.amazonaws.com`
 
-Port: [8080](http://a5d3c50ca6a6245d3ab6bd54d64a559f-1780147229.ap-southeast-1.elb.amazonaws.com:8080/chains)
+Port: [8080](http://ad0908a89b64a448085c9bcbe933367c-597205196.ap-southeast-1.elb.amazonaws.com:8080/chains)
 
 Endpoints:
-* Chains: [`/chains/{chain-id}`](http://a5d3c50ca6a6245d3ab6bd54d64a559f-1780147229.ap-southeast-1.elb.amazonaws.com:8080/chains/provider)
-* IBC: [`/ibc/{chain-1}/{chain-2}`](http://a5d3c50ca6a6245d3ab6bd54d64a559f-1780147229.ap-southeast-1.elb.amazonaws.com:8080/ibc/provider/consumer)
-* Mnemonics: [`/chains/{chain-id}/keys`](http://a5d3c50ca6a6245d3ab6bd54d64a559f-1780147229.ap-southeast-1.elb.amazonaws.com:8080/chains/provider/keys)
+* Chains: [`/chains/{chain-id}`](http://ad0908a89b64a448085c9bcbe933367c-597205196.ap-southeast-1.elb.amazonaws.com:8080/chains/provider)
+* IBC: [`/ibc/{chain-1}/{chain-2}`](http://ad0908a89b64a448085c9bcbe933367c-597205196.ap-southeast-1.elb.amazonaws.com:8080/ibc/provider/consumer)
+* Mnemonics: [`/chains/{chain-id}/keys`](http://ad0908a89b64a448085c9bcbe933367c-597205196.ap-southeast-1.elb.amazonaws.com:8080/chains/provider/keys)
