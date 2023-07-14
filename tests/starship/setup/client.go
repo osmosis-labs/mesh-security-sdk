@@ -5,12 +5,14 @@ import (
 	"fmt"
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 	starship "github.com/cosmology-tech/starship/clients/go/client"
+	pb "github.com/cosmology-tech/starship/registry/registry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmos/go-bip39"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"os"
 	"testing"
 	"time"
@@ -23,12 +25,13 @@ type Client struct {
 	Logger *zap.Logger
 	Config *starship.Config
 
-	Name        string
-	Address     string
-	ChainID     string
-	Denom       string
-	ChainConfig *lens.ChainClientConfig
-	Client      *lens.ChainClient
+	Name           string
+	Address        string
+	ChainID        string
+	Denom          string
+	StarshipClient *starship.ChainClient
+	ChainConfig    *lens.ChainClientConfig
+	Client         *lens.ChainClient
 }
 
 func NewClient(name string, logger *zap.Logger, starshipClient *starship.ChainClient, modulesBasics []module.AppModuleBasic) (*Client, error) {
@@ -39,11 +42,12 @@ func NewClient(name string, logger *zap.Logger, starshipClient *starship.ChainCl
 	}
 
 	chainClient := &Client{
-		Name:    name,
-		Logger:  logger,
-		Config:  starshipClient.Config,
-		ChainID: starshipClient.ChainID,
-		Denom:   registry.Fees.FeeTokens[0].Denom,
+		Name:           name,
+		Logger:         logger,
+		Config:         starshipClient.Config,
+		ChainID:        starshipClient.ChainID,
+		Denom:          registry.Fees.FeeTokens[0].Denom,
+		StarshipClient: starshipClient,
 	}
 
 	ccc := &lens.ChainClientConfig{
@@ -81,6 +85,14 @@ func NewClient(name string, logger *zap.Logger, starshipClient *starship.ChainCl
 	}
 
 	return chainClient, nil
+}
+
+func (c *Client) GetChainID() string {
+	return c.ChainID
+}
+
+func (c *Client) GetChainDenom() (string, error) {
+	return c.Denom, nil
 }
 
 func (c *Client) GetHeight() (int64, error) {
@@ -192,4 +204,13 @@ func (c *Client) WaitForHeight(t *testing.T, height int64) {
 		5*time.Second,
 		"waited for too long, still height did not reach desired block height",
 	)
+}
+
+// GetIBCInfo will fetch Fetch IBC info from chain registry
+func (c *Client) GetIBCInfo(chain2 string) (*pb.IBCData, error) {
+	return c.StarshipClient.GetIBCInfo(chain2)
+}
+
+func (c *Client) GetIBCChannel(chain2 string) (*pb.ChannelData, error) {
+	return c.StarshipClient.GetIBCChannel(chain2)
 }

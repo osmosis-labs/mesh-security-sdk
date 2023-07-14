@@ -6,6 +6,7 @@
 
 Chain-id: `provider`
 Denom: `uosmo`
+Prefix: `osmo`
 
 Host: `af776f7a0c6b74a0592cd0f960db567a-587001225.ap-southeast-1.elb.amazonaws.com`
 
@@ -18,22 +19,23 @@ Get tokens from faucet
 ```bash
 curl --header "Content-Type: application/json" \
   --request POST \
-  --data '{"denom":"ustake","address":"mesh1yre6ac7qfgyfgvh58ph0rgw627rhw766y430qq"}' \
+  --data '{"denom":"ustake","address":"osmo1yre6ac7qfgyfgvh58ph0rgw627rhw766y430qq"}' \
   http://af776f7a0c6b74a0592cd0f960db567a-587001225.ap-southeast-1.elb.amazonaws.com:8000/credit
 ```
 
 ```
 Provider Contracts:
-  valut: mesh14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9sysl6kf
-  ExternalStaking: mesh1zwv6feuzhy6a9wekh96cd57lsarmqlwxdypdsplw6zhfncqw6ftqsqwra5
-  nativeStaking: mesh1qg5ega6dykkxc307y25pecuufrjkxkaggkkxh7nad0vhyhtuhw3stmd2jl
+  valut: osmo1plr28ztj64a47a32lw7tdae8vluzm2lm7nqk364r4ws50rgwyzgsvucjw7
+  ExternalStaking: osmo1zqtwuecz2k9g5xs6q4vsahnvj7rkax8gwmanygppeudvmzv6txqqkga9a5
+  nativeStaking: osmo19h0d6k4mtxw5qjr0aretjy9kwyem0hxclf88ka2uwjn47e90mqrqg68p6j
+  proxycode-id: 10
 ```
 
 ### Consumer Chain
 
 Chain-id: `consumer`
 Denom: `ujuno`
-Prefix: `mesh`
+Prefix: `juno`
 
 Host: `ae972d435ccad4ff3875cc05f31be3cb-209753913.ap-southeast-1.elb.amazonaws.com`
 
@@ -52,9 +54,9 @@ curl --header "Content-Type: application/json" \
 
 ```
 Consumer Contracts:
-  Staking: mesh1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3syz4y6d
-  PriceFeed: mesh14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9sysl6kf
-  Converter: mesh1qg5ega6dykkxc307y25pecuufrjkxkaggkkxh7nad0vhyhtuhw3stmd2jl
+  Staking: juno1rl8su3hadqqq2v86lscpuklsh2mh84cxqvjdew4jt9yd07dzekyqr2vlrj
+  PriceFeed: juno10qt8wg0n7z740ssvf3urmvgtjhxpyp74hxqvqt7z226gykuus7eqs24840
+  Converter: juno1gurgpv8savnfw66lckwzn4zk7fp394lpe667dhu7aw48u40lj6jsez6g8g
 ```
 
 ## Chain Registry

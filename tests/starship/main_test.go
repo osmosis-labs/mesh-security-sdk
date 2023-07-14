@@ -18,6 +18,8 @@ var (
 	wasmContractPath    string
 	wasmContractGZipped bool
 	configFile          string
+	providerChain       string
+	consumerChain       string
 )
 
 func AssertTotalDelegated(t *testing.T, p *setup.ConsumerClient, expTotalDelegated math.Int) {
@@ -55,6 +57,8 @@ func TestMain(m *testing.M) {
 	flag.StringVar(&wasmContractPath, "contracts-path", "testdata", "Set path to dir with gzipped wasm contracts")
 	flag.BoolVar(&wasmContractGZipped, "gzipped", true, "Use `.gz` file ending when set")
 	flag.StringVar(&configFile, "config", "configs/devnet.yaml", "starship config file for the infra")
+	flag.StringVar(&providerChain, "provider-chain", "mesh-osmosis-1", "provider chain name, from config file")
+	flag.StringVar(&consumerChain, "consumer-chain", "mesh-juno-1", "consumer chain name, from config file")
 	flag.Parse()
 
 	os.Exit(m.Run())

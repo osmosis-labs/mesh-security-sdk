@@ -52,7 +52,7 @@ ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=mesh \
 		  -X github.com/cosmos/cosmos-sdk/version.AppName=meshd \
 		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
-		  -X github.com/osmosis-labs/mesh-security-sdk/demo/app.Bech32Prefix=mesh \
+		  -X github.com/osmosis-labs/mesh-security-sdk/demo/app.Bech32Prefix=juno \
 		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
 
 ifeq ($(WITH_CLEVELDB),yes)
@@ -85,7 +85,7 @@ build-vendored:
 docker-build:
 	go mod vendor  # quick hack to make local dependencies work in Docker
 	mkdir -p $(BUILD_DIR)
-	docker buildx build --platform linux/amd64,linux/arm64 --tag anmol1696/meshd:local ./ --push
+	docker buildx build --platform linux/amd64,linux/arm64 --tag anmol1696/meshd:juno ./ --push
 	rm -rf vendor/
 
 install:

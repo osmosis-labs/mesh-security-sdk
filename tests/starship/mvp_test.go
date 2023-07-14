@@ -32,7 +32,7 @@ func TestMVP(t *testing.T) {
 	// ...
 
 	// create clients for provider and consumer
-	providerClient, consumerClient, err := setup.MeshSecurity(configFile, wasmContractPath, wasmContractGZipped)
+	providerClient, consumerClient, err := setup.MeshSecurity(providerChain, consumerChain, configFile, wasmContractPath, wasmContractGZipped)
 	require.NoError(t, err)
 
 	var (

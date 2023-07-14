@@ -101,12 +101,12 @@ func voteAndPassGovProposal(chain *Client, proposalID uint64) error {
 	return fmt.Errorf("proposal failed: id: %s, status: %d\n", proposal.Proposal.Id, proposal.Proposal.Status)
 }
 
-func InstantiateContract(chain *Client, codeID uint64, initMsg []byte, funds ...sdk.Coin) ([]sdk.AccAddress, error) {
+func InstantiateContract(chain *Client, codeID uint64, label string, initMsg []byte, funds ...sdk.Coin) (map[uint64]sdk.AccAddress, error) {
 	instantiateMsg := &wasmtypes.MsgInstantiateContract{
 		Sender: chain.Address,
 		Admin:  chain.Address,
 		CodeID: codeID,
-		Label:  "ibc-test",
+		Label:  label,
 		Msg:    initMsg,
 		Funds:  funds,
 	}
@@ -117,16 +117,25 @@ func InstantiateContract(chain *Client, codeID uint64, initMsg []byte, funds ...
 	}
 	fmt.Printf("response for instantiate contract: %s\n", r.Code)
 
-	var addrs []sdk.AccAddress
+	// map of codeid and contract address
+	addrs := map[uint64]sdk.AccAddress{}
 
 	for _, event := range r.Logs[0].Events {
 		if event.Type == "instantiate" {
+			var eventCodeID uint64
+			var addr sdk.AccAddress
 			for _, attr := range event.Attributes {
 				if attr.Key == "_contract_address" {
-					addr := sdk.MustAccAddressFromBech32(attr.Value)
-					addrs = append(addrs, addr)
+					addr = sdk.MustAccAddressFromBech32(attr.Value)
+				}
+				if attr.Key == "code_id" {
+					eventCodeID, err = strconv.ParseUint(attr.Value, 10, 64)
+					if err != nil {
+						return nil, err
+					}
 				}
 			}
+			addrs[eventCodeID] = addr
 		}
 	}
 

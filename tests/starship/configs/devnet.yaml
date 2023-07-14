@@ -1,11 +1,11 @@
 chains:
-  - name: provider
+  - name: mesh-osmosis-1
     type: custom
     numValidators: 4
-    image: anmol1696/meshd:local
+    image: anmol1696/meshd:osmo
     home: /root/.meshd
     binary: meshd
-    prefix: mesh
+    prefix: osmo
     denom: uosmo
     coins: 100000000000000uosmo
     hdPath: m/44'/118'/0'/0/0
@@ -22,13 +22,13 @@ chains:
       resources:
         cpu: 0.5
         memory: 1Gi
-  - name: consumer
+  - name: mesh-juno-1
     type: custom
     numValidators: 4
-    image: anmol1696/meshd:local
+    image: anmol1696/meshd:juno
     home: /root/.meshd
     binary: meshd
-    prefix: mesh
+    prefix: juno
     denom: ujuno
     coins: 100000000000000ujuno
     hdPath: m/44'/118'/0'/0/0
@@ -47,13 +47,13 @@ chains:
         memory: 1Gi
 
 relayers:
-  - name: provider-consumer
+  - name: juno-osmo
     type: hermes
     replicas: 1
     image: ghcr.io/cosmology-tech/starship/hermes:39033cdee9e7aaa2274aeca3ab152542bf93d8bd
     chains:
-      - provider
-      - consumer
+      - mesh-juno-1
+      - mesh-osmosis-1
     resources:
       cpu: 1
       memory: 2Gi
@@ -67,6 +67,3 @@ explorer:
   enabled: true
   ports:
     rest: 8080
-
-service:
-  type: LoadBalancer

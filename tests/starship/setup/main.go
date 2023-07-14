@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-func MeshSecurity(configFile, wasmContractPath string, wasmContractGZipped bool) (*ProviderClient, *ConsumerClient, error) {
+func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmContractGZipped bool) (*ProviderClient, *ConsumerClient, error) {
 	// read config file from yaml
 	yamlFile, err := os.ReadFile(configFile)
 	if err != nil {
@@ -37,8 +37,8 @@ func MeshSecurity(configFile, wasmContractPath string, wasmContractGZipped bool)
 	}
 
 	var (
-		consumerChain, _ = chainClients.GetChainClient("consumer")
-		providerChain, _ = chainClients.GetChainClient("provider")
+		consumerChain, _ = chainClients.GetChainClient(consumer)
+		providerChain, _ = chainClients.GetChainClient(provider)
 	)
 
 	// create lens Client for the provider and consumer chains
@@ -64,7 +64,7 @@ func MeshSecurity(configFile, wasmContractPath string, wasmContractGZipped bool)
 	converterPortID := wasmkeeper.PortIDForContract(consumerContracts.Converter)
 	providerCli := NewProviderClient(providerClient, wasmContractPath, wasmContractGZipped)
 
-	ibcInfo, err := consumerChain.GetIBCInfo("provider")
+	ibcInfo, err := consumerChain.GetIBCInfo(provider)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -83,8 +83,8 @@ func MeshSecurity(configFile, wasmContractPath string, wasmContractGZipped bool)
 
 	consumerPortID := wasmkeeper.PortIDForContract(providerContracts.ExternalStaking)
 
-	cmd := fmt.Sprintf("hermes create channel --a-chain %s --a-connection %s --a-port %s --b-port %s --yes", "consumer", connectionID, converterPortID, consumerPortID)
-	err = cmdRunner.RunExec("provider-consumer", cmd)
+	cmd := fmt.Sprintf("hermes create channel --a-chain %s --a-connection %s --a-port %s --b-port %s --yes", consumer, connectionID, converterPortID, consumerPortID)
+	err = cmdRunner.RunExec(config.Relayers[0].Name, cmd)
 	if err != nil {
 		return nil, nil, err
 	}
