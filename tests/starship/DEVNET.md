@@ -25,10 +25,10 @@ curl --header "Content-Type: application/json" \
 
 ```
 Provider Contracts:
-  valut: osmo1plr28ztj64a47a32lw7tdae8vluzm2lm7nqk364r4ws50rgwyzgsvucjw7
-  ExternalStaking: osmo1zqtwuecz2k9g5xs6q4vsahnvj7rkax8gwmanygppeudvmzv6txqqkga9a5
-  nativeStaking: osmo19h0d6k4mtxw5qjr0aretjy9kwyem0hxclf88ka2uwjn47e90mqrqg68p6j
-  proxycode-id: 10
+  valut: osmo1ufs3tlq4umljk0qfe8k5ya0x6hpavn897u2cnf9k0en9jr7qarqq7fzxcr
+  ExternalStaking: osmo14ejqjyq8um4p3xfqj74yld5waqljf88fz25yxnma0cngspxe3lesvxz3qh
+  nativeStaking: osmo1aaf9r6s7nxhysuegqrxv0wpm27ypyv4886medd3mrkrw6t4yfcnsgct3th
+  proxycode-id: 6
 ```
 
 ### Consumer Chain
@@ -54,9 +54,9 @@ curl --header "Content-Type: application/json" \
 
 ```
 Consumer Contracts:
-  Staking: juno1rl8su3hadqqq2v86lscpuklsh2mh84cxqvjdew4jt9yd07dzekyqr2vlrj
-  PriceFeed: juno10qt8wg0n7z740ssvf3urmvgtjhxpyp74hxqvqt7z226gykuus7eqs24840
-  Converter: juno1gurgpv8savnfw66lckwzn4zk7fp394lpe667dhu7aw48u40lj6jsez6g8g
+  Staking: juno1j08452mqwadp8xu25kn9rleyl2gufgfjnv0sn8dvynynakkjukcqkfwuqa
+  PriceFeed: juno1ghd753shjuwexxywmgs4xz7x2q732vcnkm6h2pyv9s6ah3hylvrq722sry
+  Converter: juno1mf6ptkssddfmxvhdx0ech0k03ktp6kf9yk59renau2gvht3nq2gq0zmt6e
 ```
 
 ## Chain Registry

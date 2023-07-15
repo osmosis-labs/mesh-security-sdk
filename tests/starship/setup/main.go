@@ -55,9 +55,30 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 		return nil, nil, err
 	}
 
+	// transfer ibc tokens from consumer to provider
+	err = IBCTransferTokens(consumerClient, providerClient, providerClient.Address, 123000000)
+	if err != nil {
+		return nil, nil, err
+	}
+	ibcDenom := "ibc/ujuno"
+	//// get ibc denom from account balance
+	//coins, err := providerClient.Client.QueryBalanceWithDenomTraces(context.Background(), sdk.MustAccAddressFromBech32(providerClient.Address), nil)
+	//if err != nil {
+	//	return nil, nil, err
+	//}
+	//ibcDenom := ""
+	//for _, denom := range coins.Denoms() {
+	//	if strings.HasPrefix(denom, "ibc/") {
+	//		ibcDenom = denom
+	//	}
+	//}
+	//if ibcDenom == "" {
+	//	return nil, nil, fmt.Errorf("ibc denom not found in balance: %v", coins)
+	//}
+
 	// setup Contracts on both chains
 	consumerCli := NewConsumerClient(consumerClient, wasmContractPath, wasmContractGZipped)
-	consumerContracts, err := consumerCli.BootstrapContracts()
+	consumerContracts, err := consumerCli.BootstrapContracts(providerClient.Denom)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -70,7 +91,7 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 	}
 
 	connectionID := ibcInfo.Chain_1.ConnectionId
-	providerContracts, err := providerCli.BootstrapContracts(connectionID, converterPortID)
+	providerContracts, err := providerCli.BootstrapContracts(connectionID, converterPortID, ibcDenom)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -116,8 +137,8 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 			}
 			return false
 		},
-		120*time.Second,
-		time.Second,
+		300*time.Second,
+		5*time.Second,
 		"list remote validators failed: %v",
 		qRsp,
 	)

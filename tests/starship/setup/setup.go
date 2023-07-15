@@ -37,8 +37,8 @@ func Querier(chain *Client) func(contract string, query Query) map[string]any {
 				}
 				return true
 			},
-			180*time.Second,
-			time.Second,
+			300*time.Second,
+			5*time.Second,
 			"locked contract response for too long: %v",
 			qRsp,
 		)
@@ -66,12 +66,11 @@ type ProviderContracts struct {
 	ExternalStaking       sdk.AccAddress
 }
 
-func (p *ProviderClient) BootstrapContracts(connId, portID string) (*ProviderContracts, error) {
+func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) (*ProviderContracts, error) {
 	var (
 		unbondingPeriod  = 100 // 21 days - make configurable?
 		maxLocalSlashing = "0.10"
 		maxExtSlashing   = "0.05"
-		rewardTokenDenom = "ibc/ujuno" // ics 20 token
 		localTokenDenom  = p.Chain.Denom
 	)
 	vaultCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_vault.wasm", p.wasmContractGZipped))
@@ -105,7 +104,7 @@ func (p *ProviderClient) BootstrapContracts(connId, portID string) (*ProviderCon
 	extStakingCodeID := extStaking.CodeID
 	initMsg = []byte(fmt.Sprintf(
 		`{"remote_contact": {"connection_id":%q, "port_id":%q}, "denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q, "max_slashing": %q }`,
-		connId, portID, localTokenDenom, vaultContract.String(), unbondingPeriod, rewardTokenDenom, maxExtSlashing))
+		connId, portID, localTokenDenom, vaultContract.String(), unbondingPeriod, rewardDenom, maxExtSlashing))
 	externalStakingContracts, err := InstantiateContract(p.Chain, extStakingCodeID, "provider-external-staking-contract", initMsg)
 	if err != nil {
 		return nil, err
@@ -188,8 +187,8 @@ func (p ProviderClient) QueryVaultFreeBalance() int {
 			}
 			return true
 		},
-		60*time.Second,
-		time.Second,
+		300*time.Second,
+		5*time.Second,
 		"valut token locked for too long: %v",
 		qRsp,
 	)
@@ -221,7 +220,7 @@ type ConsumerContract struct {
 	Converter sdk.AccAddress
 }
 
-func (p *ConsumerClient) BootstrapContracts() (*ConsumerContract, error) {
+func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContract, error) {
 	// what does this do????
 	// modify end-blocker to fail fast in tests
 	//msModule := p.app.ModuleManager.Modules[types.ModuleName].(*meshsecurity.AppModule)
@@ -254,10 +253,9 @@ func (p *ConsumerClient) BootstrapContracts() (*ConsumerContract, error) {
 	}
 	codeID = code.CodeID
 
-	discount := "0.1"      // todo: configure price
-	remoteToken := "uosmo" // todo: figure out if this is correct
+	discount := "0.1" // todo: configure price
 	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d}`,
-		priceFeedContract.String(), discount, remoteToken, virtStakeCodeID))
+		priceFeedContract.String(), discount, remoteDenom, virtStakeCodeID))
 	// bug in lens that returns second contract instantiated
 	contracts, err := InstantiateContract(p.Chain, codeID, "consumer-converter-contract", initMsg)
 	if err != nil {
