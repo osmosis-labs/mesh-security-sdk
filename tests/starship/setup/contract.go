@@ -101,7 +101,7 @@ func voteAndPassGovProposal(chain *Client, proposalID uint64) error {
 	return fmt.Errorf("proposal failed: id: %s, status: %d\n", proposal.Proposal.Id, proposal.Proposal.Status)
 }
 
-func InstantiateContract(chain *Client, codeID uint64, label string, initMsg []byte, funds ...sdk.Coin) (map[uint64]sdk.AccAddress, error) {
+func InstantiateContract(chain *Client, codeID uint64, label string, initMsg []byte, funds ...sdk.Coin) (map[uint64]string, error) {
 	instantiateMsg := &wasmtypes.MsgInstantiateContract{
 		Sender: chain.Address,
 		Admin:  chain.Address,
@@ -118,15 +118,15 @@ func InstantiateContract(chain *Client, codeID uint64, label string, initMsg []b
 	fmt.Printf("response for instantiate contract: %s\n", r.Code)
 
 	// map of codeid and contract address
-	addrs := map[uint64]sdk.AccAddress{}
+	addrs := map[uint64]string{}
 
 	for _, event := range r.Logs[0].Events {
 		if event.Type == "instantiate" {
 			var eventCodeID uint64
-			var addr sdk.AccAddress
+			var addr string
 			for _, attr := range event.Attributes {
 				if attr.Key == "_contract_address" {
-					addr = sdk.MustAccAddressFromBech32(attr.Value)
+					addr = attr.Value
 				}
 				if attr.Key == "code_id" {
 					eventCodeID, err = strconv.ParseUint(attr.Value, 10, 64)

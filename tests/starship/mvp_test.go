@@ -15,6 +15,52 @@ import (
 	"time"
 )
 
+func Test2WayContract(t *testing.T) {
+	// create clients for provider and consumer
+	providerClient1, consumerClient1, err := setup.MeshSecurity(providerChain, consumerChain, configFile, wasmContractPath, wasmContractGZipped)
+	require.NoError(t, err)
+	require.NotEmpty(t, providerClient1)
+	require.NotEmpty(t, consumerClient1)
+
+	// create oposite clients
+	providerClient2, consumerClient2, err := setup.MeshSecurity(consumerChain, providerChain, configFile, wasmContractPath, wasmContractGZipped)
+	require.NoError(t, err)
+	require.NotEmpty(t, providerClient2)
+	require.NotEmpty(t, consumerClient2)
+
+	qRsp := map[string]any{}
+	// check list of validators on each chains
+	require.Eventuallyf(t,
+		func() bool {
+			qRsp = providerClient1.QueryExtStaking(setup.Query{"list_remote_validators": {}})
+			v := qRsp["validators"].([]interface{})
+			if len(v) > 0 {
+				return true
+			}
+			return false
+		},
+		120*time.Second,
+		time.Second,
+		"list remote validators failed: %v",
+		qRsp,
+	)
+
+	require.Eventuallyf(t,
+		func() bool {
+			qRsp = providerClient2.QueryExtStaking(setup.Query{"list_remote_validators": {}})
+			v := qRsp["validators"].([]interface{})
+			if len(v) > 0 {
+				return true
+			}
+			return false
+		},
+		120*time.Second,
+		time.Second,
+		"list remote validators failed: %v",
+		qRsp,
+	)
+}
+
 func TestMVP(t *testing.T) {
 	// scenario:
 	// given a provider chain P and a consumer chain C
@@ -82,7 +128,7 @@ func TestMVP(t *testing.T) {
 
 	fmt.Println("ensure nothing staked by virtual contract")
 	query := &stakingtypes.QueryDelegatorValidatorsRequest{
-		DelegatorAddr: consumerClient.Contracts.Staking.String(),
+		DelegatorAddr: consumerClient.Contracts.Staking,
 	}
 	delegations, err := stakingtypes.NewQueryClient(consumerChain.Client).DelegatorValidators(context.Background(), query)
 	require.NoError(t, err)
@@ -122,7 +168,7 @@ func TestMVP(t *testing.T) {
 	// // Failure mode of cross-stake... trying to stake to an unknown validator
 	fmt.Println("provider chain: failure care, trying to stake to unknown validator")
 	execMsg = fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
-		providerClient.Contracts.ExternalStaking.String(),
+		providerClient.Contracts.ExternalStaking,
 		providerChain.Denom, 80_000_000,
 		base64.StdEncoding.EncodeToString([]byte(`{"validator": "BAD-VALIDATOR"}`)))
 	err = providerClient.MustFailExecVault(execMsg)
@@ -133,7 +179,7 @@ func TestMVP(t *testing.T) {
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
 	fmt.Println("cross stake: additional liens on the same collateral")
 	execMsg = fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
-		providerClient.Contracts.ExternalStaking.String(),
+		providerClient.Contracts.ExternalStaking,
 		providerChain.Denom, 80_000_000,
 		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myExtValidatorAddr))))
 	_, err = providerClient.MustExecVault(execMsg)

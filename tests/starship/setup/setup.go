@@ -28,6 +28,8 @@ func Querier(chain *Client) func(contract string, query Query) map[string]any {
 					if strings.Contains(err.Error(), "Value is already write locked") {
 						fmt.Printf("smart query error (ignored): %s\n", err)
 						return false
+					} else if strings.Contains(err.Error(), "post failed:") {
+						return false
 					}
 					panic(fmt.Sprintf("error in query: %s\n. Stopping early...", err))
 				}
@@ -61,9 +63,9 @@ func NewProviderClient(chain *Client, wasmContractPath string, wasmContractGZipp
 }
 
 type ProviderContracts struct {
-	Vault                 sdk.AccAddress
-	NativeStakingContract sdk.AccAddress
-	ExternalStaking       sdk.AccAddress
+	Vault                 string
+	NativeStakingContract string
+	ExternalStaking       string
 }
 
 func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) (*ProviderContracts, error) {
@@ -104,7 +106,7 @@ func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) 
 	extStakingCodeID := extStaking.CodeID
 	initMsg = []byte(fmt.Sprintf(
 		`{"remote_contact": {"connection_id":%q, "port_id":%q}, "denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q, "max_slashing": %q }`,
-		connId, portID, localTokenDenom, vaultContract.String(), unbondingPeriod, rewardDenom, maxExtSlashing))
+		connId, portID, localTokenDenom, vaultContract, unbondingPeriod, rewardDenom, maxExtSlashing))
 	externalStakingContracts, err := InstantiateContract(p.Chain, extStakingCodeID, "provider-external-staking-contract", initMsg)
 	if err != nil {
 		return nil, err
@@ -117,9 +119,9 @@ func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) 
 		NativeStakingContract: nativeStakingContract,
 	}
 	fmt.Printf("Provider Contracts:\n  valut: %s\n  ExternalStaking: %s\n  nativeStaking: %s\n  proxycode-id: %d\n",
-		r.Vault.String(),
-		r.ExternalStaking.String(),
-		r.NativeStakingContract.String(),
+		r.Vault,
+		r.ExternalStaking,
+		r.NativeStakingContract,
 		proxyCodeID)
 	p.Contracts = r
 	return r, nil
@@ -133,10 +135,10 @@ func (p ProviderClient) MustExecExtStaking(payload string, funds ...sdk.Coin) (*
 	return p.mustExec(p.Contracts.ExternalStaking, payload, funds)
 }
 
-func (p ProviderClient) mustExec(contract sdk.AccAddress, payload string, funds []sdk.Coin) (*sdk.TxResponse, error) {
+func (p ProviderClient) mustExec(contract string, payload string, funds []sdk.Coin) (*sdk.TxResponse, error) {
 	rsp, err := p.Chain.Client.SendMsg(context.Background(), &wasmtypes.MsgExecuteContract{
 		Sender:   p.Chain.Address,
-		Contract: contract.String(),
+		Contract: contract,
 		Msg:      []byte(payload),
 		Funds:    funds,
 	}, "")
@@ -152,10 +154,10 @@ func (p ProviderClient) MustFailExecVault(payload string, funds ...sdk.Coin) err
 
 // This will execute the contract and assert that it fails, returning the error if desired.
 // (Unlike most functions, it will panic on failure, returning error is success case)
-func (p ProviderClient) mustFailExec(contract sdk.AccAddress, payload string, funds []sdk.Coin) error {
+func (p ProviderClient) mustFailExec(contract string, payload string, funds []sdk.Coin) error {
 	resp, err := p.Chain.Client.SendMsg(context.Background(), &wasmtypes.MsgExecuteContract{
 		Sender:   p.Chain.Address,
-		Contract: contract.String(),
+		Contract: contract,
 		Msg:      []byte(payload),
 		Funds:    funds,
 	}, "")
@@ -167,11 +169,11 @@ func (p ProviderClient) mustFailExec(contract sdk.AccAddress, payload string, fu
 }
 
 func (p ProviderClient) QueryExtStaking(q Query) map[string]any {
-	return Querier(p.Chain)(p.Contracts.ExternalStaking.String(), q)
+	return Querier(p.Chain)(p.Contracts.ExternalStaking, q)
 }
 
 func (p ProviderClient) QueryVault(q Query) map[string]any {
-	return Querier(p.Chain)(p.Contracts.Vault.String(), q)
+	return Querier(p.Chain)(p.Contracts.Vault, q)
 }
 
 func (p ProviderClient) QueryVaultFreeBalance() int {
@@ -215,9 +217,9 @@ func NewConsumerClient(chain *Client, wasmContractPath string, wasmContractGZipp
 }
 
 type ConsumerContract struct {
-	Staking   sdk.AccAddress
-	PriceFeed sdk.AccAddress
-	Converter sdk.AccAddress
+	Staking   string
+	PriceFeed string
+	Converter string
 }
 
 func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContract, error) {
@@ -255,7 +257,7 @@ func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContra
 
 	discount := "0.1" // todo: configure price
 	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d}`,
-		priceFeedContract.String(), discount, remoteDenom, virtStakeCodeID))
+		priceFeedContract, discount, remoteDenom, virtStakeCodeID))
 	// bug in lens that returns second contract instantiated
 	contracts, err := InstantiateContract(p.Chain, codeID, "consumer-converter-contract", initMsg)
 	if err != nil {
@@ -268,7 +270,7 @@ func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContra
 		PriceFeed: priceFeedContract,
 		Converter: converterContract,
 	}
-	fmt.Printf("Consumer Contracts:\n  Staking: %s\n  PriceFeed: %s\n  Converter: %s\n", r.Staking.String(), r.PriceFeed.String(), r.Converter.String())
+	fmt.Printf("Consumer Contracts:\n  Staking: %s\n  PriceFeed: %s\n  Converter: %s\n", r.Staking, r.PriceFeed, r.Converter)
 	p.Contracts = r
 	return r, nil
 }
@@ -292,7 +294,7 @@ func (p *ConsumerClient) MustExecGovProposal(msg *types.MsgSetVirtualStakingMaxC
 }
 
 func (p *ConsumerClient) QueryMaxCap() types.QueryVirtualStakingMaxCapLimitResponse {
-	q := &types.QueryVirtualStakingMaxCapLimitRequest{Address: p.Contracts.Staking.String()}
+	q := &types.QueryVirtualStakingMaxCapLimitRequest{Address: p.Contracts.Staking}
 	rsp, err := types.NewQueryClient(p.Chain.Client).VirtualStakingMaxCapLimit(context.Background(), q)
 	if err != nil {
 		panic(err)

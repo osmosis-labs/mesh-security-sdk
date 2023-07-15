@@ -24,7 +24,7 @@ var (
 
 func AssertTotalDelegated(t *testing.T, p *setup.ConsumerClient, expTotalDelegated math.Int) {
 	delegations, err := stakingtypes.NewQueryClient(p.Chain.Client).DelegatorDelegations(context.Background(), &stakingtypes.QueryDelegatorDelegationsRequest{
-		DelegatorAddr: p.Contracts.Staking.String(),
+		DelegatorAddr: p.Contracts.Staking,
 		Pagination:    nil,
 	})
 	assert.NoError(t, err)
@@ -40,9 +40,9 @@ func AssertTotalDelegated(t *testing.T, p *setup.ConsumerClient, expTotalDelegat
 }
 
 func AssertShare(t *testing.T, p *setup.ConsumerClient, val string, exp math.LegacyDec) {
-	fmt.Printf("consumer chain: staking contract %v\n", p.Contracts.Staking.String())
+	fmt.Printf("consumer chain: staking contract %v\n", p.Contracts.Staking)
 	delegations, err := stakingtypes.NewQueryClient(p.Chain.Client).DelegatorDelegations(context.Background(), &stakingtypes.QueryDelegatorDelegationsRequest{
-		DelegatorAddr: p.Contracts.Staking.String(),
+		DelegatorAddr: p.Contracts.Staking,
 		Pagination:    nil,
 	})
 	require.NoError(t, err)

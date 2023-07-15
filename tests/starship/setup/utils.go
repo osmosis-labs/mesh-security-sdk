@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	transfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
 )
@@ -42,4 +43,21 @@ func IBCTransferTokens(chain1, chain2 *Client, chain2Addr string, amount int) er
 	}
 
 	return nil
+}
+
+func GetBalance(chain *Client, address string) (sdk.Coins, error) {
+	p := &bankTypes.QueryAllBalancesRequest{Address: address, Pagination: nil}
+	queryClient := bankTypes.NewQueryClient(chain.Client)
+
+	res, err := queryClient.AllBalances(context.Background(), p)
+	if err != nil {
+		return nil, err
+	}
+	return res.Balances, nil
+}
+
+const portIDPrefix = "wasm."
+
+func portIDForContract(addr string) string {
+	return portIDPrefix + addr
 }

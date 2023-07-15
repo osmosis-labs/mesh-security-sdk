@@ -3,9 +3,9 @@ package setup
 import (
 	"context"
 	"fmt"
-	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	starship "github.com/cosmology-tech/starship/clients/go/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -46,11 +47,11 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 	for _, am := range app.ModuleBasics {
 		mm = append(mm, am)
 	}
-	consumerClient, err := NewClient("consume-client", zap.L(), consumerChain, mm)
+	consumerClient, err := NewClient(fmt.Sprintf("consume-client-%s", consumer), zap.L(), consumerChain, mm)
 	if err != nil {
 		return nil, nil, err
 	}
-	providerClient, err := NewClient("provider-client", zap.L(), providerChain, mm)
+	providerClient, err := NewClient(fmt.Sprintf("provider-client-%s", provider), zap.L(), providerChain, mm)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -60,21 +61,22 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 	if err != nil {
 		return nil, nil, err
 	}
-	ibcDenom := "ibc/ujuno"
-	//// get ibc denom from account balance
-	//coins, err := providerClient.Client.QueryBalanceWithDenomTraces(context.Background(), sdk.MustAccAddressFromBech32(providerClient.Address), nil)
-	//if err != nil {
-	//	return nil, nil, err
-	//}
-	//ibcDenom := ""
-	//for _, denom := range coins.Denoms() {
-	//	if strings.HasPrefix(denom, "ibc/") {
-	//		ibcDenom = denom
-	//	}
-	//}
-	//if ibcDenom == "" {
-	//	return nil, nil, fmt.Errorf("ibc denom not found in balance: %v", coins)
-	//}
+	time.Sleep(2 * time.Second)
+
+	// get ibc denom from account balance
+	coins, err := GetBalance(providerClient, providerClient.Address)
+	if err != nil {
+		return nil, nil, err
+	}
+	ibcDenom := ""
+	for _, denom := range coins.Denoms() {
+		if strings.HasPrefix(denom, "ibc/") {
+			ibcDenom = denom
+		}
+	}
+	if ibcDenom == "" {
+		return nil, nil, fmt.Errorf("ibc denom not found in balance: %v", coins)
+	}
 
 	// setup Contracts on both chains
 	consumerCli := NewConsumerClient(consumerClient, wasmContractPath, wasmContractGZipped)
@@ -82,7 +84,7 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 	if err != nil {
 		return nil, nil, err
 	}
-	converterPortID := wasmkeeper.PortIDForContract(consumerContracts.Converter)
+	converterPortID := portIDForContract(consumerContracts.Converter)
 	providerCli := NewProviderClient(providerClient, wasmContractPath, wasmContractGZipped)
 
 	ibcInfo, err := consumerChain.GetIBCInfo(provider)
@@ -102,7 +104,7 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 		return nil, nil, err
 	}
 
-	consumerPortID := wasmkeeper.PortIDForContract(providerContracts.ExternalStaking)
+	consumerPortID := portIDForContract(providerContracts.ExternalStaking)
 
 	cmd := fmt.Sprintf("hermes create channel --a-chain %s --a-connection %s --a-port %s --b-port %s --yes", consumer, connectionID, converterPortID, consumerPortID)
 	err = cmdRunner.RunExec(config.Relayers[0].Name, cmd)
@@ -148,9 +150,16 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 
 	// add authority to mint/burn virtual tokens gov proposal
 	fmt.Println("add auth to mint/burn virtual tokens")
+	// bech32Addr, err := bech32.ConvertAndEncode(prefix, addr)
+	authAddr := authtypes.NewModuleAddress(govtypes.ModuleName)
+	registry, err := consumerChain.GetChainRegistry()
+	if err != nil {
+		return nil, nil, err
+	}
+	authAddrStr, err := bech32.ConvertAndEncode(*registry.Bech32Prefix, authAddr)
 	govProposal := &types.MsgSetVirtualStakingMaxCap{
-		Authority: authtypes.NewModuleAddress(govtypes.ModuleName).String(),
-		Contract:  consumerContracts.Staking.String(),
+		Authority: authAddrStr,
+		Contract:  consumerContracts.Staking,
 		MaxCap:    sdk.NewInt64Coin(consumerClient.Denom, 1_000_000_000),
 	}
 	fmt.Printf("create a gov proposal: %v\n", govProposal)
