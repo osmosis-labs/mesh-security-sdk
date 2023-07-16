@@ -1,7 +1,7 @@
 chains:
   - name: mesh-osmosis-1
     type: custom
-    numValidators: 2
+    numValidators: 1
     image: anmol1696/meshd:osmo
     home: /root/.meshd
     binary: meshd
@@ -16,15 +16,15 @@ chains:
       rpc: 26653
       faucet: 8003
     resources:
-      cpu: 1
-      memory: 2Gi
+      cpu: "0.2"
+      memory: "200M"
     faucet:
       resources:
-        cpu: 0.5
-        memory: 1Gi
+        cpu: "0.1"
+        memory: "100M"
   - name: mesh-juno-1
     type: custom
-    numValidators: 2
+    numValidators: 1
     image: anmol1696/meshd:juno
     home: /root/.meshd
     binary: meshd
@@ -39,12 +39,12 @@ chains:
       rpc: 26657
       faucet: 8007
     resources:
-      cpu: 1
-      memory: 2Gi
+      cpu: "0.2"
+      memory: "200M"
     faucet:
       resources:
-        cpu: 0.5
-        memory: 1Gi
+        cpu: "0.1"
+        memory: "100M"
 
 relayers:
   - name: juno-osmo
@@ -55,10 +55,18 @@ relayers:
       - mesh-juno-1
       - mesh-osmosis-1
     resources:
-      cpu: 1
-      memory: 2Gi
+      cpu: "0.1"
+      memory: "100M"
 
 registry:
   enabled: true
   ports:
     rest: 8081
+  resources:
+    cpu: "0.1"
+    memory: "100M"
+
+exposer:
+  resources:
+    cpu: "0.1"
+    memory: "100M"

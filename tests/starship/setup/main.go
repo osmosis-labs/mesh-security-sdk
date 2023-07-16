@@ -61,7 +61,7 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 	if err != nil {
 		return nil, nil, err
 	}
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	// get ibc denom from account balance
 	coins, err := GetBalance(providerClient, providerClient.Address)
@@ -99,18 +99,20 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 	}
 
 	// create channel between 2 chains for the given port and channel
-	cmdRunner, err := starship.NewCmdRunner(zap.L(), config)
+	cmdRunner, err := NewCmdRunner(zap.L(), config)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	consumerPortID := portIDForContract(providerContracts.ExternalStaking)
+	providerPortID := portIDForContract(providerContracts.ExternalStaking)
 
-	cmd := fmt.Sprintf("hermes create channel --a-chain %s --a-connection %s --a-port %s --b-port %s --yes", consumer, connectionID, converterPortID, consumerPortID)
-	err = cmdRunner.RunExec(config.Relayers[0].Name, cmd)
+	cmd := fmt.Sprintf("hermes create channel --a-chain %s --a-connection %s --a-port %s --b-port %s --yes", consumer, connectionID, converterPortID, providerPortID)
+	output, err := cmdRunner.RunExec(config.Relayers[0].Name, cmd)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	fmt.Println("hermes output: ", output)
 
 	// wait for initial packets to be transfered via IBC over
 	validators, err := stakingtypes.NewQueryClient(consumerClient.Client).Validators(context.Background(), &stakingtypes.QueryValidatorsRequest{
