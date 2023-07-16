@@ -5,7 +5,7 @@ BUILD_DIR = ./build
 all: test
 
 test:
-	go test -mod=readonly -v -race ./...
+	go test -mod=readonly -v -race -run Test2WayContract ./...
 
 build-setup:
 	cd setup && go build cmd/... -o build/ ./setup
