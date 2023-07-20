@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/osmosis-labs/mesh-security-sdk/tests/starship/setup"
 	"github.com/stretchr/testify/assert"
@@ -21,12 +22,6 @@ func Test2WayContract(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, providerClient1)
 	require.NotEmpty(t, consumerClient1)
-
-	// create oposite clients
-	providerClient2, consumerClient2, err := setup.MeshSecurity(consumerChain, providerChain, configFile, wasmContractPath, wasmContractGZipped)
-	require.NoError(t, err)
-	require.NotEmpty(t, providerClient2)
-	require.NotEmpty(t, consumerClient2)
 
 	qRsp := map[string]any{}
 	// check list of validators on each chains
@@ -101,6 +96,12 @@ func Test2WayContract(t *testing.T) {
 	})
 	assert.Equal(t, "80000000", qRsp["stake"], qRsp)
 	assert.Empty(t, qRsp["pending_unbonds"])
+
+	// create oposite clients
+	providerClient2, consumerClient2, err := setup.MeshSecurity(consumerChain, providerChain, configFile, wasmContractPath, wasmContractGZipped)
+	require.NoError(t, err)
+	require.NotEmpty(t, providerClient2)
+	require.NotEmpty(t, consumerClient2)
 
 	require.Eventuallyf(t,
 		func() bool {
@@ -381,25 +382,32 @@ func TestMVP(t *testing.T) {
 	releasedAt := time.Unix(0, int64(at)).UTC()
 	fmt.Printf("unbonding at: %v, time to: %v\n", releasedAt, releasedAt.Add(time.Minute).Sub(time.Now()))
 
-	//providerCli.MustExecExtStaking(`{"withdraw_unbonded":{}}`)
-	//assert.Equal(t, 50_000_000, providerCli.QueryVaultFreeBalance())
+	fmt.Printf("sleeping for: %v\n", releasedAt.Add(time.Minute).Sub(time.Now()))
+	time.Sleep(releasedAt.Add(time.Minute).Sub(time.Now()))
+
+	staking, err := providerClient.MustExecExtStaking(`{"withdraw_unbonded":{}}`)
+	require.NoError(t, err)
+	require.NotEmpty(t, staking)
+	assert.Equal(t, 50_000_000, providerClient.QueryVaultFreeBalance())
+
+	// provider chain
+	// ==============
 	//
-	//// provider chain
-	//// ==============
-	////
-	//// A user unstakes some free amount from the vault
-	//balanceBefore, err := banktypes.NewQueryClient(providerClient.Client).Balance(context.Background(), &banktypes.QueryBalanceRequest{
-	//	Address: providerClient.Address,
-	//	Denom:   providerChain.Denom,
-	//})
-	//require.NoError(t, err)
-	//providerCli.MustExecVault(`{"unbond":{"amount":{"denom":"stake", "amount": "30000000"}}}`)
-	//// then
-	//assert.Equal(t, 20_000_000, providerCli.QueryVaultFreeBalance())
-	//balanceAfter, err := banktypes.NewQueryClient(providerClient.Client).Balance(context.Background(), &banktypes.QueryBalanceRequest{
-	//	Address: providerClient.Address,
-	//	Denom:   providerChain.Denom,
-	//})
-	//require.NoError(t, err)
-	//assert.Equal(t, math.NewInt(30_000_000), balanceAfter.Balance.Sub(*balanceBefore.Balance).Amount)
+	// A user unstakes some free amount from the vault
+	balanceBefore, err := banktypes.NewQueryClient(providerClient.Chain.Client).Balance(context.Background(), &banktypes.QueryBalanceRequest{
+		Address: providerClient.Chain.Address,
+		Denom:   providerClient.Chain.Denom,
+	})
+	require.NoError(t, err)
+	execVault, err := providerClient.MustExecVault(fmt.Sprintf(`{"unbond":{"amount":{"denom":"%s", "amount": "30000000"}}}`, providerClient.Chain.Denom))
+	require.NoError(t, err)
+	require.NotEmpty(t, execVault)
+	// then
+	assert.Equal(t, 20_000_000, providerClient.QueryVaultFreeBalance())
+	balanceAfter, err := banktypes.NewQueryClient(providerClient.Chain.Client).Balance(context.Background(), &banktypes.QueryBalanceRequest{
+		Address: providerClient.Chain.Address,
+		Denom:   providerClient.Chain.Denom,
+	})
+	require.NoError(t, err)
+	assert.Less(t, math.NewInt(100_000), balanceAfter.Balance.Sub(*balanceBefore.Balance).Amount.Sub(math.NewInt(30_000_000)))
 }

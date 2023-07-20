@@ -93,7 +93,10 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 	}
 
 	connectionID := ibcInfo.Chain_1.ConnectionId
-	providerContracts, err := providerCli.BootstrapContracts(connectionID, converterPortID, ibcDenom)
+
+	// set reward denom to the other chain base denom
+	rewardDenom := consumerCli.Chain.Denom
+	providerContracts, err := providerCli.BootstrapContracts(connectionID, converterPortID, rewardDenom)
 	if err != nil {
 		return nil, nil, err
 	}
