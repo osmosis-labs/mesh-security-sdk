@@ -89,6 +89,7 @@ build-linux-static:
 	docker create --name meshd_temp osmosis/meshd:local
 	docker cp meshd_temp:/usr/bin/meshd $(BUILD_DIR)/
 	docker rm -f meshd_temp
+	rm -rf vendor/
 
 install:
 	go install -mod=readonly $(BUILD_FLAGS) ./cmd/meshd
