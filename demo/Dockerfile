@@ -30,7 +30,7 @@ FROM alpine:3.16
 
 COPY --from=go-builder /code/build/meshd /usr/bin/meshd
 
-# Set up dependencies
+# Set up dependencies used for Starship
 ENV PACKAGES curl make bash jq sed
 
 # Install minimum necessary dependencies
