@@ -1,5 +1,4 @@
 FROM golang:1.20-alpine AS go-builder
-ARG ARCH=x86_64
 
 RUN apk add --no-cache ca-certificates build-base git
 
@@ -13,7 +12,7 @@ ADD go.mod go.sum ./
 RUN set -eux; \
     WASM_VERSION=v$(go list -m github.com/CosmWasm/wasmvm | cut -d" " -f2 | cut -d"v" -f2); \
     echo $WASM_VERSION; \
-    wget -O /lib/libwasmvm_muslc.a https://github.com/CosmWasm/wasmvm/releases/download/${WASM_VERSION}/libwasmvm_muslc.${ARCH}.a
+    wget -O /lib/libwasmvm_muslc.a https://github.com/CosmWasm/wasmvm/releases/download/${WASM_VERSION}/libwasmvm_muslc.$(uname -m).a
 
 # Copy over code
 COPY . /code
@@ -30,6 +29,12 @@ RUN LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build-vendor
 FROM alpine:3.16
 
 COPY --from=go-builder /code/build/meshd /usr/bin/meshd
+
+# Set up dependencies used for Starship
+ENV PACKAGES curl make bash jq sed
+
+# Install minimum necessary dependencies
+RUN apk add --no-cache $PACKAGES
 
 WORKDIR /opt
 
