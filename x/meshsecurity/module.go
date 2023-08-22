@@ -3,6 +3,7 @@ package meshsecurity
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 
@@ -49,12 +50,17 @@ func (AppModuleBasic) Name() string {
 // DefaultGenesis returns default genesis state as raw bytes for the mesh-security
 // module.
 func (AppModuleBasic) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
-	return nil
+	return cdc.MustMarshalJSON(types.DefaultGenesisState(sdk.DefaultBondDenom))
 }
 
 // ValidateGenesis performs genesis state validation for the mesh-security module.
-func (b AppModuleBasic) ValidateGenesis(marshaler codec.JSONCodec, _ client.TxEncodingConfig, message json.RawMessage) error {
-	return nil
+func (b AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, _ client.TxEncodingConfig, bz json.RawMessage) error {
+	var data types.GenesisState
+	if err := cdc.UnmarshalJSON(bz, &data); err != nil {
+		return fmt.Errorf("failed to unmarshal %s genesis state: %w", types.ModuleName, err)
+	}
+
+	return types.ValidateGenesis(&data)
 }
 
 // GetTxCmd returns the root tx command for the mesh-security module.
@@ -109,6 +115,20 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 
 // RegisterInvariants registers the module's invariants.
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
+}
+
+// InitGenesis performs genesis initialization for the mesh-security module. It returns
+// no validator updates.
+func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, bz json.RawMessage) []abci.ValidatorUpdate {
+	var data types.GenesisState
+	cdc.MustUnmarshalJSON(bz, &data)
+	am.k.InitGenesis(ctx, data)
+	return []abci.ValidatorUpdate{}
+}
+
+// ExportGenesis returns the exported genesis state as raw bytes for the mesh-security
+func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONCodec) json.RawMessage {
+	return cdc.MustMarshalJSON(am.k.ExportGenesis(ctx))
 }
 
 // QuerierRoute returns the bank module's querier route name.

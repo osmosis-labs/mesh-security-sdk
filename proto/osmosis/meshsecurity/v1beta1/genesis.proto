@@ -1,0 +1,18 @@
+syntax = "proto3";
+package osmosis.meshsecurity.v1beta1;
+
+import "osmosis/meshsecurity/v1beta1/meshsecurity.proto";
+import "gogoproto/gogo.proto";
+import "amino/amino.proto";
+
+option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types";
+option (gogoproto.goproto_getters_all) = false;
+option (gogoproto.equal_all) = false;
+
+// GenesisState defines meshsecurity module's genesis state.
+message GenesisState {
+  option (gogoproto.equal) = true;
+
+  Params params = 1
+      [ (gogoproto.nullable) = false, (amino.dont_omitempty) = true ];
+}
