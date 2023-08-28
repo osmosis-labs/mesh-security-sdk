@@ -63,4 +63,5 @@ func TestExportGenesis(t *testing.T) {
 	exported := k.ExportGenesis(pCtx)
 	assert.Equal(t, params.MaxGasEndBlocker, exported.Params.MaxGasEndBlocker)
 	assert.Equal(t, params.EpochLength, exported.Params.EpochLength)
-	assert.Equal(t, params.TotalContractsMaxCap, exported.Params.TotalContractsMaxCap)cd
+	assert.Equal(t, params.TotalContractsMaxCap, exported.Params.TotalContractsMaxCap)
+}
