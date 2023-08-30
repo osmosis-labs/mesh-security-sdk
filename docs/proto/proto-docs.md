@@ -8,6 +8,9 @@
     - [Params](#osmosis.meshsecurity.v1beta1.Params)
     - [VirtualStakingMaxCapInfo](#osmosis.meshsecurity.v1beta1.VirtualStakingMaxCapInfo)
   
+- [osmosis/meshsecurity/v1beta1/genesis.proto](#osmosis/meshsecurity/v1beta1/genesis.proto)
+    - [GenesisState](#osmosis.meshsecurity.v1beta1.GenesisState)
+  
 - [osmosis/meshsecurity/v1beta1/query.proto](#osmosis/meshsecurity/v1beta1/query.proto)
     - [QueryParamsRequest](#osmosis.meshsecurity.v1beta1.QueryParamsRequest)
     - [QueryParamsResponse](#osmosis.meshsecurity.v1beta1.QueryParamsResponse)
@@ -64,6 +67,37 @@ virtual staking max cap
 | `contract` | [string](#string) |  | Contract is the address of the contract |
 | `delegated` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | Delegated is the total amount currently delegated |
 | `cap` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | Cap is the current max cap limit |
+
+
+
+
+
+ <!-- end messages -->
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
+
+ <!-- end services -->
+
+
+
+<a name="osmosis/meshsecurity/v1beta1/genesis.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## osmosis/meshsecurity/v1beta1/genesis.proto
+
+
+
+<a name="osmosis.meshsecurity.v1beta1.GenesisState"></a>
+
+### GenesisState
+GenesisState defines meshsecurity module's genesis state.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `params` | [Params](#osmosis.meshsecurity.v1beta1.Params) |  |  |
 
 
 
