@@ -47,7 +47,6 @@ function set_helm_args() {
   if [[ $NAMESPACE ]]; then
     args="$args --namespace $NAMESPACE --create-namespace"
   fi
-  echo $DRY_RUN
   if [[ "$DRY_RUN" == 0 ]]; then
     args="$args --dry-run --debug"
   fi
