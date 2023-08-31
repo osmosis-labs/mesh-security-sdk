@@ -112,7 +112,7 @@ import (
 	ibcfee "github.com/cosmos/ibc-go/v7/modules/apps/29-fee"
 	ibcfeekeeper "github.com/cosmos/ibc-go/v7/modules/apps/29-fee/keeper"
 	ibcfeetypes "github.com/cosmos/ibc-go/v7/modules/apps/29-fee/types"
-	transfer "github.com/cosmos/ibc-go/v7/modules/apps/transfer"
+	"github.com/cosmos/ibc-go/v7/modules/apps/transfer"
 	ibctransferkeeper "github.com/cosmos/ibc-go/v7/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
 	ibc "github.com/cosmos/ibc-go/v7/modules/core"
@@ -871,12 +871,6 @@ func NewMeshApp(
 		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
 		}
-
-		// todo: remove set-params and initialize via genesis
-		if err := app.MeshSecKeeper.SetParams(ctx, meshsectypes.DefaultParams(sdk.DefaultBondDenom)); err != nil {
-			tmos.Exit(fmt.Sprintf("failed to set mesh params: %s", err))
-		}
-
 	}
 
 	return app
@@ -1094,6 +1088,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(icahosttypes.SubModuleName)
 	paramsKeeper.Subspace(icacontrollertypes.SubModuleName)
 	paramsKeeper.Subspace(wasm.ModuleName)
+	paramsKeeper.Subspace(meshsectypes.ModuleName)
 
 	return paramsKeeper
 }
