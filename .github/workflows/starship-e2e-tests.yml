@@ -1,9 +1,10 @@
-name: E2E tests
+name: Starship E2E tests
 
 on:
   push:
     branches:
       - main
+      - anmol/trim-starship-integration
   pull_request:
     branches:
       - main
@@ -31,11 +32,11 @@ jobs:
       # - Port forward all ports to localhost for next steps to connect
       - name: Setup Test infra
         id: starship-action
-        uses: cosmology-tech/starship-action@0.2.12
+        uses: cosmology-tech/starship-action@0.2.15
         with:
           values: tests/starship/configs/ci.yaml
           port-forward: true
-          version: 0.1.39-rc5
+          version: 0.1.46-rc1
 
       - name: Run Tests
         run: |
@@ -44,7 +45,6 @@ jobs:
           make test
 
       # Starship resource cleanup on cluster
-      # todo(@anmol1696): change this to be post step of the action
       - name: Cleanup cluster
         if: always()
         run: |
