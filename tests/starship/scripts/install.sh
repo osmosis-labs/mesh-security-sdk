@@ -47,8 +47,9 @@ function set_helm_args() {
   if [[ $NAMESPACE ]]; then
     args="$args --namespace $NAMESPACE --create-namespace"
   fi
-  if [[ $DRY_RUN ]]; then
-    args="$args --dry-run"
+  echo $DRY_RUN
+  if [[ "$DRY_RUN" == 0 ]]; then
+    args="$args --dry-run --debug"
   fi
   num_chains=$(yq -r ".chains | length - 1" ${CONFIGFILE})
   if [[ $num_chains -lt 0 ]]; then
@@ -103,7 +104,7 @@ while [ $# -gt 0 ]; do
       ;;
     --dry-run)
       DRY_RUN=1
-      shift 2 # past argument
+      shift # past argument
       ;;
     -*|--*)
       echo "Unknown option $1"
