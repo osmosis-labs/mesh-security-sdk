@@ -1,9 +1,9 @@
 name: "Code Scanning - Action"
 
 on:
-#  pull_request:
-#    paths:
-#      - "**.go"
+  pull_request:
+    paths:
+      - "**.go"
   push:
     branches: [ main ]
     paths:
