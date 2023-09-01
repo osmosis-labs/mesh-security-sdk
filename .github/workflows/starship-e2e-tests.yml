@@ -44,6 +44,13 @@ jobs:
           version: 0.1.46-rc1
 
       - name: Run Tests
+        id: run-tests
+        run: |
+          cd tests/starship/
+          make test
+
+      - name: Run Tests (retry on failure)
+        if: steps.run-tests.outcome == 'failure'
         run: |
           cd tests/starship/
           make test
