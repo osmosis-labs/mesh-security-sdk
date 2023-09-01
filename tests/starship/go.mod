@@ -3,7 +3,7 @@ module github.com/osmosis-labs/mesh-security-sdk/tests/starship
 go 1.19
 
 require (
-	github.com/CosmWasm/wasmd v0.41.0-rc.3
+	github.com/CosmWasm/wasmd v0.41.0
 	github.com/CosmWasm/wasmvm v1.3.0 // indirect
 	github.com/cosmos/cosmos-proto v1.0.0-beta.2 // indirect
 	github.com/cosmos/cosmos-sdk v0.47.4

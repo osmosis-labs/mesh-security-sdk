@@ -25,26 +25,21 @@ build-linux:
 ###                          Starship Helm Charts                           ###
 ###############################################################################
 NAME = mesh-security
-FILE = configs/starship.yaml
+FILE = configs/local.yaml
 
 HELM_REPO = starship
 HELM_CHART = devnet
-HELM_VERSION = v0.1.39-rc5
+HELM_VERSION = v0.1.46-rc1
 
 .PHONY: check
 setup-deps:
 	bash $(CURDIR)/scripts/dev-setup.sh
 
-setup-helm:
-	helm repo add $(HELM_REPO) https://cosmology-tech.github.io/starship/
-	helm repo update
-	helm search repo $(HELM_REPO)/$(HELM_CHART) --version $(HELM_VERSION)
-
 install:
-	helm install -f $(FILE) $(NAME) $(HELM_REPO)/$(HELM_CHART) --version $(HELM_VERSION)
+	bash $(CURDIR)/scripts/install.sh --config $(FILE) --version $(HELM_VERSION) --name $(NAME)
 
 debug:
-	helm install -f $(FILE) $(NAME) $(HELM_REPO)/$(HELM_CHART) --version $(HELM_VERSION) --dry-run --debug
+	bash $(CURDIR)/scripts/install.sh --config $(FILE) --version $(HELM_VERSION) --name $(NAME) --dry-run
 
 delete:
 	-helm delete $(NAME)

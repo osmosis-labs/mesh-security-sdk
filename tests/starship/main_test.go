@@ -28,11 +28,11 @@ func AssertTotalDelegated(t *testing.T, p *setup.ConsumerClient, expTotalDelegat
 		Pagination:    nil,
 	})
 	assert.NoError(t, err)
-	if expTotalDelegated == sdk.ZeroInt() {
+	if expTotalDelegated == math.ZeroInt() {
 		assert.Nil(t, delegations.DelegationResponses)
 		return
 	}
-	actualDelegated := sdk.NewCoin(p.Chain.Denom, sdk.ZeroInt())
+	actualDelegated := sdk.NewCoin(p.Chain.Denom, math.ZeroInt())
 	for _, delegation := range delegations.DelegationResponses {
 		actualDelegated = actualDelegated.Add(delegation.Balance)
 	}
@@ -54,11 +54,11 @@ func AssertShare(t *testing.T, p *setup.ConsumerClient, val string, exp math.Leg
 }
 
 func TestMain(m *testing.M) {
-	flag.StringVar(&wasmContractPath, "contracts-path", "testdata", "Set path to dir with gzipped wasm contracts")
+	flag.StringVar(&wasmContractPath, "contracts-path", "../testdata", "Set path to dir with gzipped wasm contracts")
 	flag.BoolVar(&wasmContractGZipped, "gzipped", true, "Use `.gz` file ending when set")
-	flag.StringVar(&configFile, "config", "configs/devnet.yaml", "starship config file for the infra")
-	flag.StringVar(&providerChain, "provider-chain", "mesh-osmosis-1", "provider chain name, from config file")
-	flag.StringVar(&consumerChain, "consumer-chain", "mesh-juno-1", "consumer chain name, from config file")
+	flag.StringVar(&configFile, "config", "configs/local.yaml", "starship config file for the infra")
+	flag.StringVar(&providerChain, "provider-chain", "mesh-1", "provider chain name, from config file")
+	flag.StringVar(&consumerChain, "consumer-chain", "mesh-2", "consumer chain name, from config file")
 	flag.Parse()
 
 	os.Exit(m.Run())

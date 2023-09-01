@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"cosmossdk.io/math"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -28,7 +29,7 @@ func buildPathToWasm(wasmContractPath string, fileName string, wasmContractGZipp
 
 func submitGovProposal(chain *Client, msgs ...sdk.Msg) (uint64, error) {
 	// fetch gov params from the local
-	initialDeposit := sdk.NewCoins(sdk.NewCoin(chain.Denom, sdk.NewInt(10000000)))
+	initialDeposit := sdk.NewCoins(sdk.NewCoin(chain.Denom, math.NewInt(10000000)))
 	govMsg, err := govv1.NewMsgSubmitProposal(msgs, initialDeposit, chain.Address, "", "my title", "my summary")
 	if err != nil {
 		return 0, err
@@ -98,7 +99,7 @@ func voteAndPassGovProposal(chain *Client, proposalID uint64) error {
 	if proposal.Proposal.Status == govv1.ProposalStatus_PROPOSAL_STATUS_PASSED {
 		return nil
 	}
-	return fmt.Errorf("proposal failed: id: %s, status: %d\n", proposal.Proposal.Id, proposal.Proposal.Status)
+	return fmt.Errorf("proposal failed: id: %d, status: %d\n", proposal.Proposal.Id, proposal.Proposal.Status)
 }
 
 func InstantiateContract(chain *Client, codeID uint64, label string, initMsg []byte, funds ...sdk.Coin) (map[uint64]string, error) {
@@ -115,7 +116,7 @@ func InstantiateContract(chain *Client, codeID uint64, label string, initMsg []b
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("response for instantiate contract: %s\n", r.Code)
+	fmt.Printf("response for instantiate contract: %d\n", r.Code)
 
 	// map of codeid and contract address
 	addrs := map[uint64]string{}
