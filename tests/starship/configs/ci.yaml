@@ -2,7 +2,7 @@ chains:
   - name: mesh-1
     type: custom
     numValidators: 1
-    image: anmol1696/meshd:latest
+    image: anmol1696/meshd:latest # todo(anmol1696): change to ghcr.io/osmosis-labs/meshd:latest
     home: /root/.meshd
     binary: meshd
     prefix: mesh
@@ -34,7 +34,7 @@ chains:
   - name: mesh-2
     type: custom
     numValidators: 1
-    image: anmol1696/meshd:latest
+    image: anmol1696/meshd:latest # todo(anmol1696): change to ghcr.io/osmosis-labs/meshd:latest
     home: /root/.meshd
     binary: meshd
     prefix: mesh
