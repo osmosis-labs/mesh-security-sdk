@@ -409,5 +409,5 @@ func TestMVP(t *testing.T) {
 		Denom:   providerClient.Chain.Denom,
 	})
 	require.NoError(t, err)
-	assert.Less(t, math.NewInt(100_000), balanceAfter.Balance.Sub(*balanceBefore.Balance).Amount.Sub(math.NewInt(30_000_000)))
+	assert.Less(t, math.NewInt(100_000), balanceAfter.Balance.Sub(*balanceBefore.Balance).Amount.Sub(sdk.NewInt(30_000_000)))
 }

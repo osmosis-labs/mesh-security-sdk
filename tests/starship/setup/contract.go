@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"cosmossdk.io/math"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -28,7 +29,7 @@ func buildPathToWasm(wasmContractPath string, fileName string, wasmContractGZipp
 
 func submitGovProposal(chain *Client, msgs ...sdk.Msg) (uint64, error) {
 	// fetch gov params from the local
-	initialDeposit := sdk.NewCoins(sdk.NewCoin(chain.Denom, sdk.NewInt(10000000)))
+	initialDeposit := sdk.NewCoins(sdk.NewCoin(chain.Denom, math.NewInt(10000000)))
 	govMsg, err := govv1.NewMsgSubmitProposal(msgs, initialDeposit, chain.Address, "", "my title", "my summary")
 	if err != nil {
 		return 0, err

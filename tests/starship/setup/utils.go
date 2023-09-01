@@ -2,6 +2,7 @@ package setup
 
 import (
 	"context"
+	"cosmossdk.io/math"
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -21,7 +22,7 @@ func IBCTransferTokens(chain1, chain2 *Client, chain2Addr string, amount int) er
 		return err
 	}
 
-	coin := sdk.Coin{Denom: denom, Amount: sdk.NewInt(int64(amount))}
+	coin := sdk.Coin{Denom: denom, Amount: math.NewInt(int64(amount))}
 	req := &transfertypes.MsgTransfer{
 		SourcePort:       channel.Chain_2.PortId,
 		SourceChannel:    channel.Chain_2.ChannelId,

@@ -28,11 +28,11 @@ func AssertTotalDelegated(t *testing.T, p *setup.ConsumerClient, expTotalDelegat
 		Pagination:    nil,
 	})
 	assert.NoError(t, err)
-	if expTotalDelegated == sdk.ZeroInt() {
+	if expTotalDelegated == math.ZeroInt() {
 		assert.Nil(t, delegations.DelegationResponses)
 		return
 	}
-	actualDelegated := sdk.NewCoin(p.Chain.Denom, sdk.ZeroInt())
+	actualDelegated := sdk.NewCoin(p.Chain.Denom, math.ZeroInt())
 	for _, delegation := range delegations.DelegationResponses {
 		actualDelegated = actualDelegated.Add(delegation.Balance)
 	}
