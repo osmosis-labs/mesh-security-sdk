@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - anmol/trim-starship-integration
   pull_request:
     branches:
       - main
