@@ -1,0 +1,30 @@
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: "/demo"
+    schedule:
+      interval: daily
+      time: "01:05"
+    labels:
+      - dependencies
+  - package-ecosystem: gomod
+    directory: "/x"
+    schedule:
+      interval: daily
+      time: "01:20"
+    labels:
+      - dependencies
+  - package-ecosystem: gomod
+    directory: "/tests/e2e"
+    schedule:
+      interval: daily
+      time: "01:35"
+    labels:
+      - dependencies
+  - package-ecosystem: gomod
+    directory: "/tests/starship"
+    schedule:
+      interval: daily
+      time: "01:55"
+    labels:
+      - dependencies
