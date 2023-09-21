@@ -225,8 +225,8 @@ type ConsumerContract struct {
 func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContract, error) {
 	// what does this do????
 	// modify end-blocker to fail fast in tests
-	//msModule := p.app.ModuleManager.Modules[types.ModuleName].(*meshsecurity.AppModule)
-	//msModule.SetAsyncTaskRspHandler(meshsecurity.PanicOnErrorExecutionResponseHandler())
+	// msModule := p.app.ModuleManager.Modules[types.ModuleName].(*meshsecurity.AppModule)
+	// msModule.SetAsyncTaskRspHandler(meshsecurity.PanicOnErrorExecutionResponseHandler())
 
 	code, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_simple_price_feed.wasm", p.wasmContractGZipped))
 	if err != nil {

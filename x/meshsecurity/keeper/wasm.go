@@ -11,7 +11,7 @@ import (
 )
 
 // Rebalance send rebalance message to virtual staking contract
-func (k Keeper) Rebalance(ctx sdk.Context, addr sdk.AccAddress) error {
+func (k Keeper) Rebalance(ctx sdk.Context, contractAddr sdk.AccAddress) error {
 	msg := contract.SudoMsg{
 		Rebalance: &struct{}{},
 	}
@@ -19,6 +19,6 @@ func (k Keeper) Rebalance(ctx sdk.Context, addr sdk.AccAddress) error {
 	if err != nil {
 		return errorsmod.Wrap(err, "marshal sudo msg")
 	}
-	_, err = k.wasm.Sudo(ctx, addr, bz)
+	_, err = k.wasm.Sudo(ctx, contractAddr, bz)
 	return err
 }

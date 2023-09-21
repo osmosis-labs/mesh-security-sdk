@@ -21,6 +21,9 @@
   
     - [Query](#osmosis.meshsecurity.v1beta1.Query)
   
+- [osmosis/meshsecurity/v1beta1/scheduler.proto](#osmosis/meshsecurity/v1beta1/scheduler.proto)
+    - [ValidatorAddress](#osmosis.meshsecurity.v1beta1.ValidatorAddress)
+  
 - [osmosis/meshsecurity/v1beta1/tx.proto](#osmosis/meshsecurity/v1beta1/tx.proto)
     - [MsgSetVirtualStakingMaxCap](#osmosis.meshsecurity.v1beta1.MsgSetVirtualStakingMaxCap)
     - [MsgSetVirtualStakingMaxCapResponse](#osmosis.meshsecurity.v1beta1.MsgSetVirtualStakingMaxCapResponse)
@@ -223,6 +226,37 @@ Query provides defines the gRPC querier service
 | `VirtualStakingMaxCapLimit` | [QueryVirtualStakingMaxCapLimitRequest](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitRequest) | [QueryVirtualStakingMaxCapLimitResponse](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitResponse) | VirtualStakingMaxCapLimit gets max cap limit for the given contract | GET|/osmosis/meshsecurity/v1beta1/max_cap_limit/{address}|
 | `VirtualStakingMaxCapLimits` | [QueryVirtualStakingMaxCapLimitsRequest](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitsRequest) | [QueryVirtualStakingMaxCapLimitsResponse](#osmosis.meshsecurity.v1beta1.QueryVirtualStakingMaxCapLimitsResponse) | VirtualStakingMaxCapLimits gets max cap limits | GET|/osmosis/meshsecurity/v1beta1/max_cap_limits|
 | `Params` | [QueryParamsRequest](#osmosis.meshsecurity.v1beta1.QueryParamsRequest) | [QueryParamsResponse](#osmosis.meshsecurity.v1beta1.QueryParamsResponse) | Params queries the parameters of x/meshsecurity module. | GET|/osmosis/meshsecurity/v1beta1/params|
+
+ <!-- end services -->
+
+
+
+<a name="osmosis/meshsecurity/v1beta1/scheduler.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## osmosis/meshsecurity/v1beta1/scheduler.proto
+
+
+
+<a name="osmosis.meshsecurity.v1beta1.ValidatorAddress"></a>
+
+### ValidatorAddress
+ValidatorAddress payload data to be used with the scheduler
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `address` | [string](#string) |  | Address is the ValAddress bech32 string |
+
+
+
+
+
+ <!-- end messages -->
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
 
  <!-- end services -->
 

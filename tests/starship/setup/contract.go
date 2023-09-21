@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"cosmossdk.io/math"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"cosmossdk.io/math"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -95,7 +96,7 @@ func voteAndPassGovProposal(chain *Client, proposalID uint64) error {
 	if err != nil {
 		return err
 	}
-	fmt.Print("proposal sucessfully passed...")
+	fmt.Print("proposal successfully passed...")
 	if proposal.Proposal.Status == govv1.ProposalStatus_PROPOSAL_STATUS_PASSED {
 		return nil
 	}

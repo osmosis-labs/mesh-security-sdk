@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"math"
 
+	"github.com/golang/protobuf/proto"
+
 	errorsmod "cosmossdk.io/errors"
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
@@ -20,7 +22,7 @@ func (k Keeper) ScheduleRegularRebalanceTask(ctx sdk.Context, contract sdk.AccAd
 	}
 	epochLength := k.GetRebalanceEpochLength(ctx)
 	nextExecBlock := uint64(ctx.BlockHeight()) + epochLength
-	return k.ScheduleTask(ctx, types.SchedulerTaskRebalance, contract, nextExecBlock, true)
+	return k.ScheduleTask(ctx, types.SchedulerTaskRebalance, contract, nextExecBlock, true, nil)
 }
 
 // HasScheduledTask returns true if the contract has a task scheduled of the given type and repeat setting
@@ -54,7 +56,7 @@ func (k Keeper) getScheduledTaskAt(ctx sdk.Context, tp types.SchedulerTaskType, 
 }
 
 // ScheduleTask register a new task to be executed at given block height
-func (k Keeper) ScheduleTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, execBlockHeight uint64, repeat bool) error {
+func (k Keeper) ScheduleTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, execBlockHeight uint64, repeat bool, payload proto.Message) error {
 	if execBlockHeight < uint64(ctx.BlockHeight()) { // sanity check
 		return types.ErrInvalid.Wrapf("can not schedule for past block: %d", execBlockHeight)
 	}
@@ -177,7 +179,7 @@ func (k Keeper) ExecScheduledTasks(pCtx sdk.Context, tp types.SchedulerTaskType,
 			// re-schedule
 			nextExecBlock := uint64(pCtx.BlockHeight()) + epochLength
 			result.NextRunHeight = nextExecBlock
-			if err := k.ScheduleTask(pCtx, tp, contract, nextExecBlock, repeat); err != nil {
+			if err := k.ScheduleTask(pCtx, tp, contract, nextExecBlock, repeat, nil); err != nil {
 				result.RescheduleErr = err
 			}
 		}

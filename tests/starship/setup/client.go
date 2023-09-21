@@ -3,6 +3,10 @@ package setup
 import (
 	"context"
 	"fmt"
+	"os"
+	"testing"
+	"time"
+
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
 	starship "github.com/cosmology-tech/starship/clients/go/client"
 	pb "github.com/cosmology-tech/starship/registry/registry"
@@ -12,10 +16,6 @@ import (
 	"github.com/cosmos/go-bip39"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"os"
-	"testing"
-	"time"
 
 	lens "github.com/strangelove-ventures/lens/client"
 	"go.uber.org/zap"
@@ -184,7 +184,7 @@ func (c *Client) WaitForTx(t *testing.T, txHex string) {
 		},
 		300*time.Second,
 		time.Second,
-		"waited for too long, still txn not successfull",
+		"waited for too long, still txn not successful",
 	)
 	require.NotNil(t, tx)
 }

@@ -2,16 +2,19 @@ package starship
 
 import (
 	"context"
-	"cosmossdk.io/math"
 	"flag"
 	"fmt"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/osmosis-labs/mesh-security-sdk/tests/starship/setup"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
+
+	"cosmossdk.io/math"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/osmosis-labs/mesh-security-sdk/tests/starship/setup"
 )
 
 var (

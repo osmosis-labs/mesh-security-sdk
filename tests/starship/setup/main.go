@@ -3,6 +3,10 @@ package setup
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	starship "github.com/cosmology-tech/starship/clients/go/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
@@ -10,13 +14,11 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
-	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
-	"os"
-	"strings"
-	"time"
+
+	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
 func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmContractGZipped bool) (*ProviderClient, *ConsumerClient, error) {
@@ -117,7 +119,7 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 
 	fmt.Println("hermes output: ", output)
 
-	// wait for initial packets to be transfered via IBC over
+	// wait for initial packets to be transferred via IBC over
 	validators, err := stakingtypes.NewQueryClient(consumerClient.Client).Validators(context.Background(), &stakingtypes.QueryValidatorsRequest{
 		Status: "BOND_STATUS_BONDED",
 	})

@@ -20,8 +20,8 @@ type TaskExecutionResponseHandler interface {
 func EndBlocker(ctx sdk.Context, k *keeper.Keeper, h TaskExecutionResponseHandler) {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
 	epochLength := k.GetRebalanceEpochLength(ctx)
-	results, err := k.ExecScheduledTasks(ctx, types.SchedulerTaskRebalance, epochLength, func(ctx sdk.Context, addr sdk.AccAddress) error {
-		return k.Rebalance(ctx, addr)
+	results, err := k.ExecScheduledTasks(ctx, types.SchedulerTaskRebalance, epochLength, func(ctx sdk.Context, contract sdk.AccAddress) error {
+		return k.Rebalance(ctx, contract)
 	})
 	if err != nil {
 		panic(fmt.Sprintf("task scheduler: %s", err)) // todo: log or fail?
