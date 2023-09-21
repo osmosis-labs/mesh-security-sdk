@@ -1,0 +1,93 @@
+chains:
+  - name: mesh-1
+    type: custom
+    numValidators: 1
+    image: ghcr.io/osmosis-labs/meshd:latest
+    home: /root/.meshd
+    binary: meshd
+    prefix: mesh
+    denom: stake
+    coins: 100000000000000stake
+    hdPath: m/44'/118'/0'/0/0
+    coinType: 118
+    repo: https://github.com/osmosis/mesh-security-sdk
+    genesis:
+      app_state:
+        meshsecurity:
+          params:
+            epoch_length: 10
+        staking:
+          params:
+            unbonding_time: 200s
+    ports:
+      rest: 1313
+      rpc: 26653
+      faucet: 8003
+    resources:
+      cpu: "0.2"
+      memory: "200M"
+    faucet:
+      concurreny: 2
+      resources:
+        cpu: "0.1"
+        memory: "100M"
+  - name: mesh-2
+    type: custom
+    numValidators: 1
+    image: ghcr.io/osmosis-labs/meshd:latest
+    home: /root/.meshd
+    binary: meshd
+    prefix: mesh
+    denom: stake
+    coins: 100000000000000stake
+    hdPath: m/44'/118'/0'/0/0
+    coinType: 118
+    repo: https://github.com/osmosis/mesh-security-sdk
+    genesis:
+      app_state:
+        meshsecurity:
+          params:
+            epoch_length: 10
+        staking:
+          params:
+            unbonding_time: 200s
+    ports:
+      rest: 1317
+      rpc: 26657
+      faucet: 8007
+    resources:
+      cpu: "0.2"
+      memory: "200M"
+    faucet:
+      concurreny: 2
+      resources:
+        cpu: "0.1"
+        memory: "100M"
+
+relayers:
+  - name: mesh-1-mesh-2
+    type: hermes
+    replicas: 1
+    image: ghcr.io/cosmology-tech/starship/hermes:1.6.0
+    chains:
+      - mesh-1
+      - mesh-2
+    config:
+      event_source:
+        mode: pull
+    resources:
+      cpu: "0.1"
+      memory: "100M"
+
+registry:
+  enabled: true
+  ports:
+    rest: 8081
+  resources:
+    cpu: "0.1"
+    memory: "100M"
+
+exposer:
+  resources:
+    cpu: "0.1"
+    memory: "100M"
