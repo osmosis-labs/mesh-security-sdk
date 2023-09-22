@@ -122,7 +122,7 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 	for _, v := range keys {
 		ms.MountStoreWithDB(v, storetypes.StoreTypeIAVL, db)
 	}
-	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
+	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey, types.MemStoreKey)
 	for _, v := range memKeys {
 		ms.MountStoreWithDB(v, storetypes.StoreTypeMemory, db)
 	}
@@ -257,6 +257,7 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 	msKeeper := NewKeeper(
 		appCodec,
 		keys[types.StoreKey],
+		memKeys[types.MemStoreKey],
 		bankKeeper,
 		stakingKeeper,
 		wasmKeeper,

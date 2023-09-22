@@ -19,15 +19,34 @@ type TaskExecutionResponseHandler interface {
 // EndBlocker is called after every block
 func EndBlocker(ctx sdk.Context, k *keeper.Keeper, h TaskExecutionResponseHandler) {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
+
+	do := rspHandler(ctx, h)
 	epochLength := k.GetRebalanceEpochLength(ctx)
-	results, err := k.ExecScheduledTasks(ctx, types.SchedulerTaskRebalance, epochLength, func(ctx sdk.Context, contract sdk.AccAddress) error {
-		return k.Rebalance(ctx, contract)
-	})
-	if err != nil {
-		panic(fmt.Sprintf("task scheduler: %s", err)) // todo: log or fail?
+	var valsetUpdated bool
+	do(k.ExecScheduledTasks(ctx, types.SchedulerTaskValsetUpdate, epochLength, func(ctx sdk.Context, contract sdk.AccAddress) error {
+		valsetUpdated = true
+		report, err := k.ValsetUpdateReport(ctx)
+		if err != nil {
+			return err
+		}
+		return k.SendValsetUpdate(ctx, contract, report)
+	}))
+	if valsetUpdated {
+		k.ClearPipedValsetOperations(ctx)
 	}
-	for _, r := range results {
-		h.Handle(ctx, r)
+	do(k.ExecScheduledTasks(ctx, types.SchedulerTaskRebalance, epochLength, func(ctx sdk.Context, contract sdk.AccAddress) error {
+		return k.SendRebalance(ctx, contract)
+	}))
+}
+
+func rspHandler(ctx sdk.Context, h TaskExecutionResponseHandler) func(results []keeper.ExecResult, err error) {
+	return func(results []keeper.ExecResult, err error) {
+		if err != nil {
+			panic(fmt.Sprintf("task scheduler: %s", err)) // todo: log or fail?
+		}
+		for _, r := range results {
+			h.Handle(ctx, r)
+		}
 	}
 }
 

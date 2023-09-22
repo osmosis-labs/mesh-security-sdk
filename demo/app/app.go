@@ -343,7 +343,7 @@ func NewMeshApp(
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
-	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
+	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey, meshsectypes.MemStoreKey)
 
 	// load state streaming if enabled
 	if _, _, err := streaming.LoadStreamingServices(bApp, appOpts, appCodec, logger, keys); err != nil {
@@ -430,11 +430,24 @@ func NewMeshApp(
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
+	// setup mesh-security keeper with vanilla Cosmos-SDK
+	// see also NewKeeperX constructor for integration with Osmosis SDK fork
+	// should be initialized before wasm keeper for custom query/msg handlers
+	app.MeshSecKeeper = meshseckeeper.NewKeeper(
+		app.appCodec,
+		keys[meshsectypes.StoreKey],
+		memKeys[meshsectypes.MemStoreKey],
+		app.BankKeeper,
+		app.StakingKeeper,
+		&app.WasmKeeper, // ensure this is a pointer as we instantiate the keeper a bit later
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
+
 	app.SlashingKeeper = slashingkeeper.NewKeeper(
 		appCodec,
 		legacyAmino,
 		keys[slashingtypes.StoreKey],
-		app.StakingKeeper,
+		meshseckeeper.NewStakingDecorator(app.StakingKeeper, app.MeshSecKeeper),
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
@@ -449,18 +462,6 @@ func NewMeshApp(
 	)
 
 	app.FeeGrantKeeper = feegrantkeeper.NewKeeper(appCodec, keys[feegrant.StoreKey], app.AccountKeeper)
-
-	// setup mesh-security keeper with vanilla Cosmos-SDK
-	// see also NewKeeperX constructor for integration with Osmosis SDK fork
-	// should be initialized before wasm keeper for custom query/msg handlers
-	app.MeshSecKeeper = meshseckeeper.NewKeeper(
-		app.appCodec,
-		keys[meshsectypes.StoreKey],
-		app.BankKeeper,
-		app.StakingKeeper,
-		&app.WasmKeeper, // ensure this is a pointer as we instantiate the keeper a bit later
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
-	)
 
 	// register the staking hooks
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
@@ -751,7 +752,7 @@ func NewMeshApp(
 		icatypes.ModuleName,
 		ibcfeetypes.ModuleName,
 		wasmtypes.ModuleName,
-		meshsectypes.ModuleName, // after evidence
+		meshsectypes.ModuleName, // last to capture all chain events
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are

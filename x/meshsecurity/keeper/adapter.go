@@ -27,6 +27,7 @@ func (b BankKeeperAdapter) AddSupplyOffset(ctx sdk.Context, denom string, offset
 var _ types.XStakingKeeper = &StakingKeeperAdapter{}
 
 // StakingKeeperAdapter is an adapter to enhance the vanilla sdk staking keeper with additional functionality
+// required for MS. The methods match Osmosis SDK fork.
 type StakingKeeperAdapter struct {
 	types.SDKStakingKeeper
 	bank types.SDKBankKeeper

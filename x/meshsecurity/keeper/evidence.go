@@ -7,22 +7,22 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
-var _ evidencetypes.SlashingKeeper = EvidenceDecorator{}
+var _ evidencetypes.SlashingKeeper = SlashingKeeperDecorator{}
 
-// EvidenceDecorator to capture TompStone events
-type EvidenceDecorator struct {
+// SlashingKeeperDecorator to capture TompStone events
+type SlashingKeeperDecorator struct {
 	evidencetypes.SlashingKeeper
 	stakingKeeper types.SDKStakingKeeper
 	k             *Keeper
 }
 
 // CaptureTombstoneDecorator constructor
-func CaptureTombstoneDecorator(k *Keeper, slashingKeeper evidencetypes.SlashingKeeper, stakingKeeper types.SDKStakingKeeper) *EvidenceDecorator {
-	return &EvidenceDecorator{SlashingKeeper: slashingKeeper, stakingKeeper: stakingKeeper, k: k}
+func CaptureTombstoneDecorator(k *Keeper, slashingKeeper evidencetypes.SlashingKeeper, stakingKeeper types.SDKStakingKeeper) *SlashingKeeperDecorator {
+	return &SlashingKeeperDecorator{SlashingKeeper: slashingKeeper, stakingKeeper: stakingKeeper, k: k}
 }
 
 // Tombstone is executed in endblocker by evidence module
-func (e EvidenceDecorator) Tombstone(ctx sdk.Context, address sdk.ConsAddress) {
+func (e SlashingKeeperDecorator) Tombstone(ctx sdk.Context, address sdk.ConsAddress) {
 	v, ok := e.stakingKeeper.GetValidatorByConsAddr(ctx, address)
 	if !ok {
 		ModuleLogger(ctx).

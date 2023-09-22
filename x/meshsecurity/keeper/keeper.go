@@ -18,6 +18,7 @@ import (
 
 type Keeper struct {
 	storeKey storetypes.StoreKey
+	memKey   storetypes.StoreKey
 	cdc      codec.Codec
 	bank     types.XBankKeeper
 	staking  types.XStakingKeeper
@@ -31,18 +32,20 @@ type Keeper struct {
 func NewKeeper(
 	cdc codec.Codec,
 	storeKey storetypes.StoreKey,
+	memoryStoreKey storetypes.StoreKey,
 	bank types.SDKBankKeeper,
 	staking types.SDKStakingKeeper,
 	wasm types.WasmKeeper,
 	authority string,
 ) *Keeper {
-	return NewKeeperX(cdc, storeKey, NewBankKeeperAdapter(bank), NewStakingKeeperAdapter(staking, bank), wasm, authority)
+	return NewKeeperX(cdc, storeKey, memoryStoreKey, NewBankKeeperAdapter(bank), NewStakingKeeperAdapter(staking, bank), wasm, authority)
 }
 
 // NewKeeperX constructor with extended Osmosis SDK keepers
 func NewKeeperX(
 	cdc codec.Codec,
 	storeKey storetypes.StoreKey,
+	memoryStoreKey storetypes.StoreKey,
 	bank types.XBankKeeper,
 	staking types.XStakingKeeper,
 	wasm types.WasmKeeper,
@@ -50,6 +53,7 @@ func NewKeeperX(
 ) *Keeper {
 	return &Keeper{
 		storeKey:  storeKey,
+		memKey:    memoryStoreKey,
 		cdc:       cdc,
 		bank:      bank,
 		staking:   staking,
@@ -145,7 +149,7 @@ func (k Keeper) mustLoadInt(ctx sdk.Context, storeKey storetypes.StoreKey, key [
 	return r
 }
 
-// IterateMaxCapLimit iterate over contract addresses with max cap limt set
+// IterateMaxCapLimit iterate over contract addresses with max cap limit set
 // Callback can return true to stop early
 func (k Keeper) IterateMaxCapLimit(ctx sdk.Context, cb func(sdk.AccAddress, math.Int) bool) {
 	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), types.MaxCapLimitKeyPrefix)
