@@ -14,11 +14,17 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
 )
 
-// abstract query keeper
-type viewKeeper interface {
-	GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
-	GetTotalDelegated(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
-}
+type (
+	// abstract query keeper
+	viewKeeper interface {
+		GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
+		GetTotalDelegated(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
+	}
+	slashingKeeper interface {
+		SlashFractionDoubleSign(ctx sdk.Context) (res sdk.Dec)
+		SlashFractionDowntime(ctx sdk.Context) (res sdk.Dec)
+	}
+)
 
 // NewQueryDecorator constructor to build a chained custom querier.
 // The mesh-security custom query handler is placed at the first position
@@ -26,9 +32,9 @@ type viewKeeper interface {
 // the mesh-security custom query namespace.
 //
 // To be used with `wasmkeeper.WithQueryHandlerDecorator(meshseckeeper.NewQueryDecorator(app.MeshSecKeeper)))`
-func NewQueryDecorator(k viewKeeper) func(wasmkeeper.WasmVMQueryHandler) wasmkeeper.WasmVMQueryHandler {
+func NewQueryDecorator(k viewKeeper, sk slashingKeeper) func(wasmkeeper.WasmVMQueryHandler) wasmkeeper.WasmVMQueryHandler {
 	return func(next wasmkeeper.WasmVMQueryHandler) wasmkeeper.WasmVMQueryHandler {
-		return ChainedCustomQuerier(k, next)
+		return ChainedCustomQuerier(k, sk, next)
 	}
 }
 
@@ -38,9 +44,12 @@ func NewQueryDecorator(k viewKeeper) func(wasmkeeper.WasmVMQueryHandler) wasmkee
 //
 // This CustomQuerier is designed as an extension point. See the NewQueryDecorator impl how to
 // set this up for wasmd.
-func ChainedCustomQuerier(k viewKeeper, next wasmkeeper.WasmVMQueryHandler) wasmkeeper.WasmVMQueryHandler {
+func ChainedCustomQuerier(k viewKeeper, sk slashingKeeper, next wasmkeeper.WasmVMQueryHandler) wasmkeeper.WasmVMQueryHandler {
 	if k == nil {
-		panic("keeper must not be nil")
+		panic("ms keeper must not be nil")
+	}
+	if sk == nil {
+		panic("slashing Keeper must not be nil")
 	}
 	if next == nil {
 		panic("next handler must not be nil")
@@ -53,22 +62,31 @@ func ChainedCustomQuerier(k viewKeeper, next wasmkeeper.WasmVMQueryHandler) wasm
 		if err := json.Unmarshal(request.Custom, &contractQuery); err != nil {
 			return nil, errorsmod.Wrap(err, "mesh-security query")
 		}
-		if contractQuery.VirtualStake == nil || contractQuery.VirtualStake.BondStatus == nil {
+		query := contractQuery.VirtualStake
+		if query == nil {
 			return next.HandleQuery(ctx, caller, request)
 		}
-		contractAddr, err := sdk.AccAddressFromBech32(contractQuery.VirtualStake.BondStatus.Contract)
-		if err != nil {
-			return nil, sdkerrors.ErrInvalidAddress.Wrap(contractQuery.VirtualStake.BondStatus.Contract)
+
+		var res any
+		switch {
+		case query.BondStatus != nil:
+			contractAddr, err := sdk.AccAddressFromBech32(query.BondStatus.Contract)
+			if err != nil {
+				return nil, sdkerrors.ErrInvalidAddress.Wrap(query.BondStatus.Contract)
+			}
+			res = contract.BondStatusResponse{
+				MaxCap:    wasmkeeper.ConvertSdkCoinToWasmCoin(k.GetMaxCapLimit(ctx, contractAddr)),
+				Delegated: wasmkeeper.ConvertSdkCoinToWasmCoin(k.GetTotalDelegated(ctx, contractAddr)),
+			}
+		case query.SlashRatio != nil:
+			res = contract.SlashRatioResponse{
+				SlashFractionDowntime:   sk.SlashFractionDowntime(ctx).String(),
+				SlashFractionDoubleSign: sk.SlashFractionDoubleSign(ctx).String(),
+			}
+		default:
+			return nil, wasmvmtypes.UnsupportedRequest{Kind: "unknown virtual_stake query variant"}
 		}
-		res := contract.BondStatusResponse{
-			MaxCap:    wasmkeeper.ConvertSdkCoinToWasmCoin(k.GetMaxCapLimit(ctx, contractAddr)),
-			Delegated: wasmkeeper.ConvertSdkCoinToWasmCoin(k.GetTotalDelegated(ctx, contractAddr)),
-		}
-		bz, err := json.Marshal(res)
-		if err != nil {
-			return nil, errorsmod.Wrap(err, "mesh-security max cap query response")
-		}
-		return bz, nil
+		return json.Marshal(res)
 	})
 }
 

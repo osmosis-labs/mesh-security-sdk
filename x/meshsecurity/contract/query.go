@@ -8,6 +8,7 @@ type CustomQuery struct {
 
 type VirtualStakeQuery struct {
 	BondStatus *BondStatusQuery `json:"bond_status,omitempty"`
+	SlashRatio *struct{}        `json:"slash_ratio,omitempty"`
 }
 
 type BondStatusQuery struct {
@@ -19,4 +20,9 @@ type BondStatusResponse struct {
 	MaxCap wasmvmtypes.Coin `json:"cap"`
 	// Delegated is the used amount of the max cap
 	Delegated wasmvmtypes.Coin `json:"delegated"`
+}
+
+type SlashRatioResponse struct {
+	SlashFractionDowntime   string `json:"slash_fraction_downtime"`
+	SlashFractionDoubleSign string `json:"slash_fraction_double_sign"`
 }

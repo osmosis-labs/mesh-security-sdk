@@ -46,6 +46,7 @@ import (
 	paramsclient "github.com/cosmos/cosmos-sdk/x/params/client"
 	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -99,6 +100,7 @@ func makeEncodingConfig(_ testing.TB) encodingConfig {
 
 type TestKeepers struct {
 	StakingKeeper  *stakingkeeper.Keeper
+	SlashingKeeper slashingkeeper.Keeper
 	BankKeeper     bankkeeper.Keeper
 	StoreKey       *storetypes.KVStoreKey
 	EncodingConfig encodingConfig
@@ -180,6 +182,15 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 		authority,
 	)
 	require.NoError(t, stakingKeeper.SetParams(ctx, stakingtypes.DefaultParams()))
+
+	slashingKeeper := slashingkeeper.NewKeeper(
+		appCodec,
+		encConfig.Amino,
+		keys[slashingtypes.StoreKey],
+		stakingKeeper,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
+	require.NoError(t, slashingKeeper.SetParams(ctx, slashingtypes.DefaultParams()))
 
 	distKeeper := distributionkeeper.NewKeeper(
 		appCodec,
@@ -268,6 +279,7 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 	return ctx, TestKeepers{
 		AccountKeeper:  accountKeeper,
 		StakingKeeper:  stakingKeeper,
+		SlashingKeeper: slashingKeeper,
 		BankKeeper:     bankKeeper,
 		StoreKey:       keys[types.StoreKey],
 		EncodingConfig: encConfig,

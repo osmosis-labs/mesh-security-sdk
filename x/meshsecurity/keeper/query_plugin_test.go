@@ -16,37 +16,49 @@ import (
 
 func TestChainedCustomQuerier(t *testing.T) {
 	myContractAddr := sdk.AccAddress(rand.Bytes(32))
+	pCtx, keepers := CreateDefaultTestInput(t)
+
 	specs := map[string]struct {
-		src                wasmvmtypes.QueryRequest
-		mockMaxCapLimit    func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
-		mockTotalDelegated func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
-		expData            []byte
-		expErr             bool
-		expMocNextCalled   bool
+		src           wasmvmtypes.QueryRequest
+		viewKeeper    viewKeeper
+		expData       []byte
+		expErr        bool
+		expNextCalled bool
 	}{
-		"all good": {
+		"bond status query": {
 			src: wasmvmtypes.QueryRequest{
 				Custom: []byte(fmt.Sprintf(`{"virtual_stake":{"bond_status":{"contract":%q}}}`, myContractAddr.String())),
 			},
-			mockMaxCapLimit: func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
-				return sdk.NewCoin("ALX", math.NewInt(123))
-			},
-			mockTotalDelegated: func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
-				return sdk.NewCoin("ALX", math.NewInt(456))
+			viewKeeper: &MockViewKeeper{
+				GetMaxCapLimitFn: func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
+					return sdk.NewCoin("ALX", math.NewInt(123))
+				},
+				GetTotalDelegatedFn: func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
+					return sdk.NewCoin("ALX", math.NewInt(456))
+				},
 			},
 			expData: []byte(`{"cap":{"denom":"ALX","amount":"123"},"delegated":{"denom":"ALX","amount":"456"}}`),
+		},
+		"slash ratio query": {
+			src: wasmvmtypes.QueryRequest{
+				Custom: []byte(`{"virtual_stake":{"slash_ratio":{}}}`),
+			},
+			viewKeeper: keepers.MeshKeeper,
+			expData:    []byte(`{"slash_fraction_downtime":"0.010000000000000000","slash_fraction_double_sign":"0.050000000000000000"}`),
 		},
 		"non custom query": {
 			src: wasmvmtypes.QueryRequest{
 				Bank: &wasmvmtypes.BankQuery{},
 			},
-			expMocNextCalled: true,
+			viewKeeper:    keepers.MeshKeeper,
+			expNextCalled: true,
 		},
 		"custom non mesh query": {
 			src: wasmvmtypes.QueryRequest{
 				Custom: []byte(`{"foo":{}}`),
 			},
-			expMocNextCalled: true,
+			viewKeeper:    keepers.MeshKeeper,
+			expNextCalled: true,
 		},
 	}
 	for name, spec := range specs {
@@ -56,16 +68,16 @@ func TestChainedCustomQuerier(t *testing.T) {
 				nextCalled = true
 				return nil, nil
 			})
-			mock := &MockViewKeeper{GetMaxCapLimitFn: spec.mockMaxCapLimit, GetTotalDelegatedFn: spec.mockTotalDelegated}
-			ctx := sdk.Context{}
-			gotData, gotErr := ChainedCustomQuerier(mock, next).HandleQuery(ctx, myContractAddr, spec.src)
+
+			ctx, _ := pCtx.CacheContext()
+			gotData, gotErr := ChainedCustomQuerier(spec.viewKeeper, keepers.SlashingKeeper, next).HandleQuery(ctx, myContractAddr, spec.src)
 			if spec.expErr {
 				require.Error(t, gotErr)
 				return
 			}
 			require.NoError(t, gotErr)
-			assert.Equal(t, spec.expData, gotData)
-			assert.Equal(t, spec.expMocNextCalled, nextCalled)
+			assert.Equal(t, spec.expData, gotData, string(gotData))
+			assert.Equal(t, spec.expNextCalled, nextCalled)
 		})
 	}
 }
