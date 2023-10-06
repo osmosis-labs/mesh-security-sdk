@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"cosmossdk.io/math"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/cometbft/cometbft/libs/rand"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"cosmossdk.io/math"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func TestChainedCustomQuerier(t *testing.T) {

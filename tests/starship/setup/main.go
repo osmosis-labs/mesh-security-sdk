@@ -8,14 +8,15 @@ import (
 	"time"
 
 	starship "github.com/cosmology-tech/starship/clients/go/client"
+	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 
 	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"

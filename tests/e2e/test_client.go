@@ -7,14 +7,15 @@ import (
 	"strings"
 	"testing"
 
-	"cosmossdk.io/math"
-
 	"github.com/CosmWasm/wasmd/x/wasm/ibctesting"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	"github.com/cosmos/cosmos-sdk/baseapp"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"cosmossdk.io/math"
+
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity"

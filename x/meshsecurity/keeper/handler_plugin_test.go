@@ -5,17 +5,16 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
-
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
+	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/cometbft/cometbft/libs/rand"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
 func TestCustomMeshSecDispatchMsg(t *testing.T) {

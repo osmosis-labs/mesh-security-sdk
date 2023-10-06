@@ -10,6 +10,7 @@ import (
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	_ "github.com/cosmology-tech/starship/clients/go/client"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"

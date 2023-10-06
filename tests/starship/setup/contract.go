@@ -12,13 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"cosmossdk.io/math"
-
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/cosmos/gogoproto/proto"
+
+	"cosmossdk.io/math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	govv1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
-	"github.com/cosmos/gogoproto/proto"
 )
 
 func buildPathToWasm(wasmContractPath string, fileName string, wasmContractGZipped bool) string {

@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	starship "github.com/cosmology-tech/starship/clients/go/client"
-
 	"go.uber.org/zap"
 )
 

@@ -3,11 +3,13 @@ package keeper
 import (
 	"testing"
 
-	"cosmossdk.io/math"
 	"github.com/cometbft/cometbft/libs/rand"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"cosmossdk.io/math"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func TestHasMaxCapLimit(t *testing.T) {

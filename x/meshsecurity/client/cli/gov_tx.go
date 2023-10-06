@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+
 	errorsmod "cosmossdk.io/errors"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
@@ -13,8 +17,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/gov/client/cli"
 	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
-	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )

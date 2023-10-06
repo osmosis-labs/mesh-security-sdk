@@ -1,8 +1,10 @@
 package keeper
 
 import (
-	"cosmossdk.io/math"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+
+	"cosmossdk.io/math"
+
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"

@@ -1,8 +1,9 @@
 package cli
 
 import (
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/spf13/cobra"
+
+	"github.com/cosmos/cosmos-sdk/client"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
