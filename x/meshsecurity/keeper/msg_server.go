@@ -3,10 +3,10 @@ package keeper
 import (
 	"context"
 
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-
 	errorsmod "cosmossdk.io/errors"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )

@@ -47,7 +47,7 @@ test-e2e:
 format-tools:
 	go install mvdan.cc/gofumpt@v0.4.0
 	go install github.com/client9/misspell/cmd/misspell@v0.3.4
-	go install golang.org/x/tools/cmd/goimports@latest
+	go install github.com/daixiang0/gci@v0.11.2
 
 lint: format-tools
 	golangci-lint run --tests=false ./demo/... ./x/...
@@ -56,7 +56,8 @@ lint: format-tools
 format: format-tools
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./x/vendor*" -not -path "./contracts*" -not -path "./packages*" -not -path "./docs*"| xargs misspell -w
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./x/vendor*" -not -path "./contracts*" -not -path "./packages*" -not -path "./docs*"| xargs gofumpt -w -s
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./x/vendor*" -not -path "./contracts*" -not -path "./packages*" -not -path "./docs*"| xargs goimports -w -local github.com/osmosis-labs/mesh-security-sdk
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "./tests/system/vendor*" -not -path "*.git*" -not -path "./client/lcd/statik/statik.go" | xargs gci write --skip-generated -s standard -s default -s "prefix(cosmossdk.io)" -s "prefix(github.com/cosmos/cosmos-sdk)" -s "prefix(github.com/osmosis-labs/mesh-security-sdk)" --custom-order
+
 
 ###############################################################################
 ###                                Protobuf                                 ###

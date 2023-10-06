@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"cosmossdk.io/math"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -15,9 +14,12 @@ import (
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/cosmos/gogoproto/proto"
+
+	"cosmossdk.io/math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	govv1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
-	"github.com/cosmos/gogoproto/proto"
 )
 
 func buildPathToWasm(wasmContractPath string, fileName string, wasmContractGZipped bool) string {
@@ -95,7 +97,7 @@ func voteAndPassGovProposal(chain *Client, proposalID uint64) error {
 	if err != nil {
 		return err
 	}
-	fmt.Print("proposal sucessfully passed...")
+	fmt.Print("proposal successfully passed...")
 	if proposal.Proposal.Status == govv1.ProposalStatus_PROPOSAL_STATUS_PASSED {
 		return nil
 	}

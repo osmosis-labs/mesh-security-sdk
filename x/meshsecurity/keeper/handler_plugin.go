@@ -3,16 +3,15 @@ package keeper
 import (
 	"encoding/json"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
-
+	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
+	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
-
-	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
-	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
 // AuthSource abstract type that provides contract authorization.
