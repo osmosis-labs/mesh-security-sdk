@@ -3,22 +3,22 @@ package setup
 import (
 	"context"
 	"fmt"
-	coretypes "github.com/cometbft/cometbft/rpc/core/types"
-	starship "github.com/cosmology-tech/starship/clients/go/client"
-	pb "github.com/cosmology-tech/starship/registry/registry"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/cosmos/go-bip39"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"os"
 	"testing"
 	"time"
 
+	coretypes "github.com/cometbft/cometbft/rpc/core/types"
+	starship "github.com/cosmology-tech/starship/clients/go/client"
+	pb "github.com/cosmology-tech/starship/registry/registry"
+	"github.com/cosmos/go-bip39"
 	lens "github.com/strangelove-ventures/lens/client"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/module"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 type Client struct {
@@ -184,7 +184,7 @@ func (c *Client) WaitForTx(t *testing.T, txHex string) {
 		},
 		300*time.Second,
 		time.Second,
-		"waited for too long, still txn not successfull",
+		"waited for too long, still txn not successful",
 	)
 	require.NotNil(t, tx)
 }

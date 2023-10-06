@@ -2,18 +2,22 @@ package starship
 
 import (
 	"context"
-	"cosmossdk.io/math"
 	"encoding/base64"
 	"fmt"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/osmosis-labs/mesh-security-sdk/tests/starship/setup"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"cosmossdk.io/math"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+
+	"github.com/osmosis-labs/mesh-security-sdk/tests/starship/setup"
 )
 
 func Test2WayContract(t *testing.T) {
@@ -67,7 +71,7 @@ func Test2WayContract(t *testing.T) {
 
 	assert.Equal(t, 70_000_000, providerClient1.QueryVaultFreeBalance())
 
-	// wait for initial packets to be transfered via IBC over
+	// wait for initial packets to be transferred via IBC over
 	validators, err := stakingtypes.NewQueryClient(consumerClient1.Chain.Client).Validators(context.Background(), &stakingtypes.QueryValidatorsRequest{
 		Status: "BOND_STATUS_BONDED",
 	})
@@ -83,7 +87,7 @@ func Test2WayContract(t *testing.T) {
 	_, err = providerClient1.MustExecVault(execMsg)
 	require.NoError(t, err)
 
-	//require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
+	// require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
 	require.Equal(t, 20_000_000, providerClient1.QueryVaultFreeBalance()) // = 70 (free)  + 30 (local) - 80 (remote staked)
 
 	// then
@@ -97,7 +101,7 @@ func Test2WayContract(t *testing.T) {
 	assert.Equal(t, "80000000", qRsp["stake"], qRsp)
 	assert.Empty(t, qRsp["pending_unbonds"])
 
-	// create oposite clients
+	// create opposite clients
 	providerClient2, consumerClient2, err := setup.MeshSecurity(consumerChain, providerChain, configFile, wasmContractPath, wasmContractGZipped)
 	require.NoError(t, err)
 	require.NotEmpty(t, providerClient2)
@@ -145,7 +149,7 @@ func Test2WayContract(t *testing.T) {
 
 	assert.Equal(t, 70_000_000, providerClient2.QueryVaultFreeBalance())
 
-	// wait for initial packets to be transfered via IBC over
+	// wait for initial packets to be transferred via IBC over
 	validators, err = stakingtypes.NewQueryClient(consumerClient2.Chain.Client).Validators(context.Background(), &stakingtypes.QueryValidatorsRequest{
 		Status: "BOND_STATUS_BONDED",
 	})
@@ -161,7 +165,7 @@ func Test2WayContract(t *testing.T) {
 	_, err = providerClient2.MustExecVault(execMsg)
 	require.NoError(t, err)
 
-	//require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
+	// require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
 	require.Equal(t, 20_000_000, providerClient2.QueryVaultFreeBalance()) // = 70 (free)  + 30 (local) - 80 (remote staked)
 
 	// then
@@ -201,7 +205,7 @@ func TestMVP(t *testing.T) {
 		providerChain = providerClient.Chain
 	)
 
-	// wait for initial packets to be transfered via IBC over
+	// wait for initial packets to be transferred via IBC over
 	validators, err := stakingtypes.NewQueryClient(consumerChain.Client).Validators(context.Background(), &stakingtypes.QueryValidatorsRequest{
 		Status: "BOND_STATUS_BONDED",
 	})
@@ -300,7 +304,7 @@ func TestMVP(t *testing.T) {
 	_, err = providerClient.MustExecVault(execMsg)
 	require.NoError(t, err)
 
-	//require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
+	// require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
 	require.Equal(t, 20_000_000, providerClient.QueryVaultFreeBalance()) // = 70 (free)  + 30 (local) - 80 (remote staked)
 
 	// then

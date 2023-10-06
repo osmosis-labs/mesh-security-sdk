@@ -3,19 +3,20 @@ package keeper
 import (
 	"testing"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
-
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	"github.com/cometbft/cometbft/libs/rand"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"cosmossdk.io/math"
-	"github.com/cometbft/cometbft/libs/rand"
+
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtestutil "github.com/cosmos/cosmos-sdk/x/staking/testutil"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
 func TestDelegateVirtualStake(t *testing.T) {

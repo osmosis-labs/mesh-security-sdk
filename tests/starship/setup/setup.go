@@ -10,6 +10,7 @@ import (
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	_ "github.com/cosmology-tech/starship/clients/go/client"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
@@ -225,8 +226,8 @@ type ConsumerContract struct {
 func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContract, error) {
 	// what does this do????
 	// modify end-blocker to fail fast in tests
-	//msModule := p.app.ModuleManager.Modules[types.ModuleName].(*meshsecurity.AppModule)
-	//msModule.SetAsyncTaskRspHandler(meshsecurity.PanicOnErrorExecutionResponseHandler())
+	// msModule := p.app.ModuleManager.Modules[types.ModuleName].(*meshsecurity.AppModule)
+	// msModule.SetAsyncTaskRspHandler(meshsecurity.PanicOnErrorExecutionResponseHandler())
 
 	code, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_simple_price_feed.wasm", p.wasmContractGZipped))
 	if err != nil {
