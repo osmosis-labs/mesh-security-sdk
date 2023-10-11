@@ -40,6 +40,7 @@ func (k Keeper) ScheduleModified(ctx sdk.Context, addr sdk.ValAddress) error {
 // instead of sync calls to the contracts for the different kind of valset changes in a block, we store them in the mem db
 // annd async send to all registered contracts in the end blocker
 func (k Keeper) sendAsync(ctx sdk.Context, op types.PipedValsetOperation, valAddr sdk.ValAddress) error {
+	ModuleLogger(ctx).Debug("storing for async update", "operation", int(op), "val", valAddr.String())
 	ctx.KVStore(k.memKey).Set(types.BuildPipedValsetOpKey(op, valAddr), []byte{})
 	// and schedule an update
 	var innerErr error
@@ -56,7 +57,6 @@ func (k Keeper) sendAsync(ctx sdk.Context, op types.PipedValsetOperation, valAdd
 }
 
 func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, error) {
-	var r contract.ValsetUpdate
 	var innerErr error
 	appendValidator := func(set *[]wasmvmtypes.Validator, valAddr sdk.ValAddress) bool {
 		val, ok := k.staking.GetValidator(ctx, valAddr)
@@ -67,7 +67,14 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		*set = append(*set, ConvertSdkValidatorToWasm(val))
 		return false
 	}
-
+	r := contract.ValsetUpdate{ // init with empty slices for contract that does not handle null or omitted fields
+		Additions:  make([]contract.Validator, 0),
+		Removals:   make([]contract.ValidatorAddr, 0),
+		Updated:    make([]contract.Validator, 0),
+		Jailed:     make([]contract.ValidatorAddr, 0),
+		Unjailed:   make([]contract.ValidatorAddr, 0),
+		Tombstoned: make([]contract.ValidatorAddr, 0),
+	}
 	err := k.iteratePipedValsetOperations(ctx, func(valAddr sdk.ValAddress, op types.PipedValsetOperation, val []byte) bool {
 		switch op {
 		case types.ValidatorBonded:
@@ -83,7 +90,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		case types.ValidatorModified:
 			return appendValidator(&r.Updated, valAddr)
 		default:
-			innerErr = types.ErrUnknown.Wrapf("operation type %X", op)
+			innerErr = types.ErrUnknown.Wrapf("undefined operation type %X", op)
 			return true
 		}
 		return false
@@ -116,7 +123,7 @@ func (k Keeper) iteratePipedValsetOperations(ctx sdk.Context, cb func(valAddress
 	for ; iter.Valid(); iter.Next() {
 		key := iter.Key()
 		addrLen := key[0]
-		addr, op := key[1:addrLen], key[addrLen+1]
+		addr, op := key[1:addrLen+1], key[addrLen+1]
 		if cb(addr, types.PipedValsetOperation(op), iter.Value()) {
 			break
 		}

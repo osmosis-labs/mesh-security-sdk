@@ -35,7 +35,8 @@ var (
 type PipedValsetOperation byte
 
 const (
-	ValidatorBonded PipedValsetOperation = iota + 1
+	ValsetOperationUndefined PipedValsetOperation = iota
+	ValidatorBonded
 	ValidatorUnbonded
 	ValidatorSlashed
 	ValidatorTombstoned
@@ -79,13 +80,13 @@ func BuildSchedulerContractKey(tp SchedulerTaskType, blockHeight uint64, contrac
 }
 
 func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress) []byte {
-	if op == 0x0 {
+	if op == ValsetOperationUndefined {
 		panic("empty operation")
 	}
 	pn, an := len(PipedValsetPrefix), len(val)
-	r := make([]byte, pn+an+1+1)
+	r := make([]byte, pn+an+1+1) // +1 for address prefix, +1 for op
 	copy(r, PipedValsetPrefix)
 	copy(r[pn:], address.MustLengthPrefix(val))
-	r[pn+an] = byte(op)
+	r[pn+an+1] = byte(op)
 	return r
 }

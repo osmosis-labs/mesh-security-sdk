@@ -17,11 +17,11 @@ type (
 
 	// ValsetUpdate updates to the active validator set
 	ValsetUpdate struct {
-		Additions  []Validator     `json:"additions,omitempty"`
-		Removals   []ValidatorAddr `json:"removals,omitempty"`
-		Updated    []Validator     `json:"updated,omitempty"`
-		Jailed     []ValidatorAddr `json:"slashed,omitempty"`
-		Unjailed   []ValidatorAddr `json:"unjailed,omitempty"`
-		Tombstoned []ValidatorAddr `json:"tombstoned,omitempty"`
+		Additions  []Validator     `json:"additions"`
+		Removals   []ValidatorAddr `json:"removals"`
+		Updated    []Validator     `json:"updated"`
+		Jailed     []ValidatorAddr `json:"jailed"`
+		Unjailed   []ValidatorAddr `json:"unjailed"`
+		Tombstoned []ValidatorAddr `json:"tombstoned"`
 	}
 )
