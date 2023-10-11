@@ -25,25 +25,41 @@ func TestValsetUpdate(t *testing.T) {
 
 	x := setupExampleChains(t)
 
+	_, _, _ = setupMeshSecurity(t, x)
+
 	priv1 := secp256k1.GenPrivKey()
 	addr1 := sdk.AccAddress(priv1.PubKey().Address())
-	valKey := ed25519.GenPrivKey()
-
-	_, _, _ = setupMeshSecurity(t, x)
 	x.ConsumerChain.Fund(addr1, sdkmath.NewInt(1_000_000_000))
 
-	// scenario: new validator added to the active set
-	bondCoin := sdk.NewCoin(x.ConsumerDenom, sdk.TokensFromConsensusPower(10, sdk.DefaultPowerReduction))
-	description := stakingtypes.NewDescription("my new val", "", "", "", "")
-	commissionRates := stakingtypes.NewCommissionRates(sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec())
+	sendCreateValMsg := func() error {
+		valKey := ed25519.GenPrivKey()
 
-	createValidatorMsg, err := stakingtypes.NewMsgCreateValidator(
-		sdk.ValAddress(addr1), valKey.PubKey(), bondCoin, description, commissionRates, sdkmath.OneInt(),
-	)
-	require.NoError(t, err)
-	_, err = x.ConsumerChain.SendNonDefaultSenderMsgs(priv1, createValidatorMsg)
-	require.NoError(t, err)
+		// scenario: new validator added to the active set
+		bondCoin := sdk.NewCoin(x.ConsumerDenom, sdk.TokensFromConsensusPower(10, sdk.DefaultPowerReduction))
+		description := stakingtypes.NewDescription("my new val", "", "", "", "")
+		commissionRates := stakingtypes.NewCommissionRates(sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec())
+		createValidatorMsg, err := stakingtypes.NewMsgCreateValidator(
+			sdk.ValAddress(addr1), valKey.PubKey(), bondCoin, description, commissionRates, sdkmath.OneInt(),
+		)
+		require.NoError(t, err)
+		_, err = x.ConsumerChain.SendNonDefaultSenderMsgs(priv1, createValidatorMsg)
+		return err
+	}
+	_ = sendCreateValMsg
 
+	// remove from active set
+	val1 := x.ConsumerApp.StakingKeeper.Validator(x.ConsumerChain.GetContext(), sdk.ValAddress(x.ConsumerChain.Vals.Validators[0].Address))
+	m := stakingtypes.NewMsgUndelegate(x.ConsumerChain.SenderAccount.GetAddress(), sdk.ValAddress(x.ConsumerChain.Vals.Validators[0].Address), sdk.NewCoin(x.ConsumerDenom, val1.GetBondedTokens()))
+	_, err := x.ConsumerChain.SendMsgs(m)
+	require.NoError(t, err)
+	// require.NoError(t, sendCreateValMsg())
+
+	//x.ConsumerChain.Vals.Validators = append(x.ConsumerChain.Vals.Validators, &tmtypes.Validator{
+	//	Address:          nil,
+	//	PubKey:           nil,
+	//	VotingPower:      0,
+	//	ProposerPriority: 0,
+	//})
 	// when
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
 
