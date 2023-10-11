@@ -8,8 +8,8 @@ if [ $# -ne 1 ]; then
 fi
 tag="$1"
 
-for contract in external_staking mesh_converter mesh_native_staking mesh_native_staking_proxy mesh_simple_price_feed \
-mesh_vault mesh_virtual_staking ; do
+for contract in mesh_external_staking mesh_converter mesh_native_staking mesh_native_staking_proxy mesh_simple_price_feed \
+mesh_vault mesh_virtual_staking; do
   url="https://github.com/osmosis-labs/mesh-security/releases/download/$tag/${contract}.wasm"
   echo "Downloading $url ..."
   wget -O "${contract}.wasm" "$url"

@@ -137,7 +137,7 @@ func TestMVP(t *testing.T) {
 			"validator": myExtValidatorAddr,
 		},
 	})
-	assert.Equal(t, "80000000", qRsp["stake"], qRsp)
+	assert.Equal(t, 80_000_000, ParseHighLow(t, qRsp["stake"]).High, qRsp)
 	assert.Empty(t, qRsp["pending_unbonds"])
 
 	// consumer chain
