@@ -20,16 +20,6 @@ func (k Keeper) Hooks() Hooks {
 	return Hooks{k}
 }
 
-// events
-// new validator
-// add to active set
-// remove from active set
-// delete validator
-// update (commission)
-// slash
-
-// validator commission updated: BeforeValidatorModified
-
 func (h Hooks) AfterValidatorBonded(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr sdk.ValAddress) error {
 	return h.k.ScheduleBonded(ctx, valAddr)
 }
@@ -43,7 +33,8 @@ func (h Hooks) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, f
 	// before the BeforeValidatorModified is called
 	// slashed
 	// check ValidatorSigningInfo if jailed or tombstoned
-	return h.k.ScheduleSlashed(ctx, valAddr, fraction)
+	// return h.k.ScheduleJailed(ctx, valAddr)
+	return nil
 }
 
 func (h Hooks) AfterUnbondingInitiated(ctx sdk.Context, id uint64) error {
@@ -94,6 +85,24 @@ type StakingDecorator struct {
 // NewStakingDecorator constructor
 func NewStakingDecorator(stakingKeeper slashingtypes.StakingKeeper, k *Keeper) *StakingDecorator {
 	return &StakingDecorator{StakingKeeper: stakingKeeper, k: k}
+}
+
+func (s StakingDecorator) Jail(ctx sdk.Context, consAddr sdk.ConsAddress) {
+	val := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
+	if val == nil {
+		ModuleLogger(ctx).
+			Error("can not propagate jail: validator not found",
+				"validator", consAddr.String())
+		s.StakingKeeper.Unjail(ctx, consAddr)
+		return
+	}
+	if err := s.k.ScheduleJailed(ctx, val.GetOperator()); err != nil {
+		ModuleLogger(ctx).
+			Error("can not propagate jail: schedule event",
+				"cause", err,
+				"validator", consAddr.String())
+	}
+	s.StakingKeeper.Jail(ctx, consAddr)
 }
 
 func (s StakingDecorator) Unjail(ctx sdk.Context, consAddr sdk.ConsAddress) {

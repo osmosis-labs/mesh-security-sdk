@@ -38,7 +38,7 @@ const (
 	ValsetOperationUndefined PipedValsetOperation = iota
 	ValidatorBonded
 	ValidatorUnbonded
-	ValidatorSlashed
+	ValidatorJailed
 	ValidatorTombstoned
 	ValidatorUnjailed
 	ValidatorModified

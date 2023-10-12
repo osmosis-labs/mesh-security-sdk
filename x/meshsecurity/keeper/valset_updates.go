@@ -21,8 +21,8 @@ func (k Keeper) ScheduleUnbonded(ctx sdk.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorUnbonded, addr)
 }
 
-func (k Keeper) ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, fraction sdk.Dec) error {
-	return k.sendAsync(ctx, types.ValidatorSlashed, addr)
+func (k Keeper) ScheduleJailed(ctx sdk.Context, addr sdk.ValAddress) error {
+	return k.sendAsync(ctx, types.ValidatorJailed, addr)
 }
 
 func (k Keeper) ScheduleTombstoned(ctx sdk.Context, addr sdk.ValAddress) error {
@@ -81,7 +81,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 			return appendValidator(&r.Additions, valAddr)
 		case types.ValidatorUnbonded:
 			r.Removals = append(r.Removals, valAddr.String())
-		case types.ValidatorSlashed:
+		case types.ValidatorJailed:
 			r.Jailed = append(r.Jailed, valAddr.String())
 		case types.ValidatorTombstoned:
 			r.Tombstoned = append(r.Tombstoned, valAddr.String())
