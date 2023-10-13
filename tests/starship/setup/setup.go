@@ -100,7 +100,7 @@ func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) 
 	nativeStakingContract := contracts[nativeStakingCodeID]
 
 	// external Staking
-	extStaking, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "external_staking.wasm", p.wasmContractGZipped))
+	extStaking, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_external_staking.wasm", p.wasmContractGZipped))
 	if err != nil {
 		return nil, err
 	}
