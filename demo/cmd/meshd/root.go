@@ -248,13 +248,7 @@ func newApp(
 		wasmOpts = append(wasmOpts, wasmkeeper.WithVMCacheMetrics(prometheus.DefaultRegisterer))
 	}
 
-	return app.NewMeshApp(
-		logger, db, traceStore, true,
-		app.GetEnabledProposals(),
-		appOpts,
-		wasmOpts,
-		baseappOptions...,
-	)
+	return app.NewMeshApp(logger, db, traceStore, true, appOpts, wasmOpts, baseappOptions...)
 }
 
 // appExport creates a new wasm app (optionally at a given height) and exports state.
@@ -289,7 +283,6 @@ func appExport(
 		db,
 		traceStore,
 		height == -1,
-		app.GetEnabledProposals(),
 		appOpts,
 		emptyWasmOpts,
 	)

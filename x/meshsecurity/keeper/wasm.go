@@ -24,7 +24,7 @@ func (k Keeper) SendValsetUpdate(ctx sdk.Context, contractAddr sdk.AccAddress, v
 		ValsetUpdate: &v,
 	}
 	bz, _ := json.Marshal(&msg)
-	fmt.Printf(string(bz))
+	fmt.Println(string(bz))
 	return k.doSudoCall(ctx, contractAddr, msg)
 }
 

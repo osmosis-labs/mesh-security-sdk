@@ -7,7 +7,6 @@ import (
 	"github.com/CosmWasm/wasmd/x/wasm"
 	dbm "github.com/cometbft/cometbft-db"
 	"github.com/cometbft/cometbft/libs/log"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
@@ -26,7 +25,7 @@ func TestMeshdExport(t *testing.T) {
 	gapp.Commit()
 
 	// Making a new app object with the db, so that initchain hasn't been called
-	newGapp := NewMeshApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, wasm.EnableAllProposals, simtestutil.NewAppOptionsWithFlagHome(t.TempDir()), emptyWasmOpts)
+	newGapp := NewMeshApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, simtestutil.NewAppOptionsWithFlagHome(t.TempDir()), emptyWasmOpts)
 	_, err := newGapp.ExportAppStateAndValidators(false, []string{}, nil)
 	require.NoError(t, err, "ExportAppStateAndValidators should not have an error")
 }
@@ -51,35 +50,4 @@ func TestBlockedAddrs(t *testing.T) {
 func TestGetMaccPerms(t *testing.T) {
 	dup := GetMaccPerms()
 	require.Equal(t, maccPerms, dup, "duplicated module account permissions differed from actual module account permissions")
-}
-
-func TestGetEnabledProposals(t *testing.T) {
-	cases := map[string]struct {
-		proposalsEnabled string
-		specificEnabled  string
-		expected         []wasm.ProposalType
-	}{
-		"all disabled": {
-			proposalsEnabled: "false",
-			expected:         wasm.DisableAllProposals,
-		},
-		"all enabled": {
-			proposalsEnabled: "true",
-			expected:         wasm.EnableAllProposals,
-		},
-		"some enabled": {
-			proposalsEnabled: "okay",
-			specificEnabled:  "StoreCode,InstantiateContract",
-			expected:         []wasm.ProposalType{wasm.ProposalTypeStoreCode, wasm.ProposalTypeInstantiateContract},
-		},
-	}
-
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			ProposalsEnabled = tc.proposalsEnabled
-			EnableSpecificProposals = tc.specificEnabled
-			proposals := GetEnabledProposals()
-			assert.Equal(t, tc.expected, proposals)
-		})
-	}
 }
