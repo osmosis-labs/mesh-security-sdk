@@ -39,7 +39,7 @@ func TestMVP(t *testing.T) {
 
 	// then the active set should be stored in the ext staking contract
 	// and contain all active validator addresses
-	qRsp := providerCli.QueryExtStaking(Query{"list_remote_validators": {}})
+	qRsp := providerCli.QueryExtStaking(Query{"list_active_validators": {}})
 	require.Len(t, qRsp["validators"], 4, qRsp)
 	for _, v := range x.ConsumerChain.Vals.Validators {
 		require.Contains(t, qRsp["validators"], sdk.ValAddress(v.Address).String())

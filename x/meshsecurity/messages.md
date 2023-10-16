@@ -51,7 +51,7 @@
 
 ```
 # Jailed to active
-```
+```json
 {
   "valset_update": {
     "additions": [
