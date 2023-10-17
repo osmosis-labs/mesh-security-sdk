@@ -24,14 +24,33 @@ import (
 
 func TestValsetTransitions(t *testing.T) {
 	operatorKeys := secp256k1.GenPrivKey()
-	noSetup := func(t *testing.T, val mock.PV, x example) {}
+	setupVal := func(t *testing.T, x example) mock.PV {
+		myVal := CreateNewValidator(t, operatorKeys, x.ConsumerChain)
+		require.Len(t, x.ConsumerChain.Vals.Validators, 5)
+		return myVal
+	}
 	specs := map[string]struct {
-		setup         func(t *testing.T, val mock.PV, x example)
+		setup         func(t *testing.T, x example) mock.PV
 		doTransition  func(t *testing.T, val mock.PV, x example)
 		assertPackets func(t *testing.T, packets []channeltypes.Packet)
 	}{
+		"new validator to active": {
+			setup: func(t *testing.T, x example) mock.PV {
+				return mock.PV{}
+			},
+			doTransition: func(t *testing.T, _ mock.PV, x example) {
+				CreateNewValidator(t, operatorKeys, x.ConsumerChain)
+				require.Len(t, x.ConsumerChain.Vals.Validators, 5)
+			},
+			assertPackets: func(t *testing.T, packets []channeltypes.Packet) {
+				require.Len(t, packets, 1)
+				added := gjson.Get(string(packets[0].Data), "valset_update.additions.#.valoper").Array()
+				require.Len(t, added, 1)
+				require.Equal(t, sdk.ValAddress(operatorKeys.PubKey().Address()).String(), added[0].String())
+			},
+		},
 		"active to tombstone": {
-			setup: noSetup,
+			setup: setupVal,
 			doTransition: func(t *testing.T, val mock.PV, x example) {
 				e := &types.Equivocation{
 					Height:           1,
@@ -50,7 +69,7 @@ func TestValsetTransitions(t *testing.T) {
 			},
 		},
 		"active to jailed": {
-			setup: noSetup,
+			setup: setupVal,
 			doTransition: func(t *testing.T, val mock.PV, x example) {
 				jailValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), x.Coordinator, x.ConsumerChain, x.ConsumerApp)
 			},
@@ -62,10 +81,12 @@ func TestValsetTransitions(t *testing.T) {
 			},
 		},
 		"jailed to active": {
-			setup: func(t *testing.T, val mock.PV, x example) {
+			setup: func(t *testing.T, x example) mock.PV {
+				val := setupVal(t, x)
 				jailValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), x.Coordinator, x.ConsumerChain, x.ConsumerApp)
 				x.ConsumerChain.NextBlock()
 				require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
+				return val
 			},
 			doTransition: func(t *testing.T, val mock.PV, x example) {
 				unjailValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), operatorKeys, x.Coordinator, x.ConsumerChain, x.ConsumerApp)
@@ -81,7 +102,8 @@ func TestValsetTransitions(t *testing.T) {
 			},
 		},
 		"jailed to remove": {
-			setup: func(t *testing.T, val mock.PV, x example) {
+			setup: func(t *testing.T, x example) mock.PV {
+				val := setupVal(t, x)
 				t.Log("jail validator")
 				jailValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), x.Coordinator, x.ConsumerChain, x.ConsumerApp)
 
@@ -94,13 +116,8 @@ func TestValsetTransitions(t *testing.T) {
 
 				// undelegate
 				t.Log("undelegating")
-				ctx, sk := x.ConsumerChain.GetContext(), x.ConsumerApp.StakingKeeper
-				val1 := sk.Validator(ctx, sdk.ValAddress(operatorKeys.PubKey().Address()))
-				require.NotNil(t, val1)
-				msg := stakingtypes.NewMsgUndelegate(sdk.AccAddress(operatorKeys.PubKey().Address()), val1.GetOperator(), sdk.NewCoin(x.ConsumerDenom, sdk.NewInt(999_999)))
-				_, err := x.ConsumerChain.SendNonDefaultSenderMsgs(operatorKeys, msg)
-				require.NoError(t, err)
-				x.ConsumerChain.NextBlock()
+				undelegate(t, operatorKeys, sdk.NewInt(999_999), x)
+				return val
 			},
 			doTransition: func(t *testing.T, val mock.PV, x example) {
 				t.Log("unjail")
@@ -125,10 +142,8 @@ func TestValsetTransitions(t *testing.T) {
 			require.NoError(t, sk.SetParams(ctx, params))
 
 			x.ConsumerChain.Fund(sdk.AccAddress(operatorKeys.PubKey().Address()), sdkmath.NewInt(1_000_000_000))
-			myVal := CreateNewValidator(t, operatorKeys, x.ConsumerChain)
-			require.Len(t, x.ConsumerChain.Vals.Validators, 5)
+			myVal := spec.setup(t, x)
 			require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
-			spec.setup(t, myVal, x)
 
 			// when
 			spec.doTransition(t, myVal, x)
@@ -140,98 +155,14 @@ func TestValsetTransitions(t *testing.T) {
 	}
 }
 
-func TestValsetUpdate(t *testing.T) {
-	t.Skip("migrating towards TestValsetTransitions")
-	// scenario:
-	// given a provider chain P and a consumer chain C with staked tokens
-
-	x := setupExampleChains(t)
-	setupMeshSecurity(t, x)
-
-	operatorKeys := secp256k1.GenPrivKey()
-	x.ConsumerChain.Fund(sdk.AccAddress(operatorKeys.PubKey().Address()), sdkmath.NewInt(1_000_000_000))
-
-	myVal := CreateNewValidator(t, operatorKeys, x.ConsumerChain)
-	// then
-	require.Len(t, x.ConsumerChain.Vals.Validators, 5)
-	// and ibc packet pending
-	require.Len(t, x.ConsumerChain.PendingSendPackets, 1)
-	added := gjson.Get(string(x.ConsumerChain.PendingSendPackets[0].Data), "add_validators.#.valoper").Array()
-	require.Len(t, added, 1)
-	require.Equal(t, sdk.ValAddress(operatorKeys.PubKey().Address()).String(), added[0].String())
-
-	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
-
-	t.Log("remove from active set by undelegate")
-	// remove from active set
-	val1 := x.ConsumerApp.StakingKeeper.Validator(x.ConsumerChain.GetContext(), sdk.ValAddress(x.ConsumerChain.Vals.Validators[3].Address))
+func undelegate(t *testing.T, operatorKeys *secp256k1.PrivKey, amount sdkmath.Int, x example) {
+	ctx, sk := x.ConsumerChain.GetContext(), x.ConsumerApp.StakingKeeper
+	val1 := sk.Validator(ctx, sdk.ValAddress(operatorKeys.PubKey().Address()))
 	require.NotNil(t, val1)
-	m := stakingtypes.NewMsgUndelegate(x.ConsumerChain.SenderAccount.GetAddress(), val1.GetOperator(), sdk.NewCoin(x.ConsumerDenom, val1.GetBondedTokens()))
-	// when
-	_, err := x.ConsumerChain.SendMsgs(m)
+	msg := stakingtypes.NewMsgUndelegate(sdk.AccAddress(operatorKeys.PubKey().Address()), val1.GetOperator(), sdk.NewCoin(x.ConsumerDenom, amount))
+	_, err := x.ConsumerChain.SendNonDefaultSenderMsgs(operatorKeys, msg)
 	require.NoError(t, err)
 	x.ConsumerChain.NextBlock()
-	// then
-	// TODO: removals are currently ignored in the contract https://github.com/osmosis-labs/mesh-security/blob/b0c0bd483623d12703229772049063c06bb6e537/contracts/consumer/virtual-staking/src/contract.rs#L233
-	//require.Len(t, x.ConsumerChain.PendingSendPackets, 1)
-	//addr = gjson.Get(string(x.ConsumerChain.PendingSendPackets[0].Data), "removals").Array()[0].String()
-	//require.Equal(t, val1.GetOperator().String(), addr)
-	//
-	//require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
-
-	t.Log("Update commission")
-	// commission updated
-	x.Coordinator.IncrementTimeBy(24 * time.Hour) // bump time to allow updates
-	description := stakingtypes.NewDescription("my updated val", "", "", "", "")
-	newRate := sdkmath.LegacyNewDec(1)
-	updateMsg := stakingtypes.NewMsgEditValidator(sdk.ValAddress(operatorKeys.PubKey().Address()), description, &newRate, nil)
-	// when
-	_, err = x.ConsumerChain.SendNonDefaultSenderMsgs(operatorKeys, updateMsg)
-	require.NoError(t, err)
-	// then
-	// TODO: updates are currently ignored in the contract: https://github.com/osmosis-labs/mesh-security/blob/b0c0bd483623d12703229772049063c06bb6e537/contracts/consumer/virtual-staking/src/contract.rs#L209
-	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
-
-	t.Log("jail validator")
-	jailValidator(t, sdk.ConsAddress(myVal.PrivKey.PubKey().Address()), x.Coordinator, x.ConsumerChain, x.ConsumerApp)
-	// then
-	require.Len(t, x.ConsumerChain.PendingSendPackets, 1)
-	jailed := gjson.Get(string(x.ConsumerChain.PendingSendPackets[0].Data), "jail_validators.#.valoper").Array()
-	require.Len(t, jailed, 1, string(x.ConsumerChain.PendingSendPackets[0].Data))
-	require.Equal(t, sdk.ValAddress(operatorKeys.PubKey().Address()).String(), jailed[0].String())
-
-	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
-
-	t.Log("unjail validator")
-	// bump time to expire jail time
-	unjailValidator(t, sdk.ConsAddress(myVal.PrivKey.PubKey().Address()), operatorKeys, x.Coordinator, x.ConsumerChain, x.ConsumerApp)
-	// then
-	require.Len(t, x.ConsumerChain.PendingSendPackets, 1)
-	unjailed := gjson.Get(string(x.ConsumerChain.PendingSendPackets[0].Data), "add_validators.#.valoper").Array()
-	require.Len(t, unjailed, 1, string(x.ConsumerChain.PendingSendPackets[0].Data))
-	require.Equal(t, sdk.ValAddress(operatorKeys.PubKey().Address()).String(), unjailed[0].String())
-
-	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
-
-	t.Log("tombstone validator")
-	e := &types.Equivocation{
-		Height:           1,
-		Power:            100,
-		Time:             time.Now().UTC(),
-		ConsensusAddress: sdk.ConsAddress(myVal.PrivKey.PubKey().Address().Bytes()).String(),
-	}
-	// when
-	x.ConsumerApp.EvidenceKeeper.HandleEquivocationEvidence(x.ConsumerChain.GetContext(), e)
-	// and
-	require.NoError(t, err)
-	x.ConsumerChain.NextBlock()
-	// then
-	require.Len(t, x.ConsumerChain.PendingSendPackets, 1)
-	tombstoned := gjson.Get(string(x.ConsumerChain.PendingSendPackets[0].Data), "tombstoned.#.valoper").Array()
-	require.Len(t, tombstoned, 1, string(x.ConsumerChain.PendingSendPackets[0].Data))
-	require.Equal(t, sdk.ValAddress(operatorKeys.PubKey().Address()).String(), tombstoned[0].String())
-
-	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
 }
 
 func jailValidator(t *testing.T, consAddr sdk.ConsAddress, coordinator *wasmibctesting.Coordinator, chain *wasmibctesting.TestChain, app *app.MeshApp) {

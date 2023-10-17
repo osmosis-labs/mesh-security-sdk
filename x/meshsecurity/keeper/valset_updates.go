@@ -13,36 +13,42 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
+// ScheduleBonded store a validator update to bonded status for the valset update report
 func (k Keeper) ScheduleBonded(ctx sdk.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorBonded, addr)
 }
 
+// ScheduleUnbonded store a validator update to unbonded status for the valset update report
 func (k Keeper) ScheduleUnbonded(ctx sdk.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorUnbonded, addr)
 }
 
+// ScheduleJailed store a validator update to jailed status for the valset update report
 func (k Keeper) ScheduleJailed(ctx sdk.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorJailed, addr)
 }
 
+// ScheduleTombstoned store a validator update to tombstoned status for the valset update report
 func (k Keeper) ScheduleTombstoned(ctx sdk.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorTombstoned, addr)
 }
 
+// ScheduleUnjailed store a validator update to unjailed status for the valset update report
 func (k Keeper) ScheduleUnjailed(ctx sdk.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorUnjailed, addr)
 }
 
+// ScheduleModified store a validator metadata update for the valset update report
 func (k Keeper) ScheduleModified(ctx sdk.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorModified, addr)
 }
 
 // instead of sync calls to the contracts for the different kind of valset changes in a block, we store them in the mem db
-// annd async send to all registered contracts in the end blocker
+// and async send to all registered contracts in the end blocker
 func (k Keeper) sendAsync(ctx sdk.Context, op types.PipedValsetOperation, valAddr sdk.ValAddress) error {
 	ModuleLogger(ctx).Debug("storing for async update", "operation", int(op), "val", valAddr.String())
 	ctx.KVStore(k.memKey).Set(types.BuildPipedValsetOpKey(op, valAddr), []byte{})
-	// and schedule an update
+	// and schedule an update callback for all registered contracts
 	var innerErr error
 	k.IterateMaxCapLimit(ctx, func(contractAddr sdk.AccAddress, m math.Int) bool {
 		if m.GT(math.ZeroInt()) {
@@ -56,6 +62,7 @@ func (k Keeper) sendAsync(ctx sdk.Context, op types.PipedValsetOperation, valAdd
 	return innerErr
 }
 
+// ValsetUpdateReport aggregate all stored changes of the current block. Should be called by an end-blocker.
 func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, error) {
 	var innerErr error
 	appendValidator := func(set *[]wasmvmtypes.Validator, valAddr sdk.ValAddress) bool {
@@ -101,6 +108,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 	return r, innerErr
 }
 
+// ClearPipedValsetOperations delete all entries from the temporary store that contains the valset updates.
 func (k Keeper) ClearPipedValsetOperations(ctx sdk.Context) {
 	var keys [][]byte
 	pStore := prefix.NewStore(ctx.KVStore(k.memKey), types.PipedValsetPrefix)
@@ -131,6 +139,7 @@ func (k Keeper) iteratePipedValsetOperations(ctx sdk.Context, cb func(valAddress
 	return nil
 }
 
+// ConvertSdkValidatorToWasm helper method
 func ConvertSdkValidatorToWasm(v stakingtypes.Validator) wasmvmtypes.Validator {
 	return wasmvmtypes.Validator{
 		Address:       v.OperatorAddress,

@@ -1,6 +1,6 @@
 module github.com/osmosis-labs/mesh-security-sdk/tests/e2e
 
-go 1.19
+go 1.21
 
 require (
 	github.com/CosmWasm/wasmd v0.43.1-0.20231016112856-8bb5b82bad97
