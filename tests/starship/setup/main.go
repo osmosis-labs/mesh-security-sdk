@@ -8,15 +8,13 @@ import (
 	"time"
 
 	starship "github.com/cosmology-tech/starship/clients/go/client"
-	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"go.uber.org/zap"
 
 	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
@@ -140,7 +138,7 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 	qRsp := map[string]any{}
 	err = Eventually(
 		func() bool {
-			qRsp = providerCli.QueryExtStaking(Query{"list_remote_validators": {}})
+			qRsp = providerCli.QueryExtStaking(Query{"list_active_validators": {}})
 			v := qRsp["validators"].([]interface{})
 			if len(v) > 0 {
 				return true
