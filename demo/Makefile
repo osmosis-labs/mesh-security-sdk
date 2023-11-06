@@ -78,11 +78,11 @@ ifeq ($(OS),Windows_NT)
 	$(error mesh demo server not supported)
 	exit 1
 else
-	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILD_DIR)/$(APPNAME) ./cmd/$(APPNAME)
+	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILD_DIR)/$(APPNAME) ./cmd/meshd
 endif
 
 build-vendored:
-	go build -mod=vendor $(BUILD_FLAGS) -o $(BUILD_DIR)/$(APPNAME) ./cmd/$(APPNAME)
+	go build -mod=vendor $(BUILD_FLAGS) -o $(BUILD_DIR)/$(APPNAME) ./cmd/meshd
 
 build-linux-static:
 	go mod vendor  # quick hack to make local dependencies work in Docker
