@@ -94,7 +94,7 @@ build-linux-static:
 	rm -rf vendor/
 
 install:
-	go install -mod=readonly $(BUILD_FLAGS) ./cmd/$(APPNAME)
+	go install -mod=readonly $(BUILD_FLAGS) ./cmd/meshd
 
 ########################################
 ### Testing
