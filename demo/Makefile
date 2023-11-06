@@ -82,7 +82,7 @@ else
 endif
 
 build-vendored:
-	echo go build -mod=vendor $(BUILD_FLAGS) -o $(BUILD_DIR)/$(APPNAME) ./cmd/$(APPNAME)
+	go build -mod=vendor $(BUILD_FLAGS) -o $(BUILD_DIR)/$(APPNAME) ./cmd/$(APPNAME)
 
 build-linux-static:
 	go mod vendor  # quick hack to make local dependencies work in Docker
