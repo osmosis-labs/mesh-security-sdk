@@ -2,10 +2,10 @@ package keeper
 
 import (
 	"cosmossdk.io/math"
-	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
-	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
