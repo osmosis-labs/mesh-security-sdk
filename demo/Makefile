@@ -47,12 +47,14 @@ comma := ,
 build_tags_comma_sep := $(subst $(empty),$(comma),$(build_tags))
 
 # process linker flags
-
-ldflags = -X github.com/cosmos/cosmos-sdk/version.Name=mesh \
-		  -X github.com/cosmos/cosmos-sdk/version.AppName=meshd \
+NAME := mesh
+APPNAME := meshd
+PREFIX := mesh
+ldflags := -X github.com/cosmos/cosmos-sdk/version.Name=$(NAME) \
+		  -X github.com/cosmos/cosmos-sdk/version.AppName=$(APPNAME) \
 		  -X github.com/cosmos/cosmos-sdk/version.Version=$(VERSION) \
 		  -X github.com/cosmos/cosmos-sdk/version.Commit=$(COMMIT) \
-		  -X github.com/osmosis-labs/mesh-security-sdk/demo/app.Bech32Prefix=mesh \
+		  -X github.com/osmosis-labs/mesh-security-sdk/demo/app.Bech32Prefix=$(PREFIX) \
 		  -X "github.com/cosmos/cosmos-sdk/version.BuildTags=$(build_tags_comma_sep)"
 
 ifeq ($(WITH_CLEVELDB),yes)
@@ -76,11 +78,11 @@ ifeq ($(OS),Windows_NT)
 	$(error mesh demo server not supported)
 	exit 1
 else
-	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILD_DIR)/meshd ./cmd/meshd
+	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILD_DIR)/$(APPNAME) ./cmd/meshd
 endif
 
 build-vendored:
-	go build -mod=vendor $(BUILD_FLAGS) -o $(BUILD_DIR)/meshd ./cmd/meshd
+	go build -mod=vendor $(BUILD_FLAGS) -o $(BUILD_DIR)/$(APPNAME) ./cmd/meshd
 
 build-linux-static:
 	go mod vendor  # quick hack to make local dependencies work in Docker
