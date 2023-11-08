@@ -32,7 +32,7 @@ require (
 )
 
 require (
-	cosmossdk.io/math v1.1.2
+	cosmossdk.io/math v1.2.0
 	github.com/cometbft/cometbft v0.37.2
 	github.com/cosmology-tech/starship/clients/go/client v0.0.0-20230705213813-3c99a3d15c70
 	github.com/cosmology-tech/starship/registry v0.0.0-20230502113025-a30015992e4d
