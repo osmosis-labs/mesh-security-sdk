@@ -33,7 +33,7 @@ require (
 
 require (
 	cosmossdk.io/errors v1.0.0
-	cosmossdk.io/math v1.1.2
+	cosmossdk.io/math v1.2.0
 	github.com/cometbft/cometbft v0.37.2
 	github.com/cometbft/cometbft-db v0.8.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20230629202037-9506855d4529
