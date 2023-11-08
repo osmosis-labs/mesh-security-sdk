@@ -32,7 +32,7 @@ require (
 )
 
 require (
-	cosmossdk.io/math v1.1.2
+	cosmossdk.io/math v1.2.0
 	github.com/cometbft/cometbft v0.37.2
 	github.com/osmosis-labs/mesh-security-sdk/demo v0.0.0-00010101000000-000000000000
 	github.com/osmosis-labs/mesh-security-sdk/x v0.0.0-00010101000000-000000000000
