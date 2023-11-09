@@ -92,13 +92,8 @@ func (e SlashingKeeperDecorator) Tombstone(ctx sdk.Context, address sdk.ConsAddr
 	v, ok := e.stakingKeeper.GetValidatorByConsAddr(ctx, address)
 	if !ok {
 		ModuleLogger(ctx).
-			Error("can not propagate tompstone: validator not found",
-				"validator", address.String())
-		e.SlashingKeeper.Tombstone(ctx, address)
-		return
-	}
-
-	if err := e.k.ScheduleTombstoned(ctx, v.GetOperator()); err != nil {
+			Error("can not propagate tompstone: validator not found", "validator", address.String())
+	} else if err := e.k.ScheduleTombstoned(ctx, v.GetOperator()); err != nil {
 		ModuleLogger(ctx).
 			Error("can not propagate tompstone: scheduler",
 				"cause", err,
@@ -123,12 +118,8 @@ func (s StakingDecorator) Jail(ctx sdk.Context, consAddr sdk.ConsAddress) {
 	val := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
 	if val == nil {
 		ModuleLogger(ctx).
-			Error("can not propagate jail: validator not found",
-				"validator", consAddr.String())
-		s.StakingKeeper.Unjail(ctx, consAddr)
-		return
-	}
-	if err := s.k.ScheduleJailed(ctx, val.GetOperator()); err != nil {
+			Error("can not propagate jail: validator not found", "validator", consAddr.String())
+	} else if err := s.k.ScheduleJailed(ctx, val.GetOperator()); err != nil {
 		ModuleLogger(ctx).
 			Error("can not propagate jail: schedule event",
 				"cause", err,
@@ -142,12 +133,8 @@ func (s StakingDecorator) Unjail(ctx sdk.Context, consAddr sdk.ConsAddress) {
 	val := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
 	if val == nil {
 		ModuleLogger(ctx).
-			Error("can not propagate unjail: validator not found",
-				"validator", consAddr.String())
-		s.StakingKeeper.Unjail(ctx, consAddr)
-		return
-	}
-	if err := s.k.ScheduleUnjailed(ctx, val.GetOperator()); err != nil {
+			Error("can not propagate unjail: validator not found", "validator", consAddr.String())
+	} else if err := s.k.ScheduleUnjailed(ctx, val.GetOperator()); err != nil {
 		ModuleLogger(ctx).
 			Error("can not propagate unjail: schedule event",
 				"cause", err,

@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"encoding/json"
-	"fmt"
 
 	errorsmod "cosmossdk.io/errors"
 
@@ -24,8 +23,6 @@ func (k Keeper) SendValsetUpdate(ctx sdk.Context, contractAddr sdk.AccAddress, v
 	msg := contract.SudoMsg{
 		ValsetUpdate: &v,
 	}
-	bz, _ := json.Marshal(&msg)
-	fmt.Println(string(bz))
 	return k.doSudoCall(ctx, contractAddr, msg)
 }
 

@@ -82,7 +82,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		Unjailed:   make([]contract.ValidatorAddr, 0),
 		Tombstoned: make([]contract.ValidatorAddr, 0),
 	}
-	err := k.iteratePipedValsetOperations(ctx, func(valAddr sdk.ValAddress, op types.PipedValsetOperation, val []byte) bool {
+	err := k.iteratePipedValsetOperations(ctx, func(valAddr sdk.ValAddress, op types.PipedValsetOperation) bool {
 		switch op {
 		case types.ValidatorBonded:
 			return appendValidator(&r.Additions, valAddr)
@@ -123,7 +123,7 @@ func (k Keeper) ClearPipedValsetOperations(ctx sdk.Context) {
 }
 
 // iterate through all stored valset updates. Due to the storage key, there are no contract duplicates within an operation type.
-func (k Keeper) iteratePipedValsetOperations(ctx sdk.Context, cb func(valAddress sdk.ValAddress, op types.PipedValsetOperation, val []byte) bool) error {
+func (k Keeper) iteratePipedValsetOperations(ctx sdk.Context, cb func(valAddress sdk.ValAddress, op types.PipedValsetOperation) bool) error {
 	pStore := prefix.NewStore(ctx.KVStore(k.memKey), types.PipedValsetPrefix)
 	iter := pStore.Iterator(nil, nil)
 	defer iter.Close()
@@ -132,7 +132,7 @@ func (k Keeper) iteratePipedValsetOperations(ctx sdk.Context, cb func(valAddress
 		key := iter.Key()
 		addrLen := key[0]
 		addr, op := key[1:addrLen+1], key[addrLen+1]
-		if cb(addr, types.PipedValsetOperation(op), iter.Value()) {
+		if cb(addr, types.PipedValsetOperation(op)) {
 			break
 		}
 	}

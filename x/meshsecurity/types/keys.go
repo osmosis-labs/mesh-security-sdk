@@ -54,6 +54,7 @@ func BuildTotalDelegatedAmountKey(contractAddr sdk.AccAddress) []byte {
 	return append(TotalDelegatedAmountKeyPrefix, contractAddr.Bytes()...)
 }
 
+// BuildSchedulerTypeKeyPrefix internal scheduler store key
 func BuildSchedulerTypeKeyPrefix(tp SchedulerTaskType) ([]byte, error) {
 	if tp == SchedulerTaskUndefined {
 		return nil, ErrInvalid.Wrapf("scheduler type: %x", tp)
@@ -79,6 +80,7 @@ func BuildSchedulerContractKey(tp SchedulerTaskType, blockHeight uint64, contrac
 	return append(prefix, contractAddr.Bytes()...), nil
 }
 
+// BuildPipedValsetOpKey build store key for the temporariy valset operation store
 func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress) []byte {
 	if op == ValsetOperationUndefined {
 		panic("empty operation")

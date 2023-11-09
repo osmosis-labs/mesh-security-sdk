@@ -421,6 +421,7 @@ func NewMeshApp(
 		appCodec,
 		legacyAmino,
 		keys[slashingtypes.StoreKey],
+		// decorate the sdk keeper to capture all jail/ unjail events for MS
 		meshseckeeper.NewStakingDecorator(app.StakingKeeper, app.MeshSecKeeper),
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
@@ -440,7 +441,12 @@ func NewMeshApp(
 	// register the staking hooks
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
 	app.StakingKeeper.SetHooks(
-		stakingtypes.NewMultiStakingHooks(app.DistrKeeper.Hooks(), app.SlashingKeeper.Hooks(), app.MeshSecKeeper.Hooks()),
+		stakingtypes.NewMultiStakingHooks(
+			app.DistrKeeper.Hooks(),
+			app.SlashingKeeper.Hooks(),
+			// register hook to capture valset updates
+			app.MeshSecKeeper.Hooks(),
+		),
 	)
 
 	app.AuthzKeeper = authzkeeper.NewKeeper(keys[authzkeeper.StoreKey], appCodec, app.MsgServiceRouter(), app.AccountKeeper)
@@ -578,13 +584,15 @@ func NewMeshApp(
 
 	meshMessageHandler := wasmkeeper.WithMessageHandlerDecorator(func(nested wasmkeeper.Messenger) wasmkeeper.Messenger {
 		return wasmkeeper.NewMessageHandlerChain(
+			// security layer for system integrity, should always be first in chain
 			meshseckeeper.NewIntegrityHandler(app.MeshSecKeeper),
 			nested,
-			// append our custom message handler
+			// append our custom message handler for mesh-security
 			meshseckeeper.NewDefaultCustomMsgHandler(app.MeshSecKeeper),
 		)
 	})
 	wasmOpts = append(wasmOpts, meshMessageHandler,
+		// add support for the mesh-security queries
 		wasmkeeper.WithQueryHandlerDecorator(meshseckeeper.NewQueryDecorator(app.MeshSecKeeper, app.SlashingKeeper)),
 	)
 	// The last arguments can contain custom message handlers, and custom query handlers,

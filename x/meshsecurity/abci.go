@@ -22,18 +22,14 @@ func EndBlocker(ctx sdk.Context, k *keeper.Keeper, h TaskExecutionResponseHandle
 
 	do := rspHandler(ctx, h)
 	epochLength := k.GetRebalanceEpochLength(ctx)
-	var valsetUpdated bool
 	do(k.ExecScheduledTasks(ctx, types.SchedulerTaskValsetUpdate, epochLength, func(ctx sdk.Context, contract sdk.AccAddress) error {
-		valsetUpdated = true
 		report, err := k.ValsetUpdateReport(ctx)
 		if err != nil {
 			return err
 		}
 		return k.SendValsetUpdate(ctx, contract, report)
 	}))
-	if valsetUpdated {
-		k.ClearPipedValsetOperations(ctx)
-	}
+	k.ClearPipedValsetOperations(ctx)
 	do(k.ExecScheduledTasks(ctx, types.SchedulerTaskRebalance, epochLength, func(ctx sdk.Context, contract sdk.AccAddress) error {
 		return k.SendRebalance(ctx, contract)
 	}))

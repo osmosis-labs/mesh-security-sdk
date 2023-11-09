@@ -29,10 +29,6 @@ func (h Hooks) AfterValidatorBeginUnbonding(ctx sdk.Context, consAddr sdk.ConsAd
 }
 
 func (h Hooks) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) error {
-	// before the BeforeValidatorModified is called
-	// slashed
-	// check ValidatorSigningInfo if jailed or tombstoned
-	// return h.k.ScheduleJailed(ctx, valAddr)
 	return nil
 }
 
