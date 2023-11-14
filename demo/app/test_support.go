@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/CosmWasm/wasmd/x/wasm"
+	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	ibckeeper "github.com/cosmos/ibc-go/v7/modules/core/keeper"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -35,6 +35,6 @@ func (app *MeshApp) GetAccountKeeper() authkeeper.AccountKeeper {
 	return app.AccountKeeper
 }
 
-func (app *MeshApp) GetWasmKeeper() wasm.Keeper {
+func (app *MeshApp) GetWasmKeeper() wasmkeeper.Keeper {
 	return app.WasmKeeper
 }

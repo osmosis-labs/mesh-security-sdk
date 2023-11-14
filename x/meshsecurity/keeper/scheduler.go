@@ -44,15 +44,6 @@ func (k Keeper) GetNextScheduledTaskHeight(ctx sdk.Context, tp types.SchedulerTa
 	return
 }
 
-func (k Keeper) getScheduledTaskAt(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, height uint64) (repeat, exists bool) {
-	key, err := types.BuildSchedulerContractKey(tp, height, contract)
-	if err != nil {
-		return false, false
-	}
-	bz := ctx.KVStore(k.storeKey).Get(key)
-	return isRepeat(bz), bz != nil
-}
-
 // ScheduleOneShotTask register a new task to be executed at given block height.
 // The task is not repeating and registered only once for a given contract and height. Duplicates are silently ignored
 func (k Keeper) ScheduleOneShotTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, execBlockHeight uint64) error {

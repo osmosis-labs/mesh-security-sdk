@@ -26,8 +26,8 @@ func TestCaptureTombstone(t *testing.T) {
 	require.NoError(t, err)
 	keepers.StakingKeeper.SetValidatorByConsAddr(pCtx, val)
 	keepers.StakingKeeper.SetValidator(pCtx, val)
-	mock, capturedTombstones := NewMockEvidenceSlashingKeeper()
-	cap := CaptureTombstoneDecorator(keepers.MeshKeeper, mock, keepers.StakingKeeper)
+	skMock, capturedTombstones := NewMockEvidenceSlashingKeeper()
+	decorator := CaptureTombstoneDecorator(keepers.MeshKeeper, skMock, keepers.StakingKeeper)
 	otherConsAddress := rand.Bytes(address.Len)
 	specs := map[string]struct {
 		addr      sdk.ConsAddress
@@ -49,31 +49,67 @@ func TestCaptureTombstone(t *testing.T) {
 			ctx, _ := pCtx.CacheContext()
 			*capturedTombstones = make([]sdk.ConsAddress, 0, 1)
 			// when
-			cap.Tombstone(ctx, spec.addr)
+			decorator.Tombstone(ctx, spec.addr)
 
 			// then
 			assert.Equal(t, spec.expPassed, *capturedTombstones)
 			// and stored for async propagation
-			operations := fetchAllStoredOperations(t, keepers.MeshKeeper, ctx, val)
-			assert.Equal(t, spec.expStored, operations)
+			appStoredOps := fetchAllStoredOperations(t, ctx, keepers.MeshKeeper)
+			assert.Equal(t, spec.expStored, appStoredOps[val.OperatorAddress])
 		})
 	}
 }
 
-func fetchAllStoredOperations(t *testing.T, msKeeper *Keeper, ctx sdk.Context, val stakingtypes.Validator) []types.PipedValsetOperation {
-	index := make(map[string][]types.PipedValsetOperation, 1)
+func TestCaptureStakingEvents(t *testing.T) {
+	pCtx, keepers := CreateDefaultTestInput(t)
 
-	err := msKeeper.iteratePipedValsetOperations(ctx, func(valAddr sdk.ValAddress, op types.PipedValsetOperation) bool {
-		ops, ok := index[valAddr.String()]
-		if !ok {
-			ops = []types.PipedValsetOperation{}
-		}
-		index[valAddr.String()] = append(ops, op)
-		return false
-	})
+	val := validatorFixture(t)
+	myConsAddress, err := val.GetConsAddr()
 	require.NoError(t, err)
-	operations := index[val.OperatorAddress]
-	return operations
+	keepers.StakingKeeper.SetValidatorByConsAddr(pCtx, val)
+	keepers.StakingKeeper.SetValidator(pCtx, val)
+
+	valJailed := validatorFixture(t)
+	valJailed.Jailed = true
+	myConsAddressJailed, err := valJailed.GetConsAddr()
+	require.NoError(t, err)
+	keepers.StakingKeeper.SetValidatorByConsAddr(pCtx, valJailed)
+	keepers.StakingKeeper.SetValidator(pCtx, valJailed)
+
+	decorator := NewStakingDecorator(keepers.StakingKeeper, keepers.MeshKeeper)
+	specs := map[string]struct {
+		consAddr  sdk.ConsAddress
+		op        func(sdk.Context, sdk.ConsAddress)
+		expStored []types.PipedValsetOperation
+		expJailed bool
+	}{
+		"jail": {
+			consAddr:  myConsAddress,
+			op:        decorator.Jail,
+			expStored: []types.PipedValsetOperation{types.ValidatorJailed},
+			expJailed: true,
+		},
+		"unjail": {
+			consAddr:  myConsAddressJailed,
+			op:        decorator.Unjail,
+			expStored: []types.PipedValsetOperation{types.ValidatorUnjailed},
+		},
+	}
+	for name, spec := range specs {
+		t.Run(name, func(t *testing.T) {
+			ctx, _ := pCtx.CacheContext()
+
+			// when
+			spec.op(ctx, spec.consAddr)
+
+			// then
+			loadedVal := keepers.StakingKeeper.ValidatorByConsAddr(ctx, spec.consAddr)
+			assert.Equal(t, spec.expJailed, loadedVal.IsJailed())
+			// and stored for async propagation
+			allStoredOps := fetchAllStoredOperations(t, ctx, keepers.MeshKeeper)
+			assert.Equal(t, spec.expStored, allStoredOps[loadedVal.GetOperator().String()])
+		})
+	}
 }
 
 type MockEvidenceSlashingKeeper struct {

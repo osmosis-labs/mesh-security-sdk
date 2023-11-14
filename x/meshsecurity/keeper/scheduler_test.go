@@ -283,3 +283,12 @@ func TestDeleteAllScheduledTasks(t *testing.T) {
 		})
 	}
 }
+
+func (k Keeper) getScheduledTaskAt(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, height uint64) (repeat, exists bool) {
+	key, err := types.BuildSchedulerContractKey(tp, height, contract)
+	if err != nil {
+		return false, false
+	}
+	bz := ctx.KVStore(k.storeKey).Get(key)
+	return isRepeat(bz), bz != nil
+}

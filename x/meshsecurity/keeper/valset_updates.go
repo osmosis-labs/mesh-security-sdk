@@ -63,6 +63,8 @@ func (k Keeper) sendAsync(ctx sdk.Context, op types.PipedValsetOperation, valAdd
 }
 
 // ValsetUpdateReport aggregate all stored changes of the current block. Should be called by an end-blocker.
+// The events reported are categorized by type and not time. Conflicting events as Bonded/ Unbonded
+// are not supposed to happen within the same block
 func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, error) {
 	var innerErr error
 	appendValidator := func(set *[]wasmvmtypes.Validator, valAddr sdk.ValAddress) bool {
@@ -97,7 +99,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		case types.ValidatorModified:
 			return appendValidator(&r.Updated, valAddr)
 		default:
-			innerErr = types.ErrUnknown.Wrapf("undefined operation type %X", op)
+			innerErr = types.ErrInvalid.Wrapf("undefined operation type %X", op)
 			return true
 		}
 		return false
@@ -126,8 +128,6 @@ func (k Keeper) ClearPipedValsetOperations(ctx sdk.Context) {
 func (k Keeper) iteratePipedValsetOperations(ctx sdk.Context, cb func(valAddress sdk.ValAddress, op types.PipedValsetOperation) bool) error {
 	pStore := prefix.NewStore(ctx.KVStore(k.memKey), types.PipedValsetPrefix)
 	iter := pStore.Iterator(nil, nil)
-	defer iter.Close()
-
 	for ; iter.Valid(); iter.Next() {
 		key := iter.Key()
 		addrLen := key[0]
@@ -136,7 +136,7 @@ func (k Keeper) iteratePipedValsetOperations(ctx sdk.Context, cb func(valAddress
 			break
 		}
 	}
-	return nil
+	return iter.Close()
 }
 
 // ConvertSdkValidatorToWasm helper method

@@ -289,3 +289,25 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 		Faucet:         faucet,
 	}
 }
+
+func fetchAllStoredOperations(t *testing.T, ctx sdk.Context, msKeeper *Keeper) map[string][]types.PipedValsetOperation {
+	index := make(map[string][]types.PipedValsetOperation, 1)
+	err := msKeeper.iteratePipedValsetOperations(ctx, func(valAddr sdk.ValAddress, op types.PipedValsetOperation) bool {
+		ops, ok := index[valAddr.String()]
+		if !ok {
+			ops = []types.PipedValsetOperation{}
+		}
+		index[valAddr.String()] = append(ops, op)
+		return false
+	})
+	require.NoError(t, err)
+	return index
+}
+
+// for test code only
+func must[t any](s t, err error) t {
+	if err != nil {
+		panic(err)
+	}
+	return s
+}

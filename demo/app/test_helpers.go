@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CosmWasm/wasmd/x/wasm"
+	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	dbm "github.com/cometbft/cometbft-db"
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmjson "github.com/cometbft/cometbft/libs/json"
@@ -50,10 +50,10 @@ type SetupOptions struct {
 	Logger   log.Logger
 	DB       *dbm.MemDB
 	AppOpts  servertypes.AppOptions
-	WasmOpts []wasm.Option
+	WasmOpts []wasmkeeper.Option
 }
 
-func setup(t testing.TB, chainID string, withGenesis bool, invCheckPeriod uint, opts ...wasm.Option) (*MeshApp, GenesisState) {
+func setup(t testing.TB, chainID string, withGenesis bool, invCheckPeriod uint, opts ...wasmkeeper.Option) (*MeshApp, GenesisState) {
 	db := dbm.NewMemDB()
 	nodeHome := t.TempDir()
 	snapshotDir := filepath.Join(nodeHome, "data", "snapshots")
@@ -117,7 +117,7 @@ func NewMeshAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOpti
 }
 
 // Setup initializes a new MeshApp. A Nop logger is set in MeshApp.
-func Setup(t *testing.T, opts ...wasm.Option) *MeshApp {
+func Setup(t *testing.T, opts ...wasmkeeper.Option) *MeshApp {
 	t.Helper()
 
 	privVal := mock.NewPV()
@@ -145,7 +145,7 @@ func Setup(t *testing.T, opts ...wasm.Option) *MeshApp {
 // that also act as delegators. For simplicity, each validator is bonded with a delegation
 // of one consensus engine unit in the default token of the MeshApp from first genesis
 // account. A Nop logger is set in MeshApp.
-func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount, chainID string, opts []wasm.Option, balances ...banktypes.Balance) *MeshApp {
+func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount, chainID string, opts []wasmkeeper.Option, balances ...banktypes.Balance) *MeshApp {
 	t.Helper()
 
 	app, genesisState := setup(t, chainID, true, 5, opts...)
@@ -267,7 +267,7 @@ func ModuleAccountAddrs() map[string]bool {
 	return BlockedAddresses()
 }
 
-var emptyWasmOptions []wasm.Option
+var emptyWasmOptions []wasmkeeper.Option
 
 // NewTestNetworkFixture returns a new MeshApp AppConstructor for network simulation tests
 func NewTestNetworkFixture() network.TestFixture {
