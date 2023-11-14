@@ -17,6 +17,11 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
+// Option is an extension point to instantiate keeper with non default values
+type Option interface {
+	apply(*Keeper)
+}
+
 type Keeper struct {
 	storeKey storetypes.StoreKey
 	memKey   storetypes.StoreKey
@@ -38,8 +43,9 @@ func NewKeeper(
 	staking types.SDKStakingKeeper,
 	wasm types.WasmKeeper,
 	authority string,
+	opts ...Option,
 ) *Keeper {
-	return NewKeeperX(cdc, storeKey, memoryStoreKey, NewBankKeeperAdapter(bank), NewStakingKeeperAdapter(staking, bank), wasm, authority)
+	return NewKeeperX(cdc, storeKey, memoryStoreKey, NewBankKeeperAdapter(bank), NewStakingKeeperAdapter(staking, bank), wasm, authority, opts...)
 }
 
 // NewKeeperX constructor with extended Osmosis SDK keepers
@@ -51,8 +57,9 @@ func NewKeeperX(
 	staking types.XStakingKeeper,
 	wasm types.WasmKeeper,
 	authority string,
+	opts ...Option,
 ) *Keeper {
-	return &Keeper{
+	k := &Keeper{
 		storeKey:  storeKey,
 		memKey:    memoryStoreKey,
 		cdc:       cdc,
@@ -61,6 +68,11 @@ func NewKeeperX(
 		wasm:      wasm,
 		authority: authority,
 	}
+	for _, o := range opts {
+		o.apply(k)
+	}
+
+	return k
 }
 
 // GetAuthority returns the module's authority.

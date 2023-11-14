@@ -106,11 +106,11 @@ type TestKeepers struct {
 	EncodingConfig encodingConfig
 	MeshKeeper     *Keeper
 	AccountKeeper  authkeeper.AccountKeeper
-	WasmKeeper     wasmkeeper.Keeper
+	WasmKeeper     *wasmkeeper.Keeper
 	Faucet         *wasmkeeper.TestFaucet
 }
 
-func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
+func CreateDefaultTestInput(t testing.TB, opts ...Option) (sdk.Context, TestKeepers) {
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)
 	keys := sdk.NewKVStoreKeys(
@@ -273,6 +273,7 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 		stakingKeeper,
 		wasmKeeper,
 		authority,
+		opts...,
 	)
 	require.NoError(t, msKeeper.SetParams(ctx, types.DefaultParams(sdk.DefaultBondDenom)))
 
@@ -285,7 +286,7 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 		StoreKey:       keys[types.StoreKey],
 		EncodingConfig: encConfig,
 		MeshKeeper:     msKeeper,
-		WasmKeeper:     wasmKeeper,
+		WasmKeeper:     &wasmKeeper,
 		Faucet:         faucet,
 	}
 }
