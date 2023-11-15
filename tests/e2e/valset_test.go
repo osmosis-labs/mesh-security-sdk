@@ -1,6 +1,8 @@
 package e2e
 
 import (
+	"encoding/base64"
+	"fmt"
 	"testing"
 	"time"
 
@@ -150,9 +152,47 @@ func TestValsetTransitions(t *testing.T) {
 			x.ConsumerChain.NextBlock()
 			// then
 			spec.assertPackets(t, x.ConsumerChain.PendingSendPackets)
+			// ane when packets are relayed
 			require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
 		})
 	}
+}
+
+func TestSlashingE2E(t *testing.T) {
+	x := setupExampleChains(t)
+	_, _, providerClient := setupMeshSecurity(t, x)
+	// set max validators
+	ctx, sk := x.ConsumerChain.GetContext(), x.ConsumerApp.StakingKeeper
+	params := sk.GetParams(ctx)
+	params.MaxValidators = 5
+	require.NoError(t, sk.SetParams(ctx, params))
+
+	myLocalValidatorAddr := sdk.ValAddress(x.ProviderChain.Vals.Validators[0].Address).String()
+	execLocalStakingMsg := fmt.Sprintf(`{"stake_local":{"amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
+		x.ProviderDenom, 190_000_000,
+		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myLocalValidatorAddr))))
+	providerClient.MustExecVault(execLocalStakingMsg)
+
+	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
+	// ensure nothing staked by the virtual staking contract yet
+	myExtValidator := sdk.ValAddress(x.ConsumerChain.Vals.Validators[1].Address)
+	err := providerClient.ExecStakeRemote(myExtValidator.String(), sdk.NewInt64Coin(x.ProviderDenom, 100_000_000))
+	require.NoError(t, err)
+
+	//
+	//x.ConsumerChain.Fund(sdk.AccAddress(operatorKeys.PubKey().Address()), sdkmath.NewInt(1_000_000_000))
+	//myVal := spec.setup(t, x)
+	//require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
+	//
+	//// when
+	//spec.doTransition(t, myVal, x)
+	//x.ConsumerChain.NextBlock()
+	//// then
+	//spec.assertPackets(t, x.ConsumerChain.PendingSendPackets)
+	//// ane when packets are relayed
+	//require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
+	//// then
+	//spec.assertProvider(t, NewProviderClient(t, x.ProviderChain))
 }
 
 func undelegate(t *testing.T, operatorKeys *secp256k1.PrivKey, amount sdkmath.Int, x example) {
