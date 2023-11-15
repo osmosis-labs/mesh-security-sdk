@@ -198,8 +198,7 @@ func (p ProviderClient) QueryVaultFreeBalance() int {
 	if err != nil {
 		panic(err)
 	}
-	acct := qRsp["account"].(map[string]any)
-	return ParseHighLow(acct["free"]).Low
+	return ParseHighLow(qRsp["free"]).Low
 }
 
 type HighLowType struct {
