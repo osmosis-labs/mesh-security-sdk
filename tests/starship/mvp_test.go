@@ -176,7 +176,7 @@ func Test2WayContract(t *testing.T) {
 			"validator": myExtValidatorAddr2,
 		},
 	})
-	assert.Equal(t, "80000000", qRsp["stake"], qRsp)
+	assert.Equal(t, "80000000", setup.ParseHighLow(qRsp["stake"]).Low, qRsp)
 	assert.Empty(t, qRsp["pending_unbonds"])
 }
 
