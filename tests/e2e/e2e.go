@@ -9,7 +9,11 @@ import (
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	"github.com/cometbft/cometbft/types"
+	types2 "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+	ibctesting2 "github.com/cosmos/ibc-go/v7/testing"
 	"github.com/stretchr/testify/require"
+
+	"cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -88,4 +92,63 @@ func InstantiateContract(t *testing.T, chain *ibctesting.TestChain, codeID uint6
 	a, err := sdk.AccAddressFromBech32(pExecResp.Address)
 	require.NoError(t, err)
 	return a
+}
+
+type example struct {
+	Coordinator      *ibctesting.Coordinator
+	ConsumerChain    *ibctesting.TestChain
+	ProviderChain    *ibctesting.TestChain
+	ConsumerApp      *app.MeshApp
+	IbcPath          *ibctesting.Path
+	ProviderDenom    string
+	ConsumerDenom    string
+	MyProvChainActor string
+}
+
+func setupExampleChains(t *testing.T) example {
+	coord := NewIBCCoordinator(t, 2)
+	provChain := coord.GetChain(ibctesting2.GetChainID(1))
+	consChain := coord.GetChain(ibctesting2.GetChainID(2))
+	return example{
+		Coordinator:      coord,
+		ConsumerChain:    consChain,
+		ProviderChain:    provChain,
+		ConsumerApp:      consChain.App.(*app.MeshApp),
+		IbcPath:          ibctesting.NewPath(consChain, provChain),
+		ProviderDenom:    sdk.DefaultBondDenom,
+		ConsumerDenom:    sdk.DefaultBondDenom,
+		MyProvChainActor: provChain.SenderAccount.GetAddress().String(),
+	}
+}
+
+func setupMeshSecurity(t *testing.T, x example) (*TestConsumerClient, ConsumerContract, *TestProviderClient) {
+	x.Coordinator.SetupConnections(x.IbcPath)
+
+	// setup contracts on both chains
+	consumerCli := NewConsumerClient(t, x.ConsumerChain)
+	consumerContracts := consumerCli.BootstrapContracts()
+	converterPortID := wasmkeeper.PortIDForContract(consumerContracts.converter)
+	// add some fees so that we can distribute something
+	x.ConsumerChain.DefaultMsgFees = sdk.NewCoins(sdk.NewCoin(x.ConsumerDenom, math.NewInt(1_000_000)))
+
+	providerCli := NewProviderClient(t, x.ProviderChain)
+	providerContracts := providerCli.BootstrapContracts(x.IbcPath.EndpointA.ConnectionID, converterPortID)
+
+	// setup ibc control path: consumer -> provider (direction matters)
+	x.IbcPath.EndpointB.ChannelConfig = &ibctesting2.ChannelConfig{
+		PortID: wasmkeeper.PortIDForContract(providerContracts.externalStaking),
+		Order:  types2.UNORDERED,
+	}
+	x.IbcPath.EndpointA.ChannelConfig = &ibctesting2.ChannelConfig{
+		PortID: converterPortID,
+		Order:  types2.UNORDERED,
+	}
+	x.Coordinator.CreateChannels(x.IbcPath)
+
+	// when ibc package is relayed
+	require.NotEmpty(t, x.ConsumerChain.PendingSendPackets)
+	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
+
+	consumerCli.MustEnableVirtualStaking(sdk.NewInt64Coin(x.ConsumerDenom, 1_000_000_000))
+	return consumerCli, consumerContracts, providerCli
 }

@@ -31,7 +31,7 @@ func Test2WayContract(t *testing.T) {
 	// check list of validators on each chains
 	require.Eventuallyf(t,
 		func() bool {
-			qRsp = providerClient1.QueryExtStaking(setup.Query{"list_remote_validators": {}})
+			qRsp = providerClient1.QueryExtStaking(setup.Query{"list_active_validators": {}})
 			v := qRsp["validators"].([]interface{})
 			if len(v) > 0 {
 				return true
@@ -109,7 +109,7 @@ func Test2WayContract(t *testing.T) {
 
 	require.Eventuallyf(t,
 		func() bool {
-			qRsp = providerClient2.QueryExtStaking(setup.Query{"list_remote_validators": {}})
+			qRsp = providerClient2.QueryExtStaking(setup.Query{"list_active_validators": {}})
 			v := qRsp["validators"].([]interface{})
 			if len(v) > 0 {
 				return true
@@ -176,7 +176,7 @@ func Test2WayContract(t *testing.T) {
 			"validator": myExtValidatorAddr2,
 		},
 	})
-	assert.Equal(t, "80000000", qRsp["stake"], qRsp)
+	assert.Equal(t, 80_000_000, setup.ParseHighLow(qRsp["stake"]).Low, qRsp)
 	assert.Empty(t, qRsp["pending_unbonds"])
 }
 
@@ -222,7 +222,7 @@ func TestMVP(t *testing.T) {
 
 	require.Eventuallyf(t,
 		func() bool {
-			qRsp = providerClient.QueryExtStaking(setup.Query{"list_remote_validators": {}})
+			qRsp = providerClient.QueryExtStaking(setup.Query{"list_active_validators": {}})
 			v := qRsp["validators"].([]interface{})
 			if len(v) > 0 {
 				return true

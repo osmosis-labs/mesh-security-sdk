@@ -20,7 +20,7 @@ func (k Keeper) ScheduleRegularRebalanceTask(ctx sdk.Context, contract sdk.AccAd
 	}
 	epochLength := k.GetRebalanceEpochLength(ctx)
 	nextExecBlock := uint64(ctx.BlockHeight()) + epochLength
-	return k.ScheduleTask(ctx, types.SchedulerTaskRebalance, contract, nextExecBlock, true)
+	return k.ScheduleRepeatingTask(ctx, types.SchedulerTaskRebalance, contract, nextExecBlock)
 }
 
 // HasScheduledTask returns true if the contract has a task scheduled of the given type and repeat setting
@@ -44,17 +44,9 @@ func (k Keeper) GetNextScheduledTaskHeight(ctx sdk.Context, tp types.SchedulerTa
 	return
 }
 
-func (k Keeper) getScheduledTaskAt(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, height uint64) (repeat, exists bool) {
-	key, err := types.BuildSchedulerContractKey(tp, height, contract)
-	if err != nil {
-		return false, false
-	}
-	bz := ctx.KVStore(k.storeKey).Get(key)
-	return isRepeat(bz), bz != nil
-}
-
-// ScheduleTask register a new task to be executed at given block height
-func (k Keeper) ScheduleTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, execBlockHeight uint64, repeat bool) error {
+// ScheduleOneShotTask register a new task to be executed at given block height.
+// The task is not repeating and registered only once for a given contract and height. Duplicates are silently ignored
+func (k Keeper) ScheduleOneShotTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, execBlockHeight uint64) error {
 	if execBlockHeight < uint64(ctx.BlockHeight()) { // sanity check
 		return types.ErrInvalid.Wrapf("can not schedule for past block: %d", execBlockHeight)
 	}
@@ -63,11 +55,26 @@ func (k Keeper) ScheduleTask(ctx sdk.Context, tp types.SchedulerTaskType, contra
 		return err
 	}
 	store := ctx.KVStore(k.storeKey)
-	if !repeat { // ensure that we do not overwrite a repeating scheduled event
-		if bz := store.Get(storeKey); bz != nil {
-			repeat = isRepeat(bz)
-		}
+	if store.Has(storeKey) {
+		return nil
 	}
+	store.Set(storeKey, []byte{toByte(false)})
+	types.EmitSchedulerRegisteredEvent(ctx, contract, execBlockHeight, false)
+	return nil
+}
+
+// ScheduleRepeatingTask register a recurring task to be executed at given block height.
+// Duplicates are overwritten
+func (k Keeper) ScheduleRepeatingTask(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress, execBlockHeight uint64) error {
+	if execBlockHeight < uint64(ctx.BlockHeight()) { // sanity check
+		return types.ErrInvalid.Wrapf("can not schedule for past block: %d", execBlockHeight)
+	}
+	storeKey, err := types.BuildSchedulerContractKey(tp, execBlockHeight, contract)
+	if err != nil {
+		return err
+	}
+	store := ctx.KVStore(k.storeKey)
+	const repeat = true
 	store.Set(storeKey, []byte{toByte(repeat)})
 	types.EmitSchedulerRegisteredEvent(ctx, contract, execBlockHeight, repeat)
 	return nil
@@ -156,7 +163,7 @@ func (k Keeper) ExecScheduledTasks(pCtx sdk.Context, tp types.SchedulerTaskType,
 	currentHeight := uint64(pCtx.BlockHeight())
 	// iterator is most gas cost-efficient currently
 	err := k.IterateScheduledTasks(pCtx, tp, currentHeight, func(contract sdk.AccAddress, scheduledHeight uint64, repeat bool) bool {
-		gasLimit := k.GetRebalanceGasLimit(pCtx)
+		gasLimit := k.GetMaxSudoGas(pCtx)
 		cachedCtx, done := pCtx.CacheContext()
 		gasMeter := sdk.NewGasMeter(gasLimit)
 		cachedCtx = cachedCtx.WithGasMeter(gasMeter)
@@ -177,7 +184,7 @@ func (k Keeper) ExecScheduledTasks(pCtx sdk.Context, tp types.SchedulerTaskType,
 			// re-schedule
 			nextExecBlock := uint64(pCtx.BlockHeight()) + epochLength
 			result.NextRunHeight = nextExecBlock
-			if err := k.ScheduleTask(pCtx, tp, contract, nextExecBlock, repeat); err != nil {
+			if err := k.ScheduleRepeatingTask(pCtx, tp, contract, nextExecBlock); err != nil {
 				result.RescheduleErr = err
 			}
 		}

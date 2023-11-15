@@ -243,18 +243,12 @@ func newApp(
 ) servertypes.Application {
 	baseappOptions := server.DefaultBaseappOptions(appOpts)
 
-	var wasmOpts []wasm.Option
+	var wasmOpts []wasmkeeper.Option
 	if cast.ToBool(appOpts.Get("telemetry.enabled")) {
 		wasmOpts = append(wasmOpts, wasmkeeper.WithVMCacheMetrics(prometheus.DefaultRegisterer))
 	}
 
-	return app.NewMeshApp(
-		logger, db, traceStore, true,
-		app.GetEnabledProposals(),
-		appOpts,
-		wasmOpts,
-		baseappOptions...,
-	)
+	return app.NewMeshApp(logger, db, traceStore, true, appOpts, wasmOpts, baseappOptions...)
 }
 
 // appExport creates a new wasm app (optionally at a given height) and exports state.
@@ -283,13 +277,12 @@ func appExport(
 	viperAppOpts.Set(server.FlagInvCheckPeriod, 1)
 	appOpts = viperAppOpts
 
-	var emptyWasmOpts []wasm.Option
+	var emptyWasmOpts []wasmkeeper.Option
 	wasmApp = app.NewMeshApp(
 		logger,
 		db,
 		traceStore,
 		height == -1,
-		app.GetEnabledProposals(),
 		appOpts,
 		emptyWasmOpts,
 	)

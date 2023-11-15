@@ -1,6 +1,9 @@
 package types
 
-import sdk "github.com/cosmos/cosmos-sdk/types"
+import (
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/address"
+)
 
 const (
 	// ModuleName defines the module name.
@@ -8,6 +11,9 @@ const (
 
 	// StoreKey defines the primary module store key.
 	StoreKey = ModuleName
+
+	// MemStoreKey defines the in-memory store key
+	MemStoreKey = "memory:meshsecurity"
 
 	// RouterKey is the message route
 	RouterKey = ModuleName
@@ -22,6 +28,20 @@ var (
 	MaxCapLimitKeyPrefix          = []byte{0x2}
 	TotalDelegatedAmountKeyPrefix = []byte{0x3}
 	SchedulerKeyPrefix            = []byte{0x4}
+
+	PipedValsetPrefix = []byte{0x5}
+)
+
+type PipedValsetOperation byte
+
+const (
+	ValsetOperationUndefined PipedValsetOperation = iota
+	ValidatorBonded
+	ValidatorUnbonded
+	ValidatorJailed
+	ValidatorTombstoned
+	ValidatorUnjailed
+	ValidatorModified
 )
 
 // BuildMaxCapLimitKey build max cap limit store key
@@ -34,6 +54,7 @@ func BuildTotalDelegatedAmountKey(contractAddr sdk.AccAddress) []byte {
 	return append(TotalDelegatedAmountKeyPrefix, contractAddr.Bytes()...)
 }
 
+// BuildSchedulerTypeKeyPrefix internal scheduler store key
 func BuildSchedulerTypeKeyPrefix(tp SchedulerTaskType) ([]byte, error) {
 	if tp == SchedulerTaskUndefined {
 		return nil, ErrInvalid.Wrapf("scheduler type: %x", tp)
@@ -57,4 +78,17 @@ func BuildSchedulerContractKey(tp SchedulerTaskType, blockHeight uint64, contrac
 		return nil, err
 	}
 	return append(prefix, contractAddr.Bytes()...), nil
+}
+
+// BuildPipedValsetOpKey build store key for the temporariy valset operation store
+func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress) []byte {
+	if op == ValsetOperationUndefined {
+		panic("empty operation")
+	}
+	pn, an := len(PipedValsetPrefix), len(val)
+	r := make([]byte, pn+an+1+1) // +1 for address prefix, +1 for op
+	copy(r, PipedValsetPrefix)
+	copy(r[pn:], address.MustLengthPrefix(val))
+	r[pn+an+1] = byte(op)
+	return r
 }

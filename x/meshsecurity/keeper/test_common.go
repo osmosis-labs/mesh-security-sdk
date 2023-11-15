@@ -9,6 +9,7 @@ import (
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	dbm "github.com/cometbft/cometbft-db"
 	"github.com/cometbft/cometbft/libs/log"
+	"github.com/cometbft/cometbft/libs/rand"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
@@ -19,10 +20,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	codec2 "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/std"
 	"github.com/cosmos/cosmos-sdk/store"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/cosmos/cosmos-sdk/testutil/mock"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/address"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
@@ -106,11 +110,11 @@ type TestKeepers struct {
 	EncodingConfig encodingConfig
 	MeshKeeper     *Keeper
 	AccountKeeper  authkeeper.AccountKeeper
-	WasmKeeper     wasmkeeper.Keeper
+	WasmKeeper     *wasmkeeper.Keeper
 	Faucet         *wasmkeeper.TestFaucet
 }
 
-func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
+func CreateDefaultTestInput(t testing.TB, opts ...Option) (sdk.Context, TestKeepers) {
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)
 	keys := sdk.NewKVStoreKeys(
@@ -124,7 +128,7 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 	for _, v := range keys {
 		ms.MountStoreWithDB(v, storetypes.StoreTypeIAVL, db)
 	}
-	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
+	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey, types.MemStoreKey)
 	for _, v := range memKeys {
 		ms.MountStoreWithDB(v, storetypes.StoreTypeMemory, db)
 	}
@@ -268,10 +272,12 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 	msKeeper := NewKeeper(
 		appCodec,
 		keys[types.StoreKey],
+		memKeys[types.MemStoreKey],
 		bankKeeper,
 		stakingKeeper,
 		wasmKeeper,
 		authority,
+		opts...,
 	)
 	require.NoError(t, msKeeper.SetParams(ctx, types.DefaultParams(sdk.DefaultBondDenom)))
 
@@ -284,7 +290,48 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 		StoreKey:       keys[types.StoreKey],
 		EncodingConfig: encConfig,
 		MeshKeeper:     msKeeper,
-		WasmKeeper:     wasmKeeper,
+		WasmKeeper:     &wasmKeeper,
 		Faucet:         faucet,
+	}
+}
+
+// FetchAllStoredOperations load all ops from temp db
+func FetchAllStoredOperations(t *testing.T, ctx sdk.Context, msKeeper *Keeper) map[string][]types.PipedValsetOperation {
+	index := make(map[string][]types.PipedValsetOperation, 1)
+	err := msKeeper.iteratePipedValsetOperations(ctx, func(valAddr sdk.ValAddress, op types.PipedValsetOperation) bool {
+		ops, ok := index[valAddr.String()]
+		if !ok {
+			ops = []types.PipedValsetOperation{}
+		}
+		index[valAddr.String()] = append(ops, op)
+		return false
+	})
+	require.NoError(t, err)
+	return index
+}
+
+// for test code only
+func must[t any](s t, err error) t {
+	if err != nil {
+		panic(err)
+	}
+	return s
+}
+
+// MinValidatorFixture creates minimal sdk validator object
+func MinValidatorFixture(t *testing.T) stakingtypes.Validator {
+	t.Helper()
+	privVal := mock.NewPV()
+	pubKey, err := privVal.GetPubKey()
+	require.NoError(t, err)
+
+	pk, err := codec2.FromTmPubKeyInterface(pubKey)
+	require.NoError(t, err)
+	pkAny, err := codectypes.NewAnyWithValue(pk)
+	require.NoError(t, err)
+
+	return stakingtypes.Validator{
+		ConsensusPubkey: pkAny,
+		OperatorAddress: sdk.ValAddress(rand.Bytes(address.Len)).String(),
 	}
 }

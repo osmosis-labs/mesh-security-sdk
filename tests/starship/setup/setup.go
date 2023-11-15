@@ -100,7 +100,7 @@ func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) 
 	nativeStakingContract := contracts[nativeStakingCodeID]
 
 	// external Staking
-	extStaking, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "external_staking.wasm", p.wasmContractGZipped))
+	extStaking, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_external_staking.wasm", p.wasmContractGZipped))
 	if err != nil {
 		return nil, err
 	}
@@ -192,18 +192,33 @@ func (p ProviderClient) QueryVaultFreeBalance() int {
 		},
 		300*time.Second,
 		5*time.Second,
-		"valut token locked for too long: %v",
+		"vault token locked for too long: %v",
 		qRsp,
 	)
 	if err != nil {
 		panic(err)
 	}
-	acct := qRsp["account"].(map[string]any)
-	r, err := strconv.Atoi(acct["free"].(string))
-	if err != nil {
-		panic(err)
+	return ParseHighLow(qRsp["free"]).Low
+}
+
+type HighLowType struct {
+	High, Low int
+}
+
+func ParseHighLow(a any) HighLowType {
+	m, ok := a.(map[string]any)
+	if !ok {
+		panic(fmt.Sprintf("unsupported type %T", a))
 	}
-	return r
+	h, err := strconv.Atoi(m["h"].(string))
+	if err != nil {
+		panic(fmt.Sprintf("high: %s", err))
+	}
+	l, err := strconv.Atoi(m["l"].(string))
+	if err != nil {
+		panic(fmt.Sprintf("low: %s", err))
+	}
+	return HighLowType{High: h, Low: l}
 }
 
 type ConsumerClient struct {

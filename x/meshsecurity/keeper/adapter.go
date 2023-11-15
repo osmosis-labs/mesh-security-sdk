@@ -4,6 +4,8 @@ import (
 	"cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
@@ -28,6 +30,7 @@ func (b BankKeeperAdapter) AddSupplyOffset(ctx sdk.Context, denom string, offset
 var _ types.XStakingKeeper = &StakingKeeperAdapter{}
 
 // StakingKeeperAdapter is an adapter to enhance the vanilla sdk staking keeper with additional functionality
+// required for MS. The methods match Osmosis SDK fork.
 type StakingKeeperAdapter struct {
 	types.SDKStakingKeeper
 	bank types.SDKBankKeeper
@@ -68,4 +71,74 @@ func (s StakingKeeperAdapter) InstantUndelegate(ctx sdk.Context, delAddr sdk.Acc
 		return nil, err
 	}
 	return res, nil
+}
+
+var _ evidencetypes.SlashingKeeper = SlashingKeeperDecorator{}
+
+// SlashingKeeperDecorator to capture tombstone events
+type SlashingKeeperDecorator struct {
+	evidencetypes.SlashingKeeper
+	stakingKeeper types.SDKStakingKeeper
+	k             *Keeper
+}
+
+// CaptureTombstoneDecorator constructor
+func CaptureTombstoneDecorator(k *Keeper, slashingKeeper evidencetypes.SlashingKeeper, stakingKeeper types.SDKStakingKeeper) *SlashingKeeperDecorator {
+	return &SlashingKeeperDecorator{SlashingKeeper: slashingKeeper, stakingKeeper: stakingKeeper, k: k}
+}
+
+// Tombstone is executed in the end-blocker by the evidence module
+func (e SlashingKeeperDecorator) Tombstone(ctx sdk.Context, address sdk.ConsAddress) {
+	v, ok := e.stakingKeeper.GetValidatorByConsAddr(ctx, address)
+	if !ok {
+		ModuleLogger(ctx).
+			Error("can not propagate tompstone: validator not found", "validator", address.String())
+	} else if err := e.k.ScheduleTombstoned(ctx, v.GetOperator()); err != nil {
+		ModuleLogger(ctx).
+			Error("can not propagate tompstone: scheduler",
+				"cause", err,
+				"validator", address.String())
+	}
+	e.SlashingKeeper.Tombstone(ctx, address)
+}
+
+// StakingDecorator decorate vanilla staking keeper to capture the jail and unjail events
+type StakingDecorator struct {
+	slashingtypes.StakingKeeper
+	k *Keeper
+}
+
+// NewStakingDecorator constructor
+func NewStakingDecorator(stakingKeeper slashingtypes.StakingKeeper, k *Keeper) *StakingDecorator {
+	return &StakingDecorator{StakingKeeper: stakingKeeper, k: k}
+}
+
+// Jail captures the jail event and calls the decorated staking keeper jail method
+func (s StakingDecorator) Jail(ctx sdk.Context, consAddr sdk.ConsAddress) {
+	val := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
+	if val == nil {
+		ModuleLogger(ctx).
+			Error("can not propagate jail: validator not found", "validator", consAddr.String())
+	} else if err := s.k.ScheduleJailed(ctx, val.GetOperator()); err != nil {
+		ModuleLogger(ctx).
+			Error("can not propagate jail: schedule event",
+				"cause", err,
+				"validator", consAddr.String())
+	}
+	s.StakingKeeper.Jail(ctx, consAddr)
+}
+
+// Unjail captures the unjail event and calls the decorated staking keeper unjail method
+func (s StakingDecorator) Unjail(ctx sdk.Context, consAddr sdk.ConsAddress) {
+	val := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
+	if val == nil {
+		ModuleLogger(ctx).
+			Error("can not propagate unjail: validator not found", "validator", consAddr.String())
+	} else if err := s.k.ScheduleUnjailed(ctx, val.GetOperator()); err != nil {
+		ModuleLogger(ctx).
+			Error("can not propagate unjail: schedule event",
+				"cause", err,
+				"validator", consAddr.String())
+	}
+	s.StakingKeeper.Unjail(ctx, consAddr)
 }

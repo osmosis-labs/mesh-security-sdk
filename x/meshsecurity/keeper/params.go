@@ -30,7 +30,7 @@ func (k Keeper) GetParams(clientCtx sdk.Context) (params types.Params) {
 	return params
 }
 
-func (k Keeper) GetRebalanceGasLimit(ctx sdk.Context) sdk.Gas {
+func (k Keeper) GetMaxSudoGas(ctx sdk.Context) sdk.Gas {
 	return sdk.Gas(k.GetParams(ctx).MaxGasEndBlocker)
 }
 

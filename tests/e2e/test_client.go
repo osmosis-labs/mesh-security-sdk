@@ -95,7 +95,7 @@ func (p *TestProviderClient) BootstrapContracts(connId, portID string) ProviderC
 	vaultContract := InstantiateContract(p.t, p.chain, vaultCodeID, initMsg)
 
 	// external staking
-	extStakingCodeID := p.chain.StoreCodeFile(buildPathToWasm("external_staking.wasm")).CodeID
+	extStakingCodeID := p.chain.StoreCodeFile(buildPathToWasm("mesh_external_staking.wasm")).CodeID
 	initMsg = []byte(fmt.Sprintf(
 		`{"remote_contact": {"connection_id":%q, "port_id":%q}, "denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q, "max_slashing": %q }`,
 		connId, portID, localTokenDenom, vaultContract.String(), unbondingPeriod, rewardTokenDenom, maxExtSlashing))
@@ -160,9 +160,7 @@ func (p TestProviderClient) QueryExtStakingAmount(user, validator string) int {
 		},
 	})
 	require.Contains(p.t, qRsp, "stake")
-	r, err := strconv.Atoi(qRsp["stake"].(string))
-	require.NoError(p.t, err)
-	return r
+	return ParseHighLow(p.t, qRsp["stake"]).Low
 }
 
 func (p TestProviderClient) QueryExtStaking(q Query) QueryResponse {
@@ -173,16 +171,29 @@ func (p TestProviderClient) QueryVault(q Query) QueryResponse {
 	return Querier(p.t, p.chain)(p.contracts.vault.String(), q)
 }
 
+type HighLowType struct {
+	High, Low int
+}
+
+// ParseHighLow convert json source type into custom type
+func ParseHighLow(t *testing.T, a any) HighLowType {
+	m, ok := a.(map[string]any)
+	require.True(t, ok, "%T", a)
+	require.Contains(t, m, "h")
+	require.Contains(t, m, "l")
+	h, err := strconv.Atoi(m["h"].(string))
+	require.NoError(t, err)
+	l, err := strconv.Atoi(m["l"].(string))
+	require.NoError(t, err)
+	return HighLowType{High: h, Low: l}
+}
+
 func (p TestProviderClient) QueryVaultFreeBalance() int {
 	qRsp := p.QueryVault(Query{
 		"account": {"account": p.chain.SenderAccount.GetAddress().String()},
 	})
-	require.NotEmpty(p.t, qRsp["account"], qRsp)
-	acct := qRsp["account"].(map[string]any)
-	require.NotEmpty(p.t, acct["free"], qRsp)
-	r, err := strconv.Atoi(acct["free"].(string))
-	require.NoError(p.t, err, qRsp)
-	return r
+	require.NotEmpty(p.t, qRsp["free"], qRsp)
+	return ParseHighLow(p.t, qRsp["free"]).Low
 }
 
 type TestConsumerClient struct {
@@ -253,7 +264,7 @@ func (p *TestConsumerClient) ExecNewEpoch() {
 	}
 }
 
-// add authority to mint/burn virtual tokens gov proposal
+// MustEnableVirtualStaking add authority to mint/burn virtual tokens gov proposal
 func (p *TestConsumerClient) MustEnableVirtualStaking(maxCap sdk.Coin) {
 	govProposal := &types.MsgSetVirtualStakingMaxCap{
 		Authority: p.app.MeshSecKeeper.GetAuthority(),

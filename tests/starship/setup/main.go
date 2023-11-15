@@ -140,7 +140,7 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 	qRsp := map[string]any{}
 	err = Eventually(
 		func() bool {
-			qRsp = providerCli.QueryExtStaking(Query{"list_remote_validators": {}})
+			qRsp = providerCli.QueryExtStaking(Query{"list_active_validators": {}})
 			v := qRsp["validators"].([]interface{})
 			if len(v) > 0 {
 				return true
