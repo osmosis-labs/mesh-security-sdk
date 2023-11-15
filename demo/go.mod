@@ -3,7 +3,7 @@ module github.com/osmosis-labs/mesh-security-sdk/demo
 go 1.21
 
 require (
-	github.com/CosmWasm/wasmd v0.44.0
+	github.com/CosmWasm/wasmd v0.45.0
 	github.com/CosmWasm/wasmvm v1.5.0 // indirect
 	github.com/cosmos/cosmos-proto v1.0.0-beta.2 // indirect
 	github.com/cosmos/cosmos-sdk v0.47.5
