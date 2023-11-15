@@ -192,8 +192,6 @@ func (p TestProviderClient) QueryVaultFreeBalance() int {
 	qRsp := p.QueryVault(Query{
 		"account": {"account": p.chain.SenderAccount.GetAddress().String()},
 	})
-	// require.NotEmpty(p.t, qRsp["account"], qRsp)
-	// acct := qRsp["account"].(map[string]any)
 	require.NotEmpty(p.t, qRsp["free"], qRsp)
 	return ParseHighLow(p.t, qRsp["free"]).Low
 }

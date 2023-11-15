@@ -9,6 +9,7 @@ import (
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	dbm "github.com/cometbft/cometbft-db"
 	"github.com/cometbft/cometbft/libs/log"
+	"github.com/cometbft/cometbft/libs/rand"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
@@ -19,10 +20,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	codec2 "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/std"
 	"github.com/cosmos/cosmos-sdk/store"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/cosmos/cosmos-sdk/testutil/mock"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/address"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
@@ -291,7 +295,8 @@ func CreateDefaultTestInput(t testing.TB, opts ...Option) (sdk.Context, TestKeep
 	}
 }
 
-func fetchAllStoredOperations(t *testing.T, ctx sdk.Context, msKeeper *Keeper) map[string][]types.PipedValsetOperation {
+// FetchAllStoredOperations load all ops from temp db
+func FetchAllStoredOperations(t *testing.T, ctx sdk.Context, msKeeper *Keeper) map[string][]types.PipedValsetOperation {
 	index := make(map[string][]types.PipedValsetOperation, 1)
 	err := msKeeper.iteratePipedValsetOperations(ctx, func(valAddr sdk.ValAddress, op types.PipedValsetOperation) bool {
 		ops, ok := index[valAddr.String()]
@@ -311,4 +316,22 @@ func must[t any](s t, err error) t {
 		panic(err)
 	}
 	return s
+}
+
+// MinValidatorFixture creates minimal sdk validator object
+func MinValidatorFixture(t *testing.T) stakingtypes.Validator {
+	t.Helper()
+	privVal := mock.NewPV()
+	pubKey, err := privVal.GetPubKey()
+	require.NoError(t, err)
+
+	pk, err := codec2.FromTmPubKeyInterface(pubKey)
+	require.NoError(t, err)
+	pkAny, err := codectypes.NewAnyWithValue(pk)
+	require.NoError(t, err)
+
+	return stakingtypes.Validator{
+		ConsensusPubkey: pkAny,
+		OperatorAddress: sdk.ValAddress(rand.Bytes(address.Len)).String(),
+	}
 }

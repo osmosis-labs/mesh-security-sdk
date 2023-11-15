@@ -7,13 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
-	"github.com/cosmos/cosmos-sdk/testutil/mock"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/address"
 	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
@@ -21,7 +17,7 @@ import (
 func TestCaptureTombstone(t *testing.T) {
 	pCtx, keepers := CreateDefaultTestInput(t)
 
-	val := validatorFixture(t)
+	val := MinValidatorFixture(t)
 	myConsAddress, err := val.GetConsAddr()
 	require.NoError(t, err)
 	keepers.StakingKeeper.SetValidatorByConsAddr(pCtx, val)
@@ -54,7 +50,7 @@ func TestCaptureTombstone(t *testing.T) {
 			// then
 			assert.Equal(t, spec.expPassed, *capturedTombstones)
 			// and stored for async propagation
-			appStoredOps := fetchAllStoredOperations(t, ctx, keepers.MeshKeeper)
+			appStoredOps := FetchAllStoredOperations(t, ctx, keepers.MeshKeeper)
 			assert.Equal(t, spec.expStored, appStoredOps[val.OperatorAddress])
 		})
 	}
@@ -63,13 +59,13 @@ func TestCaptureTombstone(t *testing.T) {
 func TestCaptureStakingEvents(t *testing.T) {
 	pCtx, keepers := CreateDefaultTestInput(t)
 
-	val := validatorFixture(t)
+	val := MinValidatorFixture(t)
 	myConsAddress, err := val.GetConsAddr()
 	require.NoError(t, err)
 	keepers.StakingKeeper.SetValidatorByConsAddr(pCtx, val)
 	keepers.StakingKeeper.SetValidator(pCtx, val)
 
-	valJailed := validatorFixture(t)
+	valJailed := MinValidatorFixture(t)
 	valJailed.Jailed = true
 	myConsAddressJailed, err := valJailed.GetConsAddr()
 	require.NoError(t, err)
@@ -106,7 +102,7 @@ func TestCaptureStakingEvents(t *testing.T) {
 			loadedVal := keepers.StakingKeeper.ValidatorByConsAddr(ctx, spec.consAddr)
 			assert.Equal(t, spec.expJailed, loadedVal.IsJailed())
 			// and stored for async propagation
-			allStoredOps := fetchAllStoredOperations(t, ctx, keepers.MeshKeeper)
+			allStoredOps := FetchAllStoredOperations(t, ctx, keepers.MeshKeeper)
 			assert.Equal(t, spec.expStored, allStoredOps[loadedVal.GetOperator().String()])
 		})
 	}
@@ -124,22 +120,4 @@ func NewMockEvidenceSlashingKeeper() (*MockEvidenceSlashingKeeper, *[]sdk.ConsAd
 
 func (e *MockEvidenceSlashingKeeper) Tombstone(ctx sdk.Context, address sdk.ConsAddress) {
 	e.tombstoned = append(e.tombstoned, address)
-}
-
-// creates minimal validator object
-func validatorFixture(t *testing.T) stakingtypes.Validator {
-	t.Helper()
-	privVal := mock.NewPV()
-	pubKey, err := privVal.GetPubKey()
-	require.NoError(t, err)
-
-	pk, err := cryptocodec.FromTmPubKeyInterface(pubKey)
-	require.NoError(t, err)
-	pkAny, err := codectypes.NewAnyWithValue(pk)
-	require.NoError(t, err)
-
-	return stakingtypes.Validator{
-		ConsensusPubkey: pkAny,
-		OperatorAddress: sdk.ValAddress(rand.Bytes(address.Len)).String(),
-	}
 }

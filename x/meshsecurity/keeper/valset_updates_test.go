@@ -98,7 +98,7 @@ func TestSendAsync(t *testing.T) {
 			gotErr := k.sendAsync(ctx, types.ValidatorModified, myValAddr)
 			// then
 			require.NoError(t, gotErr)
-			allStoredOps := fetchAllStoredOperations(t, ctx, k)
+			allStoredOps := FetchAllStoredOperations(t, ctx, k)
 			spec.assert(t, ctx, allStoredOps)
 		})
 	}
@@ -115,7 +115,7 @@ func TestBuildValsetUpdateReport(t *testing.T) {
 	k := keepers.MeshKeeper
 	vals := make(map[string]stakingtypes.Validator)
 	for i, v := range []sdk.ValAddress{val1, val2, val3, val4} {
-		val := validatorFixture(t)
+		val := MinValidatorFixture(t)
 		val.OperatorAddress = v.String()
 		val.Commission.CommissionRates.Rate = sdkmath.LegacyNewDec(int64(i + 1))
 		keepers.StakingKeeper.SetValidator(ctx, val)
@@ -229,5 +229,5 @@ func TestClearPipedValsetOperations(t *testing.T) {
 	// when
 	k.ClearPipedValsetOperations(ctx)
 	// then
-	assert.Empty(t, fetchAllStoredOperations(t, ctx, k))
+	assert.Empty(t, FetchAllStoredOperations(t, ctx, k))
 }

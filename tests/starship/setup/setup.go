@@ -192,18 +192,34 @@ func (p ProviderClient) QueryVaultFreeBalance() int {
 		},
 		300*time.Second,
 		5*time.Second,
-		"valut token locked for too long: %v",
+		"vault token locked for too long: %v",
 		qRsp,
 	)
 	if err != nil {
 		panic(err)
 	}
 	acct := qRsp["account"].(map[string]any)
-	r, err := strconv.Atoi(acct["free"].(string))
-	if err != nil {
-		panic(err)
+	return ParseHighLow(acct["free"]).Low
+}
+
+type HighLowType struct {
+	High, Low int
+}
+
+func ParseHighLow(a any) HighLowType {
+	m, ok := a.(map[string]any)
+	if !ok {
+		panic(fmt.Sprintf("unsupported type %T", a))
 	}
-	return r
+	h, err := strconv.Atoi(m["h"].(string))
+	if err != nil {
+		panic(fmt.Sprintf("high: %s", err))
+	}
+	l, err := strconv.Atoi(m["l"].(string))
+	if err != nil {
+		panic(fmt.Sprintf("low: %s", err))
+	}
+	return HighLowType{High: h, Low: l}
 }
 
 type ConsumerClient struct {
