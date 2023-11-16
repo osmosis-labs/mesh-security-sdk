@@ -82,7 +82,7 @@ func (p *TestProviderClient) BootstrapContracts(connId, portID string) ProviderC
 	var (
 		unbondingPeriod  = 21 * 24 * 60 * 60 // 21 days - make configurable?
 		maxLocalSlashing = "0.10"
-		maxExtSlashing   = "0.05"
+		maxExtSlashing   = "0.10"
 		rewardTokenDenom = sdk.DefaultBondDenom
 		localTokenDenom  = sdk.DefaultBondDenom
 	)
