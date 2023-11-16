@@ -14,7 +14,6 @@ func TestSlashing(t *testing.T) {
 	// Slashing scenario 1:
 	// https://github.com/osmosis-labs/mesh-security/blob/main/docs/ibc/Slashing.md#scenario-1-slashed-delegator-has-free-collateral-on-the-vault
 	//
-	// - We use a different slash ratio here (50%?).
 	// - We use millions instead of unit tokens.
 	x := setupExampleChains(t)
 	//consumerCli, consumerContracts, providerCli := setupMeshSecurity(t, x)
