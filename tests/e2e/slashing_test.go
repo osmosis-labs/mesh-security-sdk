@@ -66,9 +66,35 @@ func TestSlashing(t *testing.T) {
 	consumerCli.assertShare(myExtValidator1, math.LegacyMustNewDecFromStr("45"))   // 100_000_000 / 2 * (1 - 0.1) / 1_000_000 # default sdk factor
 	consumerCli.assertShare(myExtValidator2, math.LegacyMustNewDecFromStr("22.5")) // 50_000_000 / 2 * (1 - 0.1) / 1_000_000 # default sdk factor
 
+	ctx := x.ConsumerChain.GetContext()
+	validator1, found := x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
+	require.True(t, found)
+	require.False(t, validator1.IsJailed())
+	require.Equal(t, validator1.GetTokens(), sdk.NewInt(46_000_000))
+
 	// Validator 1 on the Consumer chain is jailed
 	myExtValidator1ConsAddr := sdk.ConsAddress(x.ConsumerChain.Vals.Validators[1].PubKey.Address())
 	jailValidator(t, myExtValidator1ConsAddr, x.Coordinator, x.ConsumerChain, x.ConsumerApp)
+
+	x.ConsumerChain.NextBlock()
+
+	// Assert that the validator's stake has been slashed
+	// and that the validator has been jailed
+	validator1, found = x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
+	require.True(t, validator1.IsJailed())
+	require.Equal(t, validator1.GetTokens(), sdk.NewInt(36_000_000)) // 10% slash
+
+	// Relay IBC packets to the Provider chain
+	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
+
+	// Next block on the Provider chain
+	x.ProviderChain.NextBlock()
+
+	// TODO: Check new collateral (190)
+	// TODO: Check new max lien (190)
+	// TODO: Check new slashable amount (33)
+	// New free collateral
+	require.Equal(t, 0, providerCli.QueryVaultFreeBalance()) // 190 - max(33, 190) = 190 - 190 = 0
 
 	// Then delegated amount is not updated before the epoch
 	consumerCli.assertTotalDelegated(math.NewInt(67_500_000))
@@ -82,10 +108,4 @@ func TestSlashing(t *testing.T) {
 	// and the delegated amount is updated for the slashed validator
 	consumerCli.assertShare(myExtValidator1, math.LegacyMustNewDecFromStr("40.5")) // 90_000_000 / 2 * (1 - 0.1) / 1_000_000 # default sdk factor
 	consumerCli.assertShare(myExtValidator2, math.LegacyMustNewDecFromStr("22.5")) // 50_000_000 / 2 * (1 - 0.1) / 1_000_000 # default sdk factor
-
-	// TODO: Check new collateral (190)
-	// TODO: Check new max lien (190)
-	// TODO: Check new slashable amount (33)
-	// New free collateral
-	require.Equal(t, 0, providerCli.QueryVaultFreeBalance()) // 190 - max(33, 190) = 190 - 190 = 0
 }
