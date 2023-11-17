@@ -196,6 +196,16 @@ func (p TestProviderClient) QueryVaultFreeBalance() int {
 	return ParseHighLow(p.t, qRsp["free"]).Low
 }
 
+func (p TestProviderClient) QueryVaultBalance() int {
+	qRsp := p.QueryVault(Query{
+		"account_details": {"account": p.chain.SenderAccount.GetAddress().String()},
+	})
+	require.NotEmpty(p.t, qRsp["bonded"], qRsp)
+	b, err := strconv.Atoi(qRsp["bonded"].(string))
+	require.NoError(p.t, err)
+	return b
+}
+
 type TestConsumerClient struct {
 	t         *testing.T
 	chain     *ibctesting.TestChain

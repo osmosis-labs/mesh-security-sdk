@@ -46,6 +46,8 @@ func TestSlashing(t *testing.T) {
 
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
 
+	// Check collateral
+	require.Equal(t, 200_000_000, providerCli.QueryVaultBalance())
 	// TODO: Check max lien (190)
 	// TODO: Check slashable amount (34)
 	require.Equal(t, 10_000_000, providerCli.QueryVaultFreeBalance()) // 200 - max(34, 190) = 200 - 190 = 10
@@ -90,7 +92,8 @@ func TestSlashing(t *testing.T) {
 	// Next block on the Provider chain
 	x.ProviderChain.NextBlock()
 
-	// TODO: Check new collateral (190)
+	// Check new collateral
+	require.Equal(t, 190_000_000, providerCli.QueryVaultBalance())
 	// TODO: Check new max lien (190)
 	// TODO: Check new slashable amount (33)
 	// New free collateral
