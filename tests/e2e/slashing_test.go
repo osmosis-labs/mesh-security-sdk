@@ -75,7 +75,13 @@ func TestSlashingScenario1(t *testing.T) {
 	validator1, found := x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
 	require.True(t, found)
 	require.False(t, validator1.IsJailed())
+	// FIXME? Off by 1_000_000
 	require.Equal(t, validator1.GetTokens(), sdk.NewInt(46_000_000))
+	validator2, found := x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator2)
+	require.True(t, found)
+	require.False(t, validator2.IsJailed())
+	// FIXME? Off by 1_000_000
+	require.Equal(t, validator2.GetTokens(), sdk.NewInt(23_500_000))
 
 	// Validator 1 on the Consumer chain is jailed
 	myExtValidator1ConsAddr := sdk.ConsAddress(x.ConsumerChain.Vals.Validators[1].PubKey.Address())
@@ -280,6 +286,7 @@ func TestSlashingScenario3(t *testing.T) {
 	// and that the validator has been jailed
 	validator1, found = x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
 	require.True(t, validator1.IsJailed())
+	// FIXME: Slashing amount is off by ~5%
 	//require.Equal(t, validator1.GetTokens(), sdk.NewInt(61_750_000)) // 10% slash
 	require.Equal(t, validator1.GetTokens(), sdk.NewInt(58_500_000)) // ? ~15% slash
 
