@@ -48,8 +48,11 @@ func TestSlashing(t *testing.T) {
 
 	// Check collateral
 	require.Equal(t, 200_000_000, providerCli.QueryVaultBalance())
-	// TODO: Check max lien (190)
-	// TODO: Check slashable amount (34)
+	// Check max lien
+	require.Equal(t, 190_000_000, providerCli.QueryMaxLien())
+	// Check slashable amount
+	require.Equal(t, 34_000_000, providerCli.QuerySlashableAmount())
+	// Check free collateral
 	require.Equal(t, 10_000_000, providerCli.QueryVaultFreeBalance()) // 200 - max(34, 190) = 200 - 190 = 10
 
 	// Consumer chain
@@ -94,9 +97,11 @@ func TestSlashing(t *testing.T) {
 
 	// Check new collateral
 	require.Equal(t, 190_000_000, providerCli.QueryVaultBalance())
-	// TODO: Check new max lien (190)
-	// TODO: Check new slashable amount (33)
-	// New free collateral
+	// Check new max lien
+	require.Equal(t, 190_000_000, providerCli.QueryMaxLien())
+	// Check new slashable amount
+	require.Equal(t, 33_000_000, providerCli.QuerySlashableAmount())
+	// Check new free collateral
 	require.Equal(t, 0, providerCli.QueryVaultFreeBalance()) // 190 - max(33, 190) = 190 - 190 = 0
 
 	// Then delegated amount is not updated before the epoch

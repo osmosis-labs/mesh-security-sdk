@@ -206,6 +206,22 @@ func (p TestProviderClient) QueryVaultBalance() int {
 	return b
 }
 
+func (p TestProviderClient) QueryMaxLien() int {
+	qRsp := p.QueryVault(Query{
+		"account_details": {"account": p.chain.SenderAccount.GetAddress().String()},
+	})
+	require.NotEmpty(p.t, qRsp["max_lien"], qRsp)
+	return ParseHighLow(p.t, qRsp["max_lien"]).Low
+}
+
+func (p TestProviderClient) QuerySlashableAmount() int {
+	qRsp := p.QueryVault(Query{
+		"account_details": {"account": p.chain.SenderAccount.GetAddress().String()},
+	})
+	require.NotEmpty(p.t, qRsp["total_slashable"], qRsp)
+	return ParseHighLow(p.t, qRsp["total_slashable"]).Low
+}
+
 type TestConsumerClient struct {
 	t         *testing.T
 	chain     *ibctesting.TestChain
