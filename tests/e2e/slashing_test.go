@@ -93,7 +93,7 @@ func TestSlashingScenario1(t *testing.T) {
 	// and that the validator has been jailed
 	validator1, found = x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
 	require.True(t, validator1.IsJailed())
-	require.Equal(t, validator1.GetTokens(), sdk.NewInt(36_000_000)) // 10% slash
+	require.Equal(t, validator1.GetTokens(), sdk.NewInt(41_400_000)) // 10% slash
 
 	// Relay IBC packets to the Provider chain
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
@@ -198,7 +198,7 @@ func TestSlashingScenario2(t *testing.T) {
 	// and that the validator has been jailed
 	validator1, found = x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
 	require.True(t, validator1.IsJailed())
-	require.Equal(t, validator1.GetTokens(), sdk.NewInt(81_000_000)) // 10% slash
+	require.Equal(t, validator1.GetTokens(), sdk.NewInt(81_900_000)) // 10% slash
 
 	// Relay IBC packets to the Provider chain
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
@@ -286,9 +286,7 @@ func TestSlashingScenario3(t *testing.T) {
 	// and that the validator has been jailed
 	validator1, found = x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
 	require.True(t, validator1.IsJailed())
-	// FIXME: Slashing amount is off by ~5%
-	//require.Equal(t, validator1.GetTokens(), sdk.NewInt(61_750_000)) // 10% slash
-	require.Equal(t, validator1.GetTokens(), sdk.NewInt(58_500_000)) // ? ~15% slash
+	require.Equal(t, validator1.GetTokens(), sdk.NewInt(61_700_000)) // 10% slash (plus 50_000 rounding)
 
 	// Relay IBC packets to the Provider chain
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
