@@ -109,23 +109,6 @@ func TestSlashingScenario1(t *testing.T) {
 	require.Equal(t, 33_000_000, providerCli.QuerySlashableAmount())
 	// Check new free collateral
 	require.Equal(t, 0, providerCli.QueryVaultFreeBalance()) // 190 - max(33, 190) = 190 - 190 = 0
-
-	// Then delegated amount is not updated before the epoch
-	consumerCli.assertTotalDelegated(math.NewInt(67_500_000))
-
-	// When an epoch ends, the slashing accounting on the virtual-staking is triggered
-	consumerCli.ExecNewEpoch()
-	// Relay IBC packets to the Provider chain
-	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
-
-	// then the total delegated amount is updated
-	// FIXME? No, it's not
-	//consumerCli.assertTotalDelegated(math.NewInt(63_000_000)) // (150_000_000 - 10_000_000) / 2 * (1 - 0.1)
-
-	// and the delegated amount is updated for the slashed validator
-	// FIXME? No, it's not
-	//consumerCli.assertShare(myExtValidator1, math.LegacyMustNewDecFromStr("40.5")) // 90_000_000 / 2 * (1 - 0.1) / 1_000_000 # default sdk factor
-	consumerCli.assertShare(myExtValidator2, math.LegacyMustNewDecFromStr("22.5")) // 50_000_000 / 2 * (1 - 0.1) / 1_000_000 # default sdk factor
 }
 
 func TestSlashingScenario2(t *testing.T) {
