@@ -75,12 +75,12 @@ func TestSlashingScenario1(t *testing.T) {
 	validator1, found := x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
 	require.True(t, found)
 	require.False(t, validator1.IsJailed())
-	// FIXME? Off by 1_000_000
+	// Off by 1_000_000, because of validator self bond on setup
 	require.Equal(t, validator1.GetTokens(), sdk.NewInt(46_000_000))
 	validator2, found := x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator2)
 	require.True(t, found)
 	require.False(t, validator2.IsJailed())
-	// FIXME? Off by 1_000_000
+	// Off by 1_000_000, because of validator self bond on setup
 	require.Equal(t, validator2.GetTokens(), sdk.NewInt(23_500_000))
 
 	// Validator 1 on the Consumer chain is jailed
