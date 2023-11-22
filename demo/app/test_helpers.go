@@ -378,7 +378,10 @@ func GenesisStateWithValSet(
 			ValidatorSigningInfo: slashingtypes.ValidatorSigningInfo{},
 		}
 	}
-	slashingGenesis := slashingtypes.NewGenesisState(slashingtypes.DefaultParams(), signingInfos, nil)
+	slashingParams := slashingtypes.DefaultParams()
+	slashingParams.SlashFractionDowntime = math.LegacyNewDec(1).Quo(math.LegacyNewDec(10))
+	slashingParams.SlashFractionDoubleSign = math.LegacyNewDec(1).Quo(math.LegacyNewDec(10))
+	slashingGenesis := slashingtypes.NewGenesisState(slashingParams, signingInfos, nil)
 	genesisState[slashingtypes.ModuleName] = codec.MustMarshalJSON(slashingGenesis)
 
 	// add bonded amount to bonded pool module account

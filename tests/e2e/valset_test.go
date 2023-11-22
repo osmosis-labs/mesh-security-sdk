@@ -25,7 +25,7 @@ import (
 func TestValsetTransitions(t *testing.T) {
 	operatorKeys := secp256k1.GenPrivKey()
 	setupVal := func(t *testing.T, x example) mock.PV {
-		myVal := CreateNewValidator(t, operatorKeys, x.ConsumerChain)
+		myVal := CreateNewValidator(t, operatorKeys, x.ConsumerChain, 2)
 		require.Len(t, x.ConsumerChain.Vals.Validators, 5)
 		return myVal
 	}
@@ -39,7 +39,7 @@ func TestValsetTransitions(t *testing.T) {
 				return mock.PV{}
 			},
 			doTransition: func(t *testing.T, _ mock.PV, x example) {
-				CreateNewValidator(t, operatorKeys, x.ConsumerChain)
+				CreateNewValidator(t, operatorKeys, x.ConsumerChain, 2)
 				require.Len(t, x.ConsumerChain.Vals.Validators, 5)
 			},
 			assertPackets: func(t *testing.T, packets []channeltypes.Packet) {
@@ -82,7 +82,7 @@ func TestValsetTransitions(t *testing.T) {
 		},
 		"jailed to active": {
 			setup: func(t *testing.T, x example) mock.PV {
-				val := setupVal(t, x)
+				val := CreateNewValidator(t, operatorKeys, x.ConsumerChain, 200)
 				jailValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), x.Coordinator, x.ConsumerChain, x.ConsumerApp)
 				x.ConsumerChain.NextBlock()
 				require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
@@ -103,14 +103,14 @@ func TestValsetTransitions(t *testing.T) {
 		},
 		"jailed to remove": {
 			setup: func(t *testing.T, x example) mock.PV {
-				val := setupVal(t, x)
+				val := CreateNewValidator(t, operatorKeys, x.ConsumerChain, 200)
 				t.Log("jail validator")
 				jailValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), x.Coordinator, x.ConsumerChain, x.ConsumerApp)
 
 				t.Log("Add new validator")
 				otherOperator := secp256k1.GenPrivKey()
 				x.ConsumerChain.Fund(sdk.AccAddress(otherOperator.PubKey().Address()), sdkmath.NewInt(1_000_000_000))
-				CreateNewValidator(t, otherOperator, x.ConsumerChain) // add a now val to fill the slot
+				CreateNewValidator(t, otherOperator, x.ConsumerChain, 200) // add a now val to fill the slot
 				x.ConsumerChain.NextBlock()
 				require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
 
@@ -174,7 +174,8 @@ func jailValidator(t *testing.T, consAddr sdk.ConsAddress, coordinator *wasmibct
 	ctx = chain.GetContext()
 	signInfo.MissedBlocksCounter = app.SlashingKeeper.MinSignedPerWindow(ctx)
 	app.SlashingKeeper.SetValidatorSigningInfo(ctx, consAddr, signInfo)
-	app.SlashingKeeper.HandleValidatorSignature(ctx, cryptotypes.Address(consAddr), 100, false)
+	power := app.StakingKeeper.GetLastValidatorPower(ctx, sdk.ValAddress(consAddr))
+	app.SlashingKeeper.HandleValidatorSignature(ctx, cryptotypes.Address(consAddr), power, false)
 	// when updates trigger
 	chain.NextBlock()
 }
@@ -192,9 +193,9 @@ func unjailValidator(t *testing.T, consAddr sdk.ConsAddress, operatorKeys *secp2
 	chain.NextBlock()
 }
 
-func CreateNewValidator(t *testing.T, operatorKeys *secp256k1.PrivKey, chain *wasmibctesting.TestChain) mock.PV {
+func CreateNewValidator(t *testing.T, operatorKeys *secp256k1.PrivKey, chain *wasmibctesting.TestChain, power int64) mock.PV {
 	privVal := mock.NewPV()
-	bondCoin := sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(2, sdk.DefaultPowerReduction))
+	bondCoin := sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(power, sdk.DefaultPowerReduction))
 	description := stakingtypes.NewDescription("my new val", "", "", "", "")
 	commissionRates := stakingtypes.NewCommissionRates(sdkmath.LegacyZeroDec(), sdkmath.LegacyNewDec(1), sdkmath.LegacyNewDec(1))
 	createValidatorMsg, err := stakingtypes.NewMsgCreateValidator(

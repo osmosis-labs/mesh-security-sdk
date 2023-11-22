@@ -82,7 +82,7 @@ func (p *TestProviderClient) BootstrapContracts(connId, portID string) ProviderC
 	var (
 		unbondingPeriod  = 21 * 24 * 60 * 60 // 21 days - make configurable?
 		maxLocalSlashing = "0.10"
-		maxExtSlashing   = "0.05"
+		maxExtSlashing   = "0.10"
 		rewardTokenDenom = sdk.DefaultBondDenom
 		localTokenDenom  = sdk.DefaultBondDenom
 	)
@@ -194,6 +194,32 @@ func (p TestProviderClient) QueryVaultFreeBalance() int {
 	})
 	require.NotEmpty(p.t, qRsp["free"], qRsp)
 	return ParseHighLow(p.t, qRsp["free"]).Low
+}
+
+func (p TestProviderClient) QueryVaultBalance() int {
+	qRsp := p.QueryVault(Query{
+		"account_details": {"account": p.chain.SenderAccount.GetAddress().String()},
+	})
+	require.NotEmpty(p.t, qRsp["bonded"], qRsp)
+	b, err := strconv.Atoi(qRsp["bonded"].(string))
+	require.NoError(p.t, err)
+	return b
+}
+
+func (p TestProviderClient) QueryMaxLien() int {
+	qRsp := p.QueryVault(Query{
+		"account_details": {"account": p.chain.SenderAccount.GetAddress().String()},
+	})
+	require.NotEmpty(p.t, qRsp["max_lien"], qRsp)
+	return ParseHighLow(p.t, qRsp["max_lien"]).Low
+}
+
+func (p TestProviderClient) QuerySlashableAmount() int {
+	qRsp := p.QueryVault(Query{
+		"account_details": {"account": p.chain.SenderAccount.GetAddress().String()},
+	})
+	require.NotEmpty(p.t, qRsp["total_slashable"], qRsp)
+	return ParseHighLow(p.t, qRsp["total_slashable"]).Low
 }
 
 type TestConsumerClient struct {
