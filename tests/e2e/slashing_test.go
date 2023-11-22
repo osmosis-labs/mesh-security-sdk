@@ -16,7 +16,6 @@ func TestSlashingScenario1(t *testing.T) {
 	//
 	// - We use millions instead of unit tokens.
 	x := setupExampleChains(t)
-	//consumerCli, consumerContracts, providerCli := setupMeshSecurity(t, x)
 	consumerCli, _, providerCli := setupMeshSecurity(t, x)
 
 	// Provider chain
@@ -117,7 +116,6 @@ func TestSlashingScenario2(t *testing.T) {
 	//
 	// - We use millions instead of unit tokens.
 	x := setupExampleChains(t)
-	//consumerCli, consumerContracts, providerCli := setupMeshSecurity(t, x)
 	consumerCli, _, providerCli := setupMeshSecurity(t, x)
 
 	// Provider chain
@@ -205,7 +203,6 @@ func TestSlashingScenario3(t *testing.T) {
 	//
 	// - We use millions instead of unit tokens.
 	x := setupExampleChains(t)
-	//consumerCli, consumerContracts, providerCli := setupMeshSecurity(t, x)
 	consumerCli, _, providerCli := setupMeshSecurity(t, x)
 
 	// Provider chain
