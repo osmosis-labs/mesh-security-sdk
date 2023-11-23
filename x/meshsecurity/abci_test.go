@@ -50,9 +50,9 @@ func TestEndBlocker(t *testing.T) {
 			assert: func(t *testing.T, ctx sdk.Context) {
 				require.Len(t, capturedCalls, 2)
 				assert.Equal(t, myContractAddr, capturedCalls[0].contractAddress)
-				assert.JSONEq(t, `{"rebalance":{}}`, string(capturedCalls[0].msg))
+				assert.JSONEq(t, `{"handle_epoch":{}}`, string(capturedCalls[0].msg))
 				assert.Equal(t, myOtherContractAddr, capturedCalls[1].contractAddress)
-				assert.JSONEq(t, `{"rebalance":{}}`, string(capturedCalls[1].msg))
+				assert.JSONEq(t, `{"handle_epoch":{}}`, string(capturedCalls[1].msg))
 				assert.NotContains(t, logRecords.String(), "failed")
 			},
 		},

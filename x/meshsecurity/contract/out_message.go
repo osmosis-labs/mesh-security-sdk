@@ -6,7 +6,7 @@ import (
 
 type (
 	SudoMsg struct {
-		Rebalance    *struct{}     `json:"rebalance,omitempty"`
+		HandleEpoch  *struct{}     `json:"handle_epoch,omitempty"`
 		ValsetUpdate *ValsetUpdate `json:"valset_update,omitempty"`
 	}
 
