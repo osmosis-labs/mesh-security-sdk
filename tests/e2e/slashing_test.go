@@ -50,7 +50,7 @@ func TestSlashingScenario1(t *testing.T) {
 	// Check max lien
 	require.Equal(t, 190_000_000, providerCli.QueryMaxLien())
 	// Check slashable amount
-	require.Equal(t, 34_000_000, providerCli.QuerySlashableAmount())
+	require.Equal(t, 68_000_000, providerCli.QuerySlashableAmount())
 	// Check free collateral
 	require.Equal(t, 10_000_000, providerCli.QueryVaultFreeBalance()) // 200 - max(34, 190) = 200 - 190 = 10
 
@@ -105,7 +105,7 @@ func TestSlashingScenario1(t *testing.T) {
 	// Check new max lien
 	require.Equal(t, 190_000_000, providerCli.QueryMaxLien())
 	// Check new slashable amount
-	require.Equal(t, 33_000_000, providerCli.QuerySlashableAmount())
+	require.Equal(t, 66_000_000, providerCli.QuerySlashableAmount())
 	// Check new free collateral
 	require.Equal(t, 0, providerCli.QueryVaultFreeBalance()) // 190 - max(33, 190) = 190 - 190 = 0
 }
@@ -144,7 +144,7 @@ func TestSlashingScenario2(t *testing.T) {
 	// Check max lien
 	require.Equal(t, 200_000_000, providerCli.QueryMaxLien())
 	// Check slashable amount
-	require.Equal(t, 40_000_000, providerCli.QuerySlashableAmount())
+	require.Equal(t, 80_000_000, providerCli.QuerySlashableAmount())
 	// Check free collateral
 	require.Equal(t, 0, providerCli.QueryVaultFreeBalance()) // 200 - max(40, 200) = 200 - 200 = 0
 
@@ -192,7 +192,7 @@ func TestSlashingScenario2(t *testing.T) {
 	// Check new max lien
 	require.Equal(t, 180_000_000, providerCli.QueryMaxLien())
 	// Check new slashable amount
-	require.Equal(t, 36_000_000, providerCli.QuerySlashableAmount())
+	require.Equal(t, 72_000_000, providerCli.QuerySlashableAmount())
 	// Check new free collateral
 	require.Equal(t, 0, providerCli.QueryVaultFreeBalance()) // 190 - max(36, 190) = 190 - 190 = 0
 }
@@ -231,7 +231,7 @@ func TestSlashingScenario3(t *testing.T) {
 	// Check max lien
 	require.Equal(t, 190_000_000, providerCli.QueryMaxLien())
 	// Check slashable amount
-	require.Equal(t, 34_000_000, providerCli.QuerySlashableAmount())
+	require.Equal(t, 68_000_000, providerCli.QuerySlashableAmount())
 	// Check free collateral
 	require.Equal(t, 10_000_000, providerCli.QueryVaultFreeBalance()) // 200 - max(34, 190) = 200 - 190 = 10
 
@@ -279,7 +279,7 @@ func TestSlashingScenario3(t *testing.T) {
 	// Check new max lien
 	require.Equal(t, 185_000_000, providerCli.QueryMaxLien())
 	// Check new slashable amount
-	require.Equal(t, 32_000_000, providerCli.QuerySlashableAmount())
+	require.Equal(t, 64_000_000, providerCli.QuerySlashableAmount())
 	// Check new free collateral
 	require.Equal(t, 0, providerCli.QueryVaultFreeBalance()) // 185 - max(32, 185) = 185 - 185 = 0
 }
