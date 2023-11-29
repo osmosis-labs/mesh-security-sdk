@@ -40,7 +40,7 @@ func TestSetVirtualStakingMaxCap(t *testing.T) {
 			},
 			expLimit: myAmount,
 			expSchedule: func(t *testing.T, ctx sdk.Context) {
-				assert.True(t, k.HasScheduledTask(ctx, types.SchedulerTaskRebalance, myContract, true))
+				assert.True(t, k.HasScheduledTask(ctx, types.SchedulerTaskHandleEpoch, myContract, true))
 			},
 		},
 		"existing limit updated": {
@@ -59,10 +59,10 @@ func TestSetVirtualStakingMaxCap(t *testing.T) {
 			},
 			expLimit: myAmount,
 			expSchedule: func(t *testing.T, ctx sdk.Context) {
-				repeat, exists := k.getScheduledTaskAt(ctx, types.SchedulerTaskRebalance, myContract, uint64(ctx.BlockHeight()))
+				repeat, exists := k.getScheduledTaskAt(ctx, types.SchedulerTaskHandleEpoch, myContract, uint64(ctx.BlockHeight()))
 				require.True(t, exists)
 				assert.False(t, repeat)
-				assert.True(t, k.HasScheduledTask(ctx, types.SchedulerTaskRebalance, myContract, true))
+				assert.True(t, k.HasScheduledTask(ctx, types.SchedulerTaskHandleEpoch, myContract, true))
 			},
 		},
 		"existing limit set to empty value": {
@@ -81,10 +81,10 @@ func TestSetVirtualStakingMaxCap(t *testing.T) {
 			},
 			expLimit: sdk.NewInt64Coin(denom, 0),
 			expSchedule: func(t *testing.T, ctx sdk.Context) {
-				repeat, exists := k.getScheduledTaskAt(ctx, types.SchedulerTaskRebalance, myContract, uint64(ctx.BlockHeight()))
+				repeat, exists := k.getScheduledTaskAt(ctx, types.SchedulerTaskHandleEpoch, myContract, uint64(ctx.BlockHeight()))
 				require.True(t, exists)
 				assert.False(t, repeat)
-				assert.False(t, k.HasScheduledTask(ctx, types.SchedulerTaskRebalance, myContract, true))
+				assert.False(t, k.HasScheduledTask(ctx, types.SchedulerTaskHandleEpoch, myContract, true))
 			},
 		},
 		"fails for non existing contract": {

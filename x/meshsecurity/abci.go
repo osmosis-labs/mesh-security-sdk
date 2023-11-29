@@ -30,7 +30,7 @@ func EndBlocker(ctx sdk.Context, k *keeper.Keeper, h TaskExecutionResponseHandle
 		return k.SendValsetUpdate(ctx, contract, report)
 	}))
 	k.ClearPipedValsetOperations(ctx)
-	do(k.ExecScheduledTasks(ctx, types.SchedulerTaskRebalance, epochLength, func(ctx sdk.Context, contract sdk.AccAddress) error {
+	do(k.ExecScheduledTasks(ctx, types.SchedulerTaskHandleEpoch, epochLength, func(ctx sdk.Context, contract sdk.AccAddress) error {
 		return k.SendHandleEpoch(ctx, contract)
 	}))
 }

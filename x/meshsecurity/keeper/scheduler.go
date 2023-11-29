@@ -20,7 +20,7 @@ func (k Keeper) ScheduleRegularRebalanceTask(ctx sdk.Context, contract sdk.AccAd
 	}
 	epochLength := k.GetRebalanceEpochLength(ctx)
 	nextExecBlock := uint64(ctx.BlockHeight()) + epochLength
-	return k.ScheduleRepeatingTask(ctx, types.SchedulerTaskRebalance, contract, nextExecBlock)
+	return k.ScheduleRepeatingTask(ctx, types.SchedulerTaskHandleEpoch, contract, nextExecBlock)
 }
 
 // HasScheduledTask returns true if the contract has a task scheduled of the given type and repeat setting

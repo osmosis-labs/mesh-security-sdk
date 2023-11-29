@@ -43,9 +43,9 @@ func TestEndBlocker(t *testing.T) {
 		"rebalance - multiple contracts": {
 			setup: func(t *testing.T, ctx sdk.Context) {
 				require.NoError(t,
-					k.ScheduleRepeatingTask(ctx, types.SchedulerTaskRebalance, myContractAddr, uint64(ctx.BlockHeight())))
+					k.ScheduleRepeatingTask(ctx, types.SchedulerTaskHandleEpoch, myContractAddr, uint64(ctx.BlockHeight())))
 				require.NoError(t,
-					k.ScheduleRepeatingTask(ctx, types.SchedulerTaskRebalance, myOtherContractAddr, uint64(ctx.BlockHeight())))
+					k.ScheduleRepeatingTask(ctx, types.SchedulerTaskHandleEpoch, myOtherContractAddr, uint64(ctx.BlockHeight())))
 			},
 			assert: func(t *testing.T, ctx sdk.Context) {
 				require.Len(t, capturedCalls, 2)
@@ -60,9 +60,9 @@ func TestEndBlocker(t *testing.T) {
 			setup: func(t *testing.T, ctx sdk.Context) {
 				contractErr = myError
 				require.NoError(t,
-					k.ScheduleRepeatingTask(ctx, types.SchedulerTaskRebalance, myContractAddr, uint64(ctx.BlockHeight())))
+					k.ScheduleRepeatingTask(ctx, types.SchedulerTaskHandleEpoch, myContractAddr, uint64(ctx.BlockHeight())))
 				require.NoError(t,
-					k.ScheduleRepeatingTask(ctx, types.SchedulerTaskRebalance, myOtherContractAddr, uint64(ctx.BlockHeight())))
+					k.ScheduleRepeatingTask(ctx, types.SchedulerTaskHandleEpoch, myOtherContractAddr, uint64(ctx.BlockHeight())))
 			},
 			assert: func(t *testing.T, ctx sdk.Context) {
 				require.Len(t, capturedCalls, 2)

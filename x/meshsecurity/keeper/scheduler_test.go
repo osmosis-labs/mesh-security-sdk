@@ -96,13 +96,13 @@ func TestExecuteScheduledTask(t *testing.T) {
 			execCount = 0
 			var gotErr error
 			if spec.repeat {
-				gotErr = k.ScheduleRepeatingTask(ctx, types.SchedulerTaskRebalance, myContract, currentHeight)
+				gotErr = k.ScheduleRepeatingTask(ctx, types.SchedulerTaskHandleEpoch, myContract, currentHeight)
 			} else {
-				gotErr = k.ScheduleOneShotTask(ctx, types.SchedulerTaskRebalance, myContract, currentHeight)
+				gotErr = k.ScheduleOneShotTask(ctx, types.SchedulerTaskHandleEpoch, myContract, currentHeight)
 			}
 			require.NoError(t, gotErr)
 			// when
-			gotRes, gotErr := k.ExecScheduledTasks(ctx, types.SchedulerTaskRebalance, 100, spec.exec(t))
+			gotRes, gotErr := k.ExecScheduledTasks(ctx, types.SchedulerTaskHandleEpoch, 100, spec.exec(t))
 			// then
 			if spec.expErr {
 				require.Error(t, gotErr)
@@ -119,11 +119,11 @@ func TestExecuteScheduledTask(t *testing.T) {
 			// and callback executed
 			assert.Equal(t, 1, execCount)
 			// and new execution scheduled
-			repeat, exists := k.getScheduledTaskAt(ctx, types.SchedulerTaskRebalance, myContract, gotRes[0].NextRunHeight)
+			repeat, exists := k.getScheduledTaskAt(ctx, types.SchedulerTaskHandleEpoch, myContract, gotRes[0].NextRunHeight)
 			assert.Equal(t, spec.expRescheduled, exists)
 			assert.Equal(t, spec.repeat, repeat)
 			// and old entry removed
-			_, exists = k.getScheduledTaskAt(ctx, types.SchedulerTaskRebalance, myContract, currentHeight)
+			_, exists = k.getScheduledTaskAt(ctx, types.SchedulerTaskHandleEpoch, myContract, currentHeight)
 			assert.False(t, exists)
 		})
 	}
@@ -137,7 +137,7 @@ func TestScheduleTask(t *testing.T) {
 	currentHeight := uint64(pCtx.BlockHeight())
 
 	// set a scheduler to overwrite
-	err := k.ScheduleRepeatingTask(pCtx, types.SchedulerTaskRebalance, myOtherContractWithScheduledTask, currentHeight+1)
+	err := k.ScheduleRepeatingTask(pCtx, types.SchedulerTaskHandleEpoch, myOtherContractWithScheduledTask, currentHeight+1)
 	require.NoError(t, err)
 
 	specs := map[string]struct {
@@ -150,31 +150,31 @@ func TestScheduleTask(t *testing.T) {
 	}{
 		"all good - single exec": {
 			contract: myContract,
-			taskType: types.SchedulerTaskRebalance,
+			taskType: types.SchedulerTaskHandleEpoch,
 			height:   currentHeight + 1,
 		},
 		"all good - repeat": {
 			contract:  myContract,
-			taskType:  types.SchedulerTaskRebalance,
+			taskType:  types.SchedulerTaskHandleEpoch,
 			height:    currentHeight + 1,
 			repeat:    true,
 			expRepeat: true,
 		},
 		"overwrite existing scheduler - preserve repeat": {
 			contract:  myOtherContractWithScheduledTask,
-			taskType:  types.SchedulerTaskRebalance,
+			taskType:  types.SchedulerTaskHandleEpoch,
 			height:    currentHeight + 1,
 			repeat:    false,
 			expRepeat: true, // it was set up with repeat
 		},
 		"scheduled for current height": {
 			contract: myContract,
-			taskType: types.SchedulerTaskRebalance,
+			taskType: types.SchedulerTaskHandleEpoch,
 			height:   currentHeight,
 		},
 		"scheduled for past height": {
 			contract: myContract,
-			taskType: types.SchedulerTaskRebalance,
+			taskType: types.SchedulerTaskHandleEpoch,
 			height:   currentHeight - 1,
 			expErr:   true,
 		},
@@ -213,7 +213,7 @@ func TestDeleteAllScheduledTasks(t *testing.T) {
 	currentHeight := uint64(pCtx.BlockHeight())
 
 	// set a scheduler to overwrite
-	err := k.ScheduleRepeatingTask(pCtx, types.SchedulerTaskRebalance, myOtherContractWithScheduledTask, currentHeight+1)
+	err := k.ScheduleRepeatingTask(pCtx, types.SchedulerTaskHandleEpoch, myOtherContractWithScheduledTask, currentHeight+1)
 	require.NoError(t, err)
 	specs := map[string]struct {
 		setup   func(t *testing.T, ctx sdk.Context)
@@ -222,33 +222,33 @@ func TestDeleteAllScheduledTasks(t *testing.T) {
 		asserts func(t *testing.T, ctx sdk.Context)
 	}{
 		"current height": {
-			tp: types.SchedulerTaskRebalance,
+			tp: types.SchedulerTaskHandleEpoch,
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.ScheduleRepeatingTask(ctx, types.SchedulerTaskRebalance, myContract, uint64(ctx.BlockHeight())))
-				require.NoError(t, k.ScheduleOneShotTask(ctx, types.SchedulerTaskRebalance, myContract, uint64(ctx.BlockHeight())))
+				require.NoError(t, k.ScheduleRepeatingTask(ctx, types.SchedulerTaskHandleEpoch, myContract, uint64(ctx.BlockHeight())))
+				require.NoError(t, k.ScheduleOneShotTask(ctx, types.SchedulerTaskHandleEpoch, myContract, uint64(ctx.BlockHeight())))
 			},
 		},
 		"future height": {
-			tp: types.SchedulerTaskRebalance,
+			tp: types.SchedulerTaskHandleEpoch,
 			setup: func(t *testing.T, ctx sdk.Context) {
 				height := uint64(ctx.BlockHeight()) + 1
-				require.NoError(t, k.ScheduleRepeatingTask(ctx, types.SchedulerTaskRebalance, myContract, height))
-				require.NoError(t, k.ScheduleOneShotTask(ctx, types.SchedulerTaskRebalance, myContract, height))
+				require.NoError(t, k.ScheduleRepeatingTask(ctx, types.SchedulerTaskHandleEpoch, myContract, height))
+				require.NoError(t, k.ScheduleOneShotTask(ctx, types.SchedulerTaskHandleEpoch, myContract, height))
 			},
 		},
 		"multiple heights": {
-			tp: types.SchedulerTaskRebalance,
+			tp: types.SchedulerTaskHandleEpoch,
 			setup: func(t *testing.T, ctx sdk.Context) {
 				height := uint64(ctx.BlockHeight())
-				require.NoError(t, k.ScheduleRepeatingTask(ctx, types.SchedulerTaskRebalance, myContract, height))
-				require.NoError(t, k.ScheduleOneShotTask(ctx, types.SchedulerTaskRebalance, myContract, height))
+				require.NoError(t, k.ScheduleRepeatingTask(ctx, types.SchedulerTaskHandleEpoch, myContract, height))
+				require.NoError(t, k.ScheduleOneShotTask(ctx, types.SchedulerTaskHandleEpoch, myContract, height))
 				height++
-				require.NoError(t, k.ScheduleRepeatingTask(ctx, types.SchedulerTaskRebalance, myContract, height))
-				require.NoError(t, k.ScheduleOneShotTask(ctx, types.SchedulerTaskRebalance, myContract, height))
+				require.NoError(t, k.ScheduleRepeatingTask(ctx, types.SchedulerTaskHandleEpoch, myContract, height))
+				require.NoError(t, k.ScheduleOneShotTask(ctx, types.SchedulerTaskHandleEpoch, myContract, height))
 			},
 		},
 		"different type not removed": {
-			tp: types.SchedulerTaskRebalance,
+			tp: types.SchedulerTaskHandleEpoch,
 			setup: func(t *testing.T, ctx sdk.Context) {
 				require.NoError(t, k.ScheduleRepeatingTask(ctx, types.SchedulerTaskType(0xff), myContract, uint64(ctx.BlockHeight())))
 			},

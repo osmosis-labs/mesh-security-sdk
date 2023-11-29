@@ -273,7 +273,7 @@ func (p *TestConsumerClient) BootstrapContracts() ConsumerContract {
 }
 
 func (p *TestConsumerClient) ExecNewEpoch() {
-	execHeight, ok := p.app.MeshSecKeeper.GetNextScheduledTaskHeight(p.chain.GetContext(), types.SchedulerTaskRebalance, p.contracts.staking)
+	execHeight, ok := p.app.MeshSecKeeper.GetNextScheduledTaskHeight(p.chain.GetContext(), types.SchedulerTaskHandleEpoch, p.contracts.staking)
 	require.True(p.t, ok)
 	if ch := uint64(p.chain.GetContext().BlockHeight()); ch < execHeight {
 		p.chain.Coordinator.CommitNBlocks(p.chain, execHeight-ch)
