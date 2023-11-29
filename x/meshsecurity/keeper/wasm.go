@@ -10,10 +10,10 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
 )
 
-// SendRebalance send rebalance message to virtual staking contract via sudo
-func (k Keeper) SendRebalance(ctx sdk.Context, contractAddr sdk.AccAddress) error {
+// SendHandleEpoch send epoch handling message to virtual staking contract via sudo
+func (k Keeper) SendHandleEpoch(ctx sdk.Context, contractAddr sdk.AccAddress) error {
 	msg := contract.SudoMsg{
-		Rebalance: &struct{}{},
+		HandleEpoch: &struct{}{},
 	}
 	return k.doSudoCall(ctx, contractAddr, msg)
 }
