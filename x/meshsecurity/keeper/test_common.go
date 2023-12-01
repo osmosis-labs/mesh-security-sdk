@@ -264,7 +264,7 @@ func CreateDefaultTestInput(t testing.TB, opts ...Option) (sdk.Context, TestKeep
 		querier,
 		t.TempDir(),
 		wasmtypes.DefaultWasmConfig(),
-		"iterator,staking,stargate,cosmwasm_1_1,cosmwasm_1_2,virtual_staking",
+		"iterator,staking,stargate,cosmwasm_1_1,cosmwasm_1_2,cosmwasm_1_3,virtual_staking",
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 	require.NoError(t, wasmKeeper.SetParams(ctx, wasmtypes.DefaultParams()))
