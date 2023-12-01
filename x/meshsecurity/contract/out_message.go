@@ -15,13 +15,24 @@ type (
 	// ValidatorAddr alias for the Bech32 address string of sdk.ValAddress
 	ValidatorAddr = string
 
+	ValidatorSlash struct {
+		ValidatorAddr       string `json:"address"`
+		Height              int64  `json:"height"`
+		Time                int64  `json:"time"`
+		InfractionHeight    int64  `json:"infraction_height"`
+		InfractionTime      int64  `json:"infraction_time"`
+		Power               int64  `json:"power"`
+		SlashRatio          string `json:"slash_ratio"`
+	}
+
 	// ValsetUpdate updates to the active validator set
 	ValsetUpdate struct {
-		Additions  []Validator     `json:"additions"`
-		Removals   []ValidatorAddr `json:"removals"`
-		Updated    []Validator     `json:"updated"`
-		Jailed     []ValidatorAddr `json:"jailed"`
-		Unjailed   []ValidatorAddr `json:"unjailed"`
-		Tombstoned []ValidatorAddr `json:"tombstoned"`
+		Additions  []Validator      `json:"additions"`
+		Removals   []ValidatorAddr  `json:"removals"`
+		Updated    []Validator      `json:"updated"`
+		Jailed     []ValidatorAddr  `json:"jailed"`
+		Unjailed   []ValidatorAddr  `json:"unjailed"`
+		Tombstoned []ValidatorAddr  `json:"tombstoned"`
+		Slashed    []ValidatorSlash `json:"slashed"`
 	}
 )
