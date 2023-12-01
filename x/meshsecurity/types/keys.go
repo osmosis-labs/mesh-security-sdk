@@ -42,6 +42,7 @@ const (
 	ValidatorTombstoned
 	ValidatorUnjailed
 	ValidatorModified
+	ValidatorSlashed
 )
 
 // BuildMaxCapLimitKey build max cap limit store key

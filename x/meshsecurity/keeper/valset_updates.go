@@ -23,6 +23,12 @@ func (k Keeper) ScheduleUnbonded(ctx sdk.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorUnbonded, addr)
 }
 
+// ScheduleSlashed store a validator slash event / data for the valset update report
+func (k Keeper) ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, power int64, height int64, slashRatio sdk.Dec) error {
+	// TODO: Add / send the extra fields
+	return k.sendAsync(ctx, types.ValidatorSlashed, addr)
+}
+
 // ScheduleJailed store a validator update to jailed status for the valset update report
 func (k Keeper) ScheduleJailed(ctx sdk.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorJailed, addr)
