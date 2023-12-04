@@ -88,7 +88,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		return false
 	}
 	slashValidator := func(set *[]outmessage.ValidatorSlash, valAddr sdk.ValAddress, power int64, infractionHeight int64,
-		infractionTime int64, effectiveSlashRatio string) bool {
+		infractionTime int64, slashRatio string) bool {
 		valSlash := outmessage.ValidatorSlash{
 			ValidatorAddr:    valAddr.String(),
 			Power:            power,
@@ -96,7 +96,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 			InfractionTime:   infractionTime,
 			Height:           ctx.BlockHeight(),
 			Time:             ctx.BlockTime().Unix(),
-			SlashRatio:       effectiveSlashRatio,
+			SlashRatio:       slashRatio,
 		}
 		*set = append(*set, valSlash)
 		return false
