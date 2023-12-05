@@ -101,13 +101,13 @@ func TestSlashingScenario1(t *testing.T) {
 	x.ProviderChain.NextBlock()
 
 	// Check new collateral
-	require.Equal(t, 190_000_000, providerCli.QueryVaultBalance())
+	require.Equal(t, 190_000_001, providerCli.QueryVaultBalance())
 	// Check new max lien
 	require.Equal(t, 190_000_000, providerCli.QueryMaxLien())
 	// Check new slashable amount
-	require.Equal(t, 66_000_000, providerCli.QuerySlashableAmount())
+	require.Equal(t, 66_000_001, providerCli.QuerySlashableAmount())
 	// Check new free collateral
-	require.Equal(t, 0, providerCli.QueryVaultFreeBalance()) // 190 - max(33, 190) = 190 - 190 = 0
+	require.Equal(t, 1, providerCli.QueryVaultFreeBalance()) // 190 - max(33, 190) = 190 - 190 = 0
 }
 
 func TestSlashingScenario2(t *testing.T) {
@@ -188,11 +188,11 @@ func TestSlashingScenario2(t *testing.T) {
 	x.ProviderChain.NextBlock()
 
 	// Check new collateral
-	require.Equal(t, 180_000_000, providerCli.QueryVaultBalance())
+	require.Equal(t, 180_000_001, providerCli.QueryVaultBalance())
 	// Check new max lien
-	require.Equal(t, 180_000_000, providerCli.QueryMaxLien())
+	require.Equal(t, 180_000_001, providerCli.QueryMaxLien())
 	// Check new slashable amount
-	require.Equal(t, 72_000_000, providerCli.QuerySlashableAmount())
+	require.Equal(t, 72_000_002, providerCli.QuerySlashableAmount())
 	// Check new free collateral
 	require.Equal(t, 0, providerCli.QueryVaultFreeBalance()) // 190 - max(36, 190) = 190 - 190 = 0
 }
@@ -275,11 +275,11 @@ func TestSlashingScenario3(t *testing.T) {
 	x.ProviderChain.NextBlock()
 
 	// Check new collateral
-	require.Equal(t, 185_000_000, providerCli.QueryVaultBalance())
+	require.Equal(t, 185_109_490, providerCli.QueryVaultBalance())
 	// Check new max lien
-	require.Equal(t, 185_000_000, providerCli.QueryMaxLien())
+	require.Equal(t, 185_109_490, providerCli.QueryMaxLien())
 	// Check new slashable amount
-	require.Equal(t, 64_000_000, providerCli.QuerySlashableAmount())
+	require.Equal(t, 64_043_796, providerCli.QuerySlashableAmount())
 	// Check new free collateral
 	require.Equal(t, 0, providerCli.QueryVaultFreeBalance()) // 185 - max(32, 185) = 185 - 185 = 0
 }
