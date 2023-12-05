@@ -116,16 +116,17 @@ func NewStakingDecorator(stakingKeeper slashingtypes.StakingKeeper, k *Keeper) *
 // Slash captures the slash event and calls the decorated staking keeper slash method
 func (s StakingDecorator) Slash(ctx sdk.Context, consAddr sdk.ConsAddress, power int64, height int64, slashRatio sdk.Dec) math.Int {
 	val := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
+	totalSlashAmount := s.StakingKeeper.Slash(ctx, consAddr, power, height, slashRatio)
 	if val == nil {
 		ModuleLogger(ctx).
 			Error("can not propagate slash: validator not found", "validator", consAddr.String())
-	} else if err := s.k.ScheduleSlashed(ctx, val.GetOperator(), power, height, slashRatio); err != nil {
+	} else if err := s.k.ScheduleSlashed(ctx, val.GetOperator(), power, height, totalSlashAmount, slashRatio); err != nil {
 		ModuleLogger(ctx).
 			Error("can not propagate slash: schedule event",
 				"cause", err,
 				"validator", consAddr.String())
 	}
-	return s.StakingKeeper.Slash(ctx, consAddr, power, height, slashRatio)
+	return totalSlashAmount
 }
 
 // SlashWithInfractionReason implementation doesn't require the infraction (types.Infraction) to work but is required by Interchain Security.

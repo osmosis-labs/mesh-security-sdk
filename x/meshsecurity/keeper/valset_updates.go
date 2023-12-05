@@ -25,10 +25,11 @@ func (k Keeper) ScheduleUnbonded(ctx sdk.Context, addr sdk.ValAddress) error {
 }
 
 // ScheduleSlashed store a validator slash event / data for the valset update report
-func (k Keeper) ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, power int64, height int64, slashRatio sdk.Dec) error {
+func (k Keeper) ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, power int64, height int64, totalSlashAmount math.Int, slashRatio sdk.Dec) error {
 	var slashInfo = &types.SlashInfo{
 		Power:            power,
 		InfractionHeight: height,
+		TotalSlashAmount: totalSlashAmount.String(),
 		SlashFraction:    slashRatio.String(),
 	}
 	return k.sendAsync(ctx, types.ValidatorSlashed, addr, slashInfo)
@@ -88,7 +89,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		return false
 	}
 	slashValidator := func(set *[]outmessage.ValidatorSlash, valAddr sdk.ValAddress, power int64, infractionHeight int64,
-		infractionTime int64, slashRatio string) bool {
+		infractionTime int64, slashAmount string, slashRatio string) bool {
 		valSlash := outmessage.ValidatorSlash{
 			ValidatorAddr:    valAddr.String(),
 			Power:            power,
@@ -96,6 +97,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 			InfractionTime:   infractionTime,
 			Height:           ctx.BlockHeight(),
 			Time:             ctx.BlockTime().Unix(),
+			SlashAmount:      slashAmount,
 			SlashRatio:       slashRatio,
 		}
 		*set = append(*set, valSlash)
@@ -127,7 +129,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		case types.ValidatorSlashed:
 			// TODO: Add / send the infraction time
 			return slashValidator(&r.Slashed, valAddr, slashInfo.Power, slashInfo.InfractionHeight, 0,
-				slashInfo.SlashFraction)
+				slashInfo.TotalSlashAmount, slashInfo.SlashFraction)
 		default:
 			innerErr = types.ErrInvalid.Wrapf("undefined operation type %X", op)
 			return true
@@ -164,13 +166,15 @@ func (k Keeper) iteratePipedValsetOperations(ctx sdk.Context, cb func(valAddress
 		addr, op := key[1:addrLen+1], key[addrLen+1]
 		var slashInfo *types.SlashInfo = nil
 		if types.PipedValsetOperation(op) == types.ValidatorSlashed {
-			if len(key) <= 1+int(addrLen)+1+8+8 {
+			if len(key) <= 1+int(addrLen)+1+8+8+1 {
 				return types.ErrInvalid.Wrapf("invalid slash key length %d", len(key))
 			}
+			totalSlashAmountLen := key[addrLen+2+8+8]
 			slashInfo = &types.SlashInfo{
 				Power:            int64(sdk.BigEndianToUint64(key[addrLen+2 : addrLen+2+8])),
 				InfractionHeight: int64(sdk.BigEndianToUint64(key[addrLen+2+8 : addrLen+2+8+8])),
-				SlashFraction:    string(key[addrLen+2+8+8:]),
+				TotalSlashAmount: string(key[addrLen+2+8+8+1 : addrLen+2+8+8+1+totalSlashAmountLen]),
+				SlashFraction:    string(key[addrLen+2+8+8+1+totalSlashAmountLen:]),
 			}
 		}
 		if cb(addr, types.PipedValsetOperation(op), slashInfo) {

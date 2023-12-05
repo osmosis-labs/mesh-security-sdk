@@ -49,6 +49,7 @@ const (
 type SlashInfo struct {
 	InfractionHeight int64
 	Power            int64
+	TotalSlashAmount string
 	SlashFraction    string
 }
 
@@ -99,7 +100,7 @@ func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress, slashInf
 		if slashInfo == nil {
 			panic("slash info is nil")
 		}
-		sn = 8 + 8 + len(slashInfo.SlashFraction)
+		sn = 8 + 8 + 1 + len(slashInfo.TotalSlashAmount) + len(slashInfo.SlashFraction) // 8 for height, 8 for power, +1 for total amount length
 	}
 	r := make([]byte, pn+an+sn+1+1) // +1 for address prefix, +1 for op
 	copy(r, PipedValsetPrefix)
@@ -111,7 +112,10 @@ func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress, slashInf
 		copy(r[pn+an+1+1:], b)
 		binary.BigEndian.PutUint64(b, uint64(slashInfo.Power))
 		copy(r[pn+an+1+1+8:], b)
-		copy(r[pn+an+1+1+8+8:], slashInfo.SlashFraction)
+		tn := len(slashInfo.TotalSlashAmount)
+		r[pn+an+1+1+8+8] = byte(tn)
+		copy(r[pn+an+1+1+8+8+1:], slashInfo.TotalSlashAmount)
+		copy(r[pn+an+1+1+8+8+1+tn:], slashInfo.SlashFraction)
 	}
 	return r
 }

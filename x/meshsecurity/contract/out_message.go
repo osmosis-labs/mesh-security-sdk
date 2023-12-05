@@ -16,13 +16,14 @@ type (
 	ValidatorAddr = string
 
 	ValidatorSlash struct {
-		ValidatorAddr       string `json:"address"`
-		Height              int64  `json:"height"`
-		Time                int64  `json:"time"`
-		InfractionHeight    int64  `json:"infraction_height"`
-		InfractionTime      int64  `json:"infraction_time"`
-		Power               int64  `json:"power"`
-		SlashRatio          string `json:"slash_ratio"`
+		ValidatorAddr    string `json:"address"`
+		Height           int64  `json:"height"`
+		Time             int64  `json:"time"`
+		InfractionHeight int64  `json:"infraction_height"`
+		InfractionTime   int64  `json:"infraction_time"`
+		Power            int64  `json:"power"`
+		SlashAmount      string `json:"slash_amount"`
+		SlashRatio       string `json:"slash_ratio"`
 	}
 
 	// ValsetUpdate updates to the active validator set
