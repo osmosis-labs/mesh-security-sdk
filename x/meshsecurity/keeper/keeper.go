@@ -27,7 +27,7 @@ type Keeper struct {
 	memKey   storetypes.StoreKey
 	cdc      codec.Codec
 	bank     types.XBankKeeper
-	staking  types.XStakingKeeper
+	Staking  types.XStakingKeeper
 	wasm     types.WasmKeeper
 	// the address capable of executing a MsgUpdateParams message. Typically, this
 	// should be the x/gov module account.
@@ -64,7 +64,7 @@ func NewKeeperX(
 		memKey:    memoryStoreKey,
 		cdc:       cdc,
 		bank:      bank,
-		staking:   staking,
+		Staking:   staking,
 		wasm:      wasm,
 		authority: authority,
 	}
@@ -90,13 +90,13 @@ func (k Keeper) HasMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) bool {
 // GetMaxCapLimit the cap limit is set per consumer contract. Different providers can have different limits
 // Returns zero amount when no limit is stored.
 func (k Keeper) GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
-	return sdk.NewCoin(k.staking.BondDenom(ctx), k.mustLoadInt(ctx, k.storeKey, types.BuildMaxCapLimitKey(actor)))
+	return sdk.NewCoin(k.Staking.BondDenom(ctx), k.mustLoadInt(ctx, k.storeKey, types.BuildMaxCapLimitKey(actor)))
 }
 
 // SetMaxCapLimit stores the max cap limit for the given contract address.
 // Any existing limit for this contract will be overwritten
 func (k Keeper) SetMaxCapLimit(ctx sdk.Context, contract sdk.AccAddress, newAmount sdk.Coin) error {
-	if k.staking.BondDenom(ctx) != newAmount.Denom {
+	if k.Staking.BondDenom(ctx) != newAmount.Denom {
 		return sdkerrors.ErrInvalidCoins
 	}
 	// ensure that the total max cap amount for all contracts is not exceeded
@@ -130,12 +130,12 @@ func (k Keeper) GetTotalDelegated(ctx sdk.Context, actor sdk.AccAddress) sdk.Coi
 	if v.IsNegative() {
 		v = math.ZeroInt()
 	}
-	return sdk.NewCoin(k.staking.BondDenom(ctx), v)
+	return sdk.NewCoin(k.Staking.BondDenom(ctx), v)
 }
 
 // internal setter. must only be used with bonding token denom or panics
 func (k Keeper) setTotalDelegated(ctx sdk.Context, actor sdk.AccAddress, newAmount sdk.Coin) {
-	if k.staking.BondDenom(ctx) != newAmount.Denom {
+	if k.Staking.BondDenom(ctx) != newAmount.Denom {
 		panic(sdkerrors.ErrInvalidCoins.Wrapf("not a staking denom: %s", newAmount.Denom))
 	}
 

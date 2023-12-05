@@ -19,11 +19,11 @@ func (k Keeper) Delegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.Val
 	}
 
 	// Ensure staking constraints
-	bondDenom := k.staking.BondDenom(pCtx)
+	bondDenom := k.Staking.BondDenom(pCtx)
 	if amt.Denom != bondDenom {
 		return sdk.ZeroDec(), errors.ErrInvalidRequest.Wrapf("invalid coin denomination: got %s, expected %s", amt.Denom, bondDenom)
 	}
-	validator, found := k.staking.GetValidator(pCtx, valAddr)
+	validator, found := k.Staking.GetValidator(pCtx, valAddr)
 	if !found {
 		return sdk.ZeroDec(), stakingtypes.ErrNoValidatorFound
 	}
@@ -49,7 +49,7 @@ func (k Keeper) Delegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.Val
 		return sdk.ZeroDec(), err
 	}
 	// delegate virtual coins to the validator
-	newShares, err := k.staking.Delegate(
+	newShares, err := k.Staking.Delegate(
 		cacheCtx,
 		actor,
 		amt.Amount,
@@ -73,7 +73,7 @@ func (k Keeper) Undelegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.V
 	}
 
 	// Ensure staking constraints
-	bondDenom := k.staking.BondDenom(pCtx)
+	bondDenom := k.Staking.BondDenom(pCtx)
 	if amt.Denom != bondDenom {
 		return errors.ErrInvalidRequest.Wrapf("invalid coin denomination: got %s, expected %s", amt.Denom, bondDenom)
 	}
@@ -83,14 +83,14 @@ func (k Keeper) Undelegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.V
 	if totalDelegatedAmount.IsLT(amt) {
 		return errors.ErrInvalidRequest.Wrap("amount exceeds total delegated")
 	}
-	shares, err := k.staking.ValidateUnbondAmount(cacheCtx, actor, valAddr, amt.Amount)
+	shares, err := k.Staking.ValidateUnbondAmount(cacheCtx, actor, valAddr, amt.Amount)
 	if err == stakingtypes.ErrNoDelegation {
 		return nil
 	} else if err != nil {
 		return err
 	}
 
-	undelegatedCoins, err := k.staking.InstantUndelegate(cacheCtx, actor, valAddr, shares)
+	undelegatedCoins, err := k.Staking.InstantUndelegate(cacheCtx, actor, valAddr, shares)
 	if err != nil {
 		return err
 	}

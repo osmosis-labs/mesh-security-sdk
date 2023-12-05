@@ -80,7 +80,7 @@ func (k Keeper) sendAsync(ctx sdk.Context, op types.PipedValsetOperation, valAdd
 func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, error) {
 	var innerErr error
 	appendValidator := func(set *[]wasmvmtypes.Validator, valAddr sdk.ValAddress) bool {
-		val, ok := k.staking.GetValidator(ctx, valAddr)
+		val, ok := k.Staking.GetValidator(ctx, valAddr)
 		if !ok {
 			innerErr = types.ErrUnknown.Wrapf("validator %s", valAddr)
 			return true
