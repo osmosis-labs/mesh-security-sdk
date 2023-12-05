@@ -27,6 +27,35 @@ func EndBlocker(ctx sdk.Context, k *keeper.Keeper, h TaskExecutionResponseHandle
 		if err != nil {
 			return err
 		}
+		// If there was a slashing event, multiply the total slash amount by the delegator shares ratio for `contract`
+		if report.Slashed != nil {
+			for i, slash := range report.Slashed {
+				valAddr, err := sdk.ValAddressFromBech32(slash.ValidatorAddr)
+				// Get total validator shares
+				validator, found := k.Staking.GetValidator(ctx, valAddr)
+				if !found {
+					return fmt.Errorf("validator %s not found", slash.ValidatorAddr)
+				}
+				validatorShares := validator.GetDelegatorShares()
+
+				// Query the `contract` delegation
+				if err != nil {
+					return fmt.Errorf("invalid validator address %s", slash.ValidatorAddr)
+				}
+				delegation, found := k.Staking.GetDelegation(ctx, contract, valAddr)
+				if !found {
+					return fmt.Errorf("delegation for %s not found for validator %s", contract, slash.ValidatorAddr)
+				}
+				delegatorShares := delegation.GetShares()
+				totalSlashAmount, ok := sdk.NewIntFromString(slash.SlashAmount)
+				if !ok {
+					return fmt.Errorf("invalid slash amount %s", slash.SlashAmount)
+				}
+				delegatorSlashAmount := delegatorShares.Quo(validatorShares).MulInt(totalSlashAmount)
+				// Pass it to the contract
+				report.Slashed[i].SlashAmount = delegatorSlashAmount.String()
+			}
+		}
 		return k.SendValsetUpdate(ctx, contract, report)
 	}))
 	k.ClearPipedValsetOperations(ctx)
