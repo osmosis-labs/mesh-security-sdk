@@ -52,8 +52,10 @@ func EndBlocker(ctx sdk.Context, k *keeper.Keeper, h TaskExecutionResponseHandle
 					return fmt.Errorf("invalid slash amount %s", slash.SlashAmount)
 				}
 				delegatorSlashAmount := delegatorShares.Quo(validatorShares).MulInt(totalSlashAmount)
+
 				// Pass it to the contract
-				report.Slashed[i].SlashAmount = delegatorSlashAmount.String()
+				// TODO: Convert to Coin
+				report.Slashed[i].SlashAmount = delegatorSlashAmount.RoundInt().String()
 			}
 		}
 		return k.SendValsetUpdate(ctx, contract, report)
