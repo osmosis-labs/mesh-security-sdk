@@ -27,6 +27,41 @@ func EndBlocker(ctx sdk.Context, k *keeper.Keeper, h TaskExecutionResponseHandle
 		if err != nil {
 			return err
 		}
+		// If there was a slashing event, multiply the total slash amount by the delegator shares ratio for `contract`
+		if report.Slashed != nil {
+			for i, slash := range report.Slashed {
+				valAddr, err := sdk.ValAddressFromBech32(slash.ValidatorAddr)
+				if err != nil {
+					return fmt.Errorf("invalid validator address %s", slash.ValidatorAddr)
+				}
+				totalSlashAmount, ok := sdk.NewIntFromString(slash.SlashAmount)
+				if !ok {
+					return fmt.Errorf("invalid slash amount %s", slash.SlashAmount)
+				}
+				// Get total validator shares
+				validator, found := k.Staking.GetValidator(ctx, valAddr)
+				if !found {
+					return fmt.Errorf("validator %s not found", slash.ValidatorAddr)
+				}
+				validatorShares := validator.GetDelegatorShares()
+
+				delegatorSlashAmount := sdk.ZeroDec()
+				if !validatorShares.IsZero() {
+					// Query the `contract` delegation
+					delegation, found := k.Staking.GetDelegation(ctx, contract, valAddr)
+					delegatorShares := sdk.ZeroDec()
+					if found {
+						delegatorShares = delegation.GetShares()
+					}
+					delegatorSlashAmount = delegatorShares.Quo(validatorShares).MulInt(totalSlashAmount)
+				}
+
+				// Pass it to the contract
+				// FIXME? Remove entries with zero slash amounts from the Slashed array
+				// TODO: Convert to Coin
+				report.Slashed[i].SlashAmount = delegatorSlashAmount.RoundInt().String()
+			}
+		}
 		return k.SendValsetUpdate(ctx, contract, report)
 	}))
 	k.ClearPipedValsetOperations(ctx)

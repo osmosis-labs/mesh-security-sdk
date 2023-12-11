@@ -41,7 +41,7 @@ func (g querier) VirtualStakingMaxCapLimits(goCtx context.Context, req *types.Qu
 		info := types.VirtualStakingMaxCapInfo{
 			Contract:  addr.String(),
 			Delegated: g.k.GetTotalDelegated(ctx, addr),
-			Cap:       sdk.NewCoin(g.k.staking.BondDenom(ctx), maxCap),
+			Cap:       sdk.NewCoin(g.k.Staking.BondDenom(ctx), maxCap),
 		}
 
 		rsp.MaxCapInfos = append(rsp.MaxCapInfos, info)

@@ -34,7 +34,7 @@ func TestSendAsync(t *testing.T) {
 	}{
 		"no duplicates": {
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.sendAsync(ctx, types.ValidatorModified, myValAddr))
+				require.NoError(t, k.sendAsync(ctx, types.ValidatorModified, myValAddr, nil))
 			},
 			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]types.PipedValsetOperation) {
 				assert.Len(t, ops, 1)
@@ -44,7 +44,7 @@ func TestSendAsync(t *testing.T) {
 		},
 		"separated by validator": {
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.sendAsync(ctx, types.ValidatorModified, myOtherValAddr))
+				require.NoError(t, k.sendAsync(ctx, types.ValidatorModified, myOtherValAddr, nil))
 			},
 			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]types.PipedValsetOperation) {
 				assert.Len(t, ops, 2)
@@ -55,7 +55,7 @@ func TestSendAsync(t *testing.T) {
 		},
 		"separated by type": {
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.sendAsync(ctx, types.ValidatorBonded, myValAddr))
+				require.NoError(t, k.sendAsync(ctx, types.ValidatorBonded, myValAddr, nil))
 			},
 			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]types.PipedValsetOperation) {
 				assert.Len(t, ops, 1)
@@ -95,7 +95,7 @@ func TestSendAsync(t *testing.T) {
 			ctx, _ := pCtx.CacheContext()
 			spec.setup(t, ctx)
 			// when
-			gotErr := k.sendAsync(ctx, types.ValidatorModified, myValAddr)
+			gotErr := k.sendAsync(ctx, types.ValidatorModified, myValAddr, nil)
 			// then
 			require.NoError(t, gotErr)
 			allStoredOps := FetchAllStoredOperations(t, ctx, k)
@@ -142,7 +142,7 @@ func TestBuildValsetUpdateReport(t *testing.T) {
 	})
 
 	for _, v := range allOps {
-		require.NoError(t, k.sendAsync(ctx, v.op, v.valAddr))
+		require.NoError(t, k.sendAsync(ctx, v.op, v.valAddr, nil))
 	}
 	// when
 	got, err := k.ValsetUpdateReport(ctx)
@@ -180,6 +180,7 @@ func TestBuildValsetUpdateReport(t *testing.T) {
 		},
 		Jailed:     []contract.ValidatorAddr{val1.String(), val3.String()},
 		Unjailed:   []contract.ValidatorAddr{val2.String()},
+		Slashed:    []contract.ValidatorSlash{},
 		Tombstoned: []contract.ValidatorAddr{val3.String()},
 	}
 	assert.Equal(t, exp, got)
@@ -196,13 +197,13 @@ func TestValsetUpdateReportErrors(t *testing.T) {
 	}{
 		"unknown val address": {
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.sendAsync(ctx, types.ValidatorBonded, nonValAddr))
+				require.NoError(t, k.sendAsync(ctx, types.ValidatorBonded, nonValAddr, nil))
 			},
 			expErr: types.ErrUnknown,
 		},
 		"unsupported val operation": {
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.sendAsync(ctx, 0xff, nonValAddr))
+				require.NoError(t, k.sendAsync(ctx, 0xff, nonValAddr, nil))
 			},
 			expErr: types.ErrInvalid,
 		},
@@ -222,9 +223,9 @@ func TestValsetUpdateReportErrors(t *testing.T) {
 func TestClearPipedValsetOperations(t *testing.T) {
 	ctx, keepers := CreateDefaultTestInput(t)
 	k := keepers.MeshKeeper
-	err := k.sendAsync(ctx, types.ValidatorModified, rand.Bytes(address.Len))
+	err := k.sendAsync(ctx, types.ValidatorModified, rand.Bytes(address.Len), nil)
 	require.NoError(t, err)
-	err = k.sendAsync(ctx, types.ValidatorUnjailed, rand.Bytes(address.Len))
+	err = k.sendAsync(ctx, types.ValidatorUnjailed, rand.Bytes(address.Len), nil)
 	require.NoError(t, err)
 	// when
 	k.ClearPipedValsetOperations(ctx)

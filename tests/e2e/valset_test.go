@@ -110,7 +110,7 @@ func TestValsetTransitions(t *testing.T) {
 				t.Log("Add new validator")
 				otherOperator := secp256k1.GenPrivKey()
 				x.ConsumerChain.Fund(sdk.AccAddress(otherOperator.PubKey().Address()), sdkmath.NewInt(1_000_000_000))
-				CreateNewValidator(t, otherOperator, x.ConsumerChain, 200) // add a now val to fill the slot
+				CreateNewValidator(t, otherOperator, x.ConsumerChain, 200) // add a new val to fill the slot
 				x.ConsumerChain.NextBlock()
 				require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
 

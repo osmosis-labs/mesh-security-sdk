@@ -298,7 +298,7 @@ func CreateDefaultTestInput(t testing.TB, opts ...Option) (sdk.Context, TestKeep
 // FetchAllStoredOperations load all ops from temp db
 func FetchAllStoredOperations(t *testing.T, ctx sdk.Context, msKeeper *Keeper) map[string][]types.PipedValsetOperation {
 	index := make(map[string][]types.PipedValsetOperation, 1)
-	err := msKeeper.iteratePipedValsetOperations(ctx, func(valAddr sdk.ValAddress, op types.PipedValsetOperation) bool {
+	err := msKeeper.iteratePipedValsetOperations(ctx, func(valAddr sdk.ValAddress, op types.PipedValsetOperation, slashInfo *types.SlashInfo) bool {
 		ops, ok := index[valAddr.String()]
 		if !ok {
 			ops = []types.PipedValsetOperation{}
