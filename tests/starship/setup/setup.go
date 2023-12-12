@@ -71,10 +71,12 @@ type ProviderContracts struct {
 
 func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) (*ProviderContracts, error) {
 	var (
-		unbondingPeriod  = 100 // 21 days - make configurable?
-		maxLocalSlashing = "0.10"
-		maxExtSlashing   = "0.05"
-		localTokenDenom  = p.Chain.Denom
+		unbondingPeriod           = 100 // 21 days - make configurable?
+		localSlashRatioDoubleSign = "0.20"
+		localSlashRatioOffline    = "0.10"
+		extSlashRatioDoubleSign   = "0.20"
+		extSlashRatioOffline      = "0.10"
+		localTokenDenom           = p.Chain.Denom
 	)
 	vaultCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_vault.wasm", p.wasmContractGZipped))
 	if err != nil {
@@ -89,7 +91,7 @@ func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) 
 	nativeStakingCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_native_staking.wasm", p.wasmContractGZipped))
 	nativeStakingCodeID := nativeStakingCodeResp.CodeID
 
-	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d, "max_slashing": %q}`, localTokenDenom, proxyCodeID, maxLocalSlashing))
+	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d, "slash_ratio_dsign": %q, "slash_ratio_offline": %q }`, localTokenDenom, proxyCodeID, localSlashRatioDoubleSign, localSlashRatioOffline))
 	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, localTokenDenom, nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
 	contracts, err := InstantiateContract(p.Chain, vaultCodeID, "provider-valut-contract", initMsg)
 	if err != nil {
@@ -106,8 +108,8 @@ func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) 
 	}
 	extStakingCodeID := extStaking.CodeID
 	initMsg = []byte(fmt.Sprintf(
-		`{"remote_contact": {"connection_id":%q, "port_id":%q}, "denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q, "max_slashing": %q }`,
-		connId, portID, localTokenDenom, vaultContract, unbondingPeriod, rewardDenom, maxExtSlashing))
+		`{"remote_contact": {"connection_id":%q, "port_id":%q}, "denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q, "slash_ratio": { "double_sign": %q, "offline": %q } }`,
+		connId, portID, localTokenDenom, vaultContract, unbondingPeriod, rewardDenom, extSlashRatioDoubleSign, extSlashRatioOffline))
 	externalStakingContracts, err := InstantiateContract(p.Chain, extStakingCodeID, "provider-external-staking-contract", initMsg)
 	if err != nil {
 		return nil, err
