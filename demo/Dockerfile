@@ -20,7 +20,7 @@ COPY . /code
 # force it to use static lib (from above) not standard libgo_cosmwasm.so file
 # then log output of file /code/bin/meshd
 # then ensure static linking
-RUN LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build-vendored \
+RUN LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build \
   && file /code/build/meshd \
   && echo "Ensuring binary is statically linked ..." \
   && (file /code/build/meshd | grep "statically linked")
