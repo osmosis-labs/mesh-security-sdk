@@ -1,8 +1,8 @@
 chains:
   - name: mesh-1
     type: custom
-    numValidators: 2
-    image: ghcr.io/osmosis-labs/meshd:latest
+    numValidators: 1
+    image: anmol1696/meshd:latest-amd64
     home: /root/.meshd
     binary: meshd
     prefix: mesh
@@ -32,8 +32,8 @@ chains:
         memory: 1Gi
   - name: mesh-2
     type: custom
-    numValidators: 2
-    image: ghcr.io/osmosis-labs/meshd:latest
+    numValidators: 1
+    image: anmol1696/meshd:latest-amd64
     home: /root/.meshd
     binary: meshd
     prefix: mesh
