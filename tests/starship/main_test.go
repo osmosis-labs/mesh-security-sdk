@@ -59,7 +59,7 @@ func AssertShare(t *testing.T, p *setup.ConsumerClient, val string, exp math.Leg
 
 func TestMain(m *testing.M) {
 	flag.StringVar(&wasmContractPath, "contracts-path", "../testdata", "Set path to dir with gzipped wasm contracts")
-	flag.BoolVar(&wasmContractGZipped, "gzipped", true, "Use `.gz` file ending when set")
+	flag.BoolVar(&wasmContractGZipped, "gzipped", false, "Use `.gz` file ending when set")
 	flag.StringVar(&configFile, "config", "configs/local.yaml", "starship config file for the infra")
 	flag.StringVar(&providerChain, "provider-chain", "mesh-1", "provider chain name, from config file")
 	flag.StringVar(&consumerChain, "consumer-chain", "mesh-2", "consumer chain name, from config file")
