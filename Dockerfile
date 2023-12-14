@@ -28,7 +28,7 @@ RUN cd demo/ && LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make 
 # --------------------------------------------------------
 FROM alpine:3.16
 
-COPY --from=go-builder /code/build/meshd /usr/bin/meshd
+COPY --from=go-builder /code/demo/build/meshd /usr/bin/meshd
 
 # Install dependencies used for Starship
 RUN apk add --no-cache curl make bash jq sed
