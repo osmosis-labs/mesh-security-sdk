@@ -21,9 +21,9 @@ COPY . /code
 # then log output of file /code/bin/meshd
 # then ensure static linking
 RUN cd demo/ && LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build \
-  && file /code/build/meshd \
+  && file /code/demo/build/meshd \
   && echo "Ensuring binary is statically linked ..." \
-  && (file /code/build/meshd | grep "statically linked")
+  && (file /code/demo/build/meshd | grep "statically linked")
 
 # --------------------------------------------------------
 FROM alpine:3.16
