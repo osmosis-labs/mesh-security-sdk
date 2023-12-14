@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine AS go-builder
+FROM golang:1.21-alpine3.18 AS go-builder
 
 RUN apk add --no-cache ca-certificates build-base git
 
@@ -26,7 +26,7 @@ RUN cd demo/ && LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make 
   && (file /code/demo/build/meshd | grep "statically linked")
 
 # --------------------------------------------------------
-FROM alpine:3.16
+FROM alpine:3.18
 
 COPY --from=go-builder /code/demo/build/meshd /usr/bin/meshd
 

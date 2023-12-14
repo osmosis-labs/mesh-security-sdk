@@ -183,7 +183,7 @@ func (c *Client) WaitForTx(t *testing.T, txHex string) {
 			return false
 		},
 		300*time.Second,
-		time.Second,
+		5*time.Second,
 		"waited for too long, still txn not successful",
 	)
 	require.NotNil(t, tx)

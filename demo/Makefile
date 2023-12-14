@@ -78,7 +78,7 @@ ifeq ($(OS),Windows_NT)
 	$(error mesh demo server not supported)
 	exit 1
 else
-	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILD_DIR)/$(APPNAME) ./cmd/meshd
+	CGO_ENABLED=0 go build -mod=readonly $(BUILD_FLAGS) -o $(BUILD_DIR)/$(APPNAME) ./cmd/meshd
 endif
 
 build-vendored:

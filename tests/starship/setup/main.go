@@ -64,7 +64,7 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 	if err != nil {
 		return nil, nil, err
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	// get ibc denom from account balance
 	coins, err := GetBalance(providerClient, providerClient.Address)
