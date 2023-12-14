@@ -105,6 +105,7 @@ func voteAndPassGovProposal(chain *Client, proposalID uint64) error {
 }
 
 func InstantiateContract(chain *Client, codeID uint64, label string, initMsg []byte, funds ...sdk.Coin) (map[uint64]string, error) {
+	fmt.Printf("instantiating contract with id: %v, label: %v, chain: %v\n", codeID, label, chain.ChainID)
 	instantiateMsg := &wasmtypes.MsgInstantiateContract{
 		Sender: chain.Address,
 		Admin:  chain.Address,
@@ -146,6 +147,7 @@ func InstantiateContract(chain *Client, codeID uint64, label string, initMsg []b
 }
 
 func StoreCodeFile(chain *Client, filename string) (wasmtypes.MsgStoreCodeResponse, error) {
+	fmt.Printf("storecode file: %s chain: %s \n", filename, chain.ChainID)
 	var resp wasmtypes.MsgStoreCodeResponse
 	wasmCode, err := os.ReadFile(filename)
 	if err != nil {

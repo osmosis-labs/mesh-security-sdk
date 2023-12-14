@@ -64,7 +64,7 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 	if err != nil {
 		return nil, nil, err
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	// get ibc denom from account balance
 	coins, err := GetBalance(providerClient, providerClient.Address)
@@ -87,6 +87,7 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 	if err != nil {
 		return nil, nil, err
 	}
+	fmt.Println("done with bootstrapping consumer")
 	converterPortID := portIDForContract(consumerContracts.Converter)
 	providerCli := NewProviderClient(providerClient, wasmContractPath, wasmContractGZipped)
 
@@ -103,6 +104,7 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 	if err != nil {
 		return nil, nil, err
 	}
+	fmt.Println("done with bootstrapping provider")
 
 	// create channel between 2 chains for the given port and channel
 	cmdRunner, err := NewCmdRunner(zap.L(), config)

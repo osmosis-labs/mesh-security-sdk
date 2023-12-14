@@ -1,7 +1,7 @@
 chains:
   - name: mesh-1
     type: custom
-    numValidators: 2
+    numValidators: 1
     image: ghcr.io/osmosis-labs/meshd:latest
     home: /root/.meshd
     binary: meshd
@@ -32,7 +32,7 @@ chains:
         memory: 1Gi
   - name: mesh-2
     type: custom
-    numValidators: 2
+    numValidators: 1
     image: ghcr.io/osmosis-labs/meshd:latest
     home: /root/.meshd
     binary: meshd
@@ -86,3 +86,12 @@ explorer:
   enabled: true
   ports:
     rest: 8080
+
+timeouts:
+  timeout_propose: 3000ms
+  timeout_propose_delta: 500ms
+  timeout_prevote: 1000ms
+  timeout_prevote_delta: 500ms
+  timeout_precommit: 1000ms
+  timeout_precommit_delta: 500ms
+  timeout_commit: 5000ms
