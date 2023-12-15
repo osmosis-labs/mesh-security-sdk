@@ -27,9 +27,12 @@ chains:
       cpu: 1
       memory: 2Gi
     faucet:
+      enabled: true
+      type: starship
+      image: "ghcr.io/cosmology-tech/starship/faucet:20231201-bbb7d2a"
       resources:
-        cpu: 0.5
-        memory: 1Gi
+        cpu: "0.5"
+        memory: "1Gi"
   - name: mesh-2
     type: custom
     numValidators: 1
@@ -58,9 +61,15 @@ chains:
       cpu: 1
       memory: 2Gi
     faucet:
+      enabled: true
+      type: starship
+      image: "ghcr.io/cosmology-tech/starship/faucet:20231201-bbb7d2a"
       resources:
-        cpu: 0.5
-        memory: 1Gi
+        cpu: "0.5"
+        memory: "1Gi"
+
+faucet:
+  enabled: false
 
 relayers:
   - name: mesh-1-mesh-2

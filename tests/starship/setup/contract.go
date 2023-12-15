@@ -202,7 +202,7 @@ func StoreCode(chain *Client, byteCode []byte) (wasmtypes.MsgStoreCodeResponse, 
 		}
 	}
 
-	fmt.Printf("response for storeCodeID: %v\n", resp.CodeID)
+	fmt.Printf("response for storeCodeID: %v, response: %v\n", resp.CodeID, resp)
 
 	return resp, nil
 }
