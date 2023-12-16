@@ -24,15 +24,15 @@ chains:
       rpc: 26653
       faucet: 8003
     resources:
-      cpu: 1
-      memory: 2Gi
+      cpu: "0.5"
+      memory: 1Gi
     faucet:
       enabled: true
       type: starship
-      image: "ghcr.io/cosmology-tech/starship/faucet:20231201-bbb7d2a"
+      image: "ghcr.io/cosmology-tech/starship/faucet:20231215-7c22b86"
       resources:
-        cpu: "0.5"
-        memory: "1Gi"
+        cpu: "0.2"
+        memory: "400Mi"
   - name: mesh-2
     type: custom
     numValidators: 1
@@ -58,18 +58,15 @@ chains:
       rpc: 26657
       faucet: 8007
     resources:
-      cpu: 1
-      memory: 2Gi
+      cpu: "0.5"
+      memory: 1Gi
     faucet:
       enabled: true
       type: starship
-      image: "ghcr.io/cosmology-tech/starship/faucet:20231201-bbb7d2a"
+      image: "ghcr.io/cosmology-tech/starship/faucet:20231215-7c22b86"
       resources:
-        cpu: "0.5"
-        memory: "1Gi"
-
-faucet:
-  enabled: false
+        cpu: "0.2"
+        memory: "400Mi"
 
 relayers:
   - name: mesh-1-mesh-2
@@ -83,16 +80,17 @@ relayers:
       event_source:
         mode: pull
     resources:
-      cpu: 1
-      memory: 2Gi
+      cpu: "0.5"
+      memory: 1Gi
 
 registry:
   enabled: true
+  image: ghcr.io/cosmology-tech/starship/registry:20231215-7c22b86
   ports:
     rest: 8081
 
 explorer:
-  enabled: true
+  enabled: false
   ports:
     rest: 8080
 
