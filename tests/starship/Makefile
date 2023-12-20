@@ -29,7 +29,7 @@ FILE = configs/local.yaml
 
 HELM_REPO = starship
 HELM_CHART = devnet
-HELM_VERSION = v0.1.47
+HELM_VERSION = v0.1.48-rc0
 
 .PHONY: check
 setup-deps:

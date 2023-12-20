@@ -9,7 +9,6 @@ import (
 	"time"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	_ "github.com/cosmology-tech/starship/clients/go/client"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -67,6 +66,34 @@ type ProviderContracts struct {
 	Vault                 string
 	NativeStakingContract string
 	ExternalStaking       string
+}
+
+func (p *ProviderClient) StoreContracts() ([]uint64, error) {
+	vaultCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_vault.wasm", p.wasmContractGZipped))
+	if err != nil {
+		return nil, err
+	}
+	vaultCodeID := vaultCodeResp.CodeID
+	time.Sleep(6 * time.Second)
+
+	proxyCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_native_staking_proxy.wasm", p.wasmContractGZipped))
+	if err != nil {
+		return nil, err
+	}
+	proxyCodeID := proxyCodeResp.CodeID
+	time.Sleep(6 * time.Second)
+
+	nativeStakingCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_native_staking.wasm", p.wasmContractGZipped))
+	nativeStakingCodeID := nativeStakingCodeResp.CodeID
+
+	// external Staking
+	extStaking, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_external_staking.wasm", p.wasmContractGZipped))
+	if err != nil {
+		return nil, err
+	}
+	time.Sleep(6 * time.Second)
+
+	return []uint64{extStaking.CodeID, nativeStakingCodeID, proxyCodeID, vaultCodeID}, nil
 }
 
 func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) (*ProviderContracts, error) {
@@ -247,6 +274,33 @@ type ConsumerContract struct {
 	Staking   string
 	PriceFeed string
 	Converter string
+}
+
+func (p *ConsumerClient) StoreContracts() ([]uint64, error) {
+	code, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_simple_price_feed.wasm", p.wasmContractGZipped))
+	if err != nil {
+		return nil, err
+	}
+	codeID := code.CodeID
+	time.Sleep(6 * time.Second)
+
+	// virtual Staking is setup by the consumer
+	virtStakeCode, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_virtual_staking.wasm", p.wasmContractGZipped))
+	if err != nil {
+		return nil, err
+	}
+	virtStakeCodeID := virtStakeCode.CodeID
+	time.Sleep(6 * time.Second)
+
+	// instantiate Converter
+	converterCode, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_converter.wasm", p.wasmContractGZipped))
+	if err != nil {
+		return nil, err
+	}
+	converterCodeID := converterCode.CodeID
+	time.Sleep(6 * time.Second)
+
+	return []uint64{codeID, virtStakeCodeID, converterCodeID}, nil
 }
 
 func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContract, error) {

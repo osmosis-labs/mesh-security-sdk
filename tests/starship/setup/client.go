@@ -8,7 +8,6 @@ import (
 	"time"
 
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
-	starship "github.com/cosmology-tech/starship/clients/go/client"
 	pb "github.com/cosmology-tech/starship/registry/registry"
 	"github.com/cosmos/go-bip39"
 	lens "github.com/strangelove-ventures/lens/client"
@@ -23,18 +22,18 @@ import (
 
 type Client struct {
 	Logger *zap.Logger
-	Config *starship.Config
+	Config *Config
 
 	Name           string
 	Address        string
 	ChainID        string
 	Denom          string
-	StarshipClient *starship.ChainClient
+	StarshipClient *ChainClient
 	ChainConfig    *lens.ChainClientConfig
 	Client         *lens.ChainClient
 }
 
-func NewClient(name string, logger *zap.Logger, starshipClient *starship.ChainClient, modulesBasics []module.AppModuleBasic) (*Client, error) {
+func NewClient(name string, logger *zap.Logger, starshipClient *ChainClient, modulesBasics []module.AppModuleBasic) (*Client, error) {
 	// fetch Chain registry from the local registry
 	registry, err := starshipClient.GetChainRegistry()
 	if err != nil {

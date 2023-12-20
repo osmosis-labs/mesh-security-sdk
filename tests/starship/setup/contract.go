@@ -154,20 +154,19 @@ func StoreCodeFile(chain *Client, filename string) (wasmtypes.MsgStoreCodeRespon
 		return resp, err
 	}
 
-	if !strings.HasSuffix(filename, "wasm") {
-		return StoreCode(chain, wasmCode)
+	if strings.HasSuffix(filename, "wasm") {
+		var buf bytes.Buffer
+		gz := gzip.NewWriter(&buf)
+		_, err := gz.Write(wasmCode)
+		if err != nil {
+			return resp, err
+		}
+		err = gz.Close()
+		if err != nil {
+			return resp, err
+		}
+		wasmCode = buf.Bytes()
 	}
-
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-
-	if _, err = gz.Write(wasmCode); err != nil {
-		return resp, err
-	}
-	if err := gz.Close(); err != nil {
-		return resp, err
-	}
-	wasmCode = buf.Bytes()
 
 	return StoreCode(chain, wasmCode)
 }
@@ -177,10 +176,10 @@ func StoreCode(chain *Client, byteCode []byte) (wasmtypes.MsgStoreCodeResponse, 
 	var resp wasmtypes.MsgStoreCodeResponse
 
 	storeMsg := &wasmtypes.MsgStoreCode{
-		Sender:       chain.Address,
+		Sender:       chain.StarshipClient.Address,
 		WASMByteCode: byteCode,
 	}
-	r, err := chain.Client.SendMsg(context.Background(), storeMsg, "")
+	r, err := chain.StarshipClient.SendMsg(context.Background(), storeMsg, "")
 	if err != nil {
 		return resp, err
 	}

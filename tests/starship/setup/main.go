@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	starship "github.com/cosmology-tech/starship/clients/go/client"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
@@ -22,20 +21,75 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
+func JustContracts(provider, consumer, configFile, wasmContractPath string, wasmContractGZipped bool) error {
+	// read config file from yaml
+	yamlFile, err := os.ReadFile(configFile)
+	if err != nil {
+		return err
+	}
+	config := &Config{}
+	err = yaml.Unmarshal(yamlFile, config)
+	if err != nil {
+		return err
+	}
+
+	// create Chain clients
+	chainClients, err := NewChainClients(zap.L(), config)
+	if err != nil {
+		return err
+	}
+
+	var (
+		consumerChain, _ = chainClients.GetChainClient(consumer)
+		providerChain, _ = chainClients.GetChainClient(provider)
+	)
+
+	// create lens Client for the provider and consumer chains
+	mm := []module.AppModuleBasic{}
+	for _, am := range app.ModuleBasics {
+		mm = append(mm, am)
+	}
+	consumerClient, err := NewClient(fmt.Sprintf("consume-client-%s", consumer), zap.L(), consumerChain, mm)
+	if err != nil {
+		return err
+	}
+	providerClient, err := NewClient(fmt.Sprintf("provider-client-%s", provider), zap.L(), providerChain, mm)
+	if err != nil {
+		return err
+	}
+
+	// setup Contracts on both chains
+	consumerCli := NewConsumerClient(consumerClient, wasmContractPath, wasmContractGZipped)
+	consumerContracts, err := consumerCli.StoreContracts()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("consumer contracts: %v\n", consumerContracts)
+
+	providerCli := NewProviderClient(providerClient, wasmContractPath, wasmContractGZipped)
+	providerContracts, err := providerCli.StoreContracts()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("provider contracts: %v\n", providerContracts)
+
+	return nil
+}
+
 func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmContractGZipped bool) (*ProviderClient, *ConsumerClient, error) {
 	// read config file from yaml
 	yamlFile, err := os.ReadFile(configFile)
 	if err != nil {
 		return nil, nil, err
 	}
-	config := &starship.Config{}
+	config := &Config{}
 	err = yaml.Unmarshal(yamlFile, config)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// create Chain clients
-	chainClients, err := starship.NewChainClients(zap.L(), config)
+	chainClients, err := NewChainClients(zap.L(), config)
 	if err != nil {
 		return nil, nil, err
 	}
