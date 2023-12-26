@@ -1,6 +1,6 @@
 FROM golang:1.21-bullseye AS go-builder
 
-RUN apt-get update && apt-get install -y ca-certificates build-base git
+RUN apt-get update && apt-get install -y ca-certificates wget git
 
 WORKDIR /code
 
