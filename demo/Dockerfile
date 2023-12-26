@@ -1,6 +1,6 @@
 FROM golang:1.21-bullseye AS go-builder
 
-RUN apt-get update && apt-get install -y ca-certificates wget git clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev build-essential cmake
+RUN apt-get update && apt-get install -y ca-certificates wget git clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev build-essential cmake make bash jq sed
 
 WORKDIR /code
 
@@ -20,22 +20,5 @@ COPY . /code
 # force it to use static lib (from above) not standard libgo_cosmwasm.so file
 # then log output of file /code/bin/meshd
 # then ensure static linking
-RUN LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build-vendored \
-  && file /code/build/meshd \
-  && echo "Ensuring binary is statically linked ..." \
-  && (file /code/build/meshd | grep "statically linked")
-
-# --------------------------------------------------------
-FROM debian:bullseye
-
-COPY --from=go-builder /code/build/meshd /usr/bin/meshd
-
-# Install dependencies used for Starship
-RUN apt-get update && apt-get install -y curl make bash jq sed
-
-WORKDIR /opt
-
-# rest server, tendermint p2p, tendermint rpc
-EXPOSE 1317 26656 26657
-
-CMD ["/usr/bin/meshd", "version"]
+RUN LEDGER_ENABLED=false BUILD_TAGS=muslc make build-vendored
+  && file /code/build/meshd
