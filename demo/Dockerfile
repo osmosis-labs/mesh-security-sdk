@@ -1,6 +1,6 @@
 FROM golang:1.21-bookworm AS go-builder
 
-RUN apt-get update && apt-get install -y ca-certificates wget make gcc build-essential git muslc-dev
+RUN apt-get update && apt-get install -y ca-certificates wget make gcc build-essential git
 
 WORKDIR /code
 
