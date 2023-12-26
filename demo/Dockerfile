@@ -1,6 +1,6 @@
-FROM golang:1.21-alpine AS go-builder
+FROM golang:1.21-bullseye AS go-builder
 
-RUN apk add --no-cache ca-certificates build-base git
+RUN apt-get update && apt-get install -y ca-certificates build-base git
 
 WORKDIR /code
 
@@ -26,12 +26,12 @@ RUN LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build-vendor
   && (file /code/build/meshd | grep "statically linked")
 
 # --------------------------------------------------------
-FROM alpine:3.16
+FROM debian:bullseye
 
 COPY --from=go-builder /code/build/meshd /usr/bin/meshd
 
 # Install dependencies used for Starship
-RUN apk add --no-cache curl make bash jq sed
+RUN apt-get update && apt-get install -y curl make bash jq sed
 
 WORKDIR /opt
 
