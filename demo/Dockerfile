@@ -1,6 +1,6 @@
-FROM golang:1.21-buster AS go-builder
+FROM golang:1.21-bookworm AS go-builder
 
-RUN apt-get update && apt-get install -y ca-certificates wget make gcc build-essential git
+RUN apt-get update && apt-get install -y ca-certificates wget make gcc build-essential git muslc-dev
 
 WORKDIR /code
 
@@ -26,7 +26,7 @@ RUN LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build-vendor
   && (file /code/build/meshd | grep "statically linked")
 
 # --------------------------------------------------------
-FROM debian:buster
+FROM debian:bookworm
 
 COPY --from=go-builder /code/build/meshd /usr/bin/meshd
 
