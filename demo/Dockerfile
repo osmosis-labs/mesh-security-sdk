@@ -1,6 +1,6 @@
 FROM golang:1.21-bullseye AS go-builder
 
-RUN apt-get update && apt-get install -y ca-certificates wget git build-essential libssl-dev zlib1g-dev libc6 gcc musl-dev openssl-dev linux-headers
+RUN apt-get update && apt-get install -y ca-certificates wget git build-essential libssl-dev zlib1g-dev libc6 gcc musl-dev openssl-dev
 
 WORKDIR /code
 
