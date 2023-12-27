@@ -27,7 +27,7 @@ jobs:
 
     env:
       DOCKER_REGISTRY: ghcr.io
-      DOCKER_IMAGE: osmosis-labs/meshd
+      DOCKER_IMAGE: osmosis-labs/meshd-debian
 
     steps:
       - name: Checkout
