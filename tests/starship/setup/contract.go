@@ -176,10 +176,11 @@ func StoreCode(chain *Client, byteCode []byte) (wasmtypes.MsgStoreCodeResponse, 
 	var resp wasmtypes.MsgStoreCodeResponse
 
 	storeMsg := &wasmtypes.MsgStoreCode{
-		Sender:       chain.StarshipClient.Address,
+		Sender:       chain.Address,
 		WASMByteCode: byteCode,
 	}
-	r, err := chain.StarshipClient.SendMsg(context.Background(), storeMsg, "")
+
+	r, err := chain.Client.SendMsg(context.Background(), storeMsg, "")
 	if err != nil {
 		return resp, err
 	}

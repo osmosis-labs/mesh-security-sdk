@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
 	"net/http"
 	"os"
 
@@ -75,6 +77,11 @@ func NewChainClient(logger *zap.Logger, config *Config, chainID string) (*ChainC
 		return nil, err
 	}
 
+	modules := []module.AppModuleBasic{}
+	for _, m := range app.ModuleBasics {
+		modules = append(modules, m)
+	}
+
 	ccc := &lens.ChainClientConfig{
 		ChainID:        chainID,
 		RPCAddr:        cc.GetRPCAddr(),
@@ -87,7 +94,7 @@ func NewChainClient(logger *zap.Logger, config *Config, chainID string) (*ChainC
 		GasPrices:      fmt.Sprintf("%f%s", registry.Fees.FeeTokens[0].HighGasPrice, registry.Fees.FeeTokens[0].Denom),
 		MinGasAmount:   10000,
 		Slip44:         int(registry.Slip44),
-		Modules:        lens.ModuleBasics,
+		Modules:        modules,
 	}
 
 	client, err := lens.NewChainClient(logger, ccc, os.Getenv("HOME"), os.Stdin, os.Stdout)
