@@ -1,7 +1,6 @@
-FROM golang:1.21-bookworm AS go-builder
+FROM golang:1.20-alpine3.17 AS go-builder
 
-RUN apt-get update && \
-    apt-get install -y ca-certificates wget make git file libc6-dev clang gcc build-essential
+RUN set -eux; apk add --no-cache ca-certificates build-base git wget;
 
 WORKDIR /code
 
@@ -21,14 +20,13 @@ COPY . /code
 # force it to use static lib (from above) not standard libgo_cosmwasm.so file
 # then log output of file /code/bin/meshd
 # then ensure static linking
-RUN go env
 RUN cd demo/ && LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build \
   && file /code/demo/build/meshd \
   && echo "Ensuring binary is statically linked ..." \
   && (file /code/demo/build/meshd | grep "statically linked")
 
 # --------------------------------------------------------
-FROM debian:bookworm
+FROM alpine3.17
 
 COPY --from=go-builder /code/demo/build/meshd /usr/bin/meshd
 
