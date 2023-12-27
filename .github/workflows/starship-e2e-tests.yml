@@ -50,7 +50,7 @@ jobs:
           make test
 
       - name: Run Tests (retry on failure)
-        if: steps.run-tests.outcome == 'failure'
+        if: failure() && steps.run-tests.outcome == 'failure'
         run: |
           cd tests/starship/
           make test
