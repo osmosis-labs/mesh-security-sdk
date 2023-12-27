@@ -21,7 +21,7 @@ COPY . /code
 # force it to use static lib (from above) not standard libgo_cosmwasm.so file
 # then log output of file /code/bin/meshd
 # then ensure static linking
-ENV CGO_LDFLAGS -Wl,--no-as-needed
+RUN go env
 RUN cd demo/ && LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build \
   && file /code/demo/build/meshd \
   && echo "Ensuring binary is statically linked ..." \
