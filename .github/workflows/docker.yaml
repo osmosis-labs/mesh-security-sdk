@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - anmol/docker-debian
     tags:
       - "v*.*.*"
   pull_request:
@@ -44,6 +45,7 @@ jobs:
         with:
           images: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_IMAGE }}
           tags: |
+            type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern=v{{major}}.{{minor}}
             type=semver,pattern={{version}},value=v${{ inputs.tags }},enable=${{ inputs.tags != '' }}
