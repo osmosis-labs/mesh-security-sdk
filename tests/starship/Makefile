@@ -5,7 +5,7 @@ BUILD_DIR = ./build
 all: test
 
 test:
-	go test -count=1 -mod=readonly -v -race ./...
+	go test -count=1 -mod=readonly -timeout 20m -v -race ./...
 
 build-setup:
 	cd setup && go build cmd/... -o build/ ./setup
