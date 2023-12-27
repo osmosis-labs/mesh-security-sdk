@@ -1,8 +1,6 @@
 module github.com/osmosis-labs/mesh-security-sdk/tests/e2e
 
-go 1.21
-
-toolchain go1.21.0
+go 1.20
 
 require (
 	github.com/CosmWasm/wasmd v0.45.0
