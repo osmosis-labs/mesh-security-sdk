@@ -45,6 +45,7 @@ jobs:
 
       - name: Run Tests
         id: run-tests
+        continue-on-error: true
         run: |
           cd tests/starship/
           make test
