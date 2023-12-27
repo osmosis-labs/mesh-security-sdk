@@ -1,6 +1,8 @@
 FROM golang:1.21-bookworm AS go-builder
 
-RUN apt-get update && apt-get install -y ca-certificates wget make gcc build-essential git file libc6-dev
+RUN apt-get update && \
+    apt install -y clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev build-essential cmake && \
+    apt-get install -y ca-certificates wget make git file libc6-dev
 
 WORKDIR /code
 
