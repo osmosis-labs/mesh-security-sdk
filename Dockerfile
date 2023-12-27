@@ -1,8 +1,7 @@
 FROM golang:1.21-bookworm AS go-builder
 
 RUN apt-get update && \
-    apt install -y clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev build-essential cmake && \
-    apt-get install -y ca-certificates wget make git file libc6-dev
+    apt-get install -y ca-certificates wget make git file libc6-dev clang gcc build-essential
 
 WORKDIR /code
 
@@ -22,7 +21,8 @@ COPY . /code
 # force it to use static lib (from above) not standard libgo_cosmwasm.so file
 # then log output of file /code/bin/meshd
 # then ensure static linking
-RUN cd demo/ && LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build || true \
+ENV CGO_LDFLAGS -Wl,--no-as-needed
+RUN cd demo/ && LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build \
   && file /code/demo/build/meshd \
   && echo "Ensuring binary is statically linked ..." \
   && (file /code/demo/build/meshd | grep "statically linked")
