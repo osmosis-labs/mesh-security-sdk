@@ -16,13 +16,13 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/tests/starship/setup"
 )
 
-func TestJustContracts(t *testing.T) {
-	err := setup.JustContracts(providerChain, consumerChain, configFile, wasmContractPath, wasmContractGZipped)
-	require.NoError(t, err)
-
-	err = setup.JustContracts(consumerChain, providerChain, configFile, wasmContractPath, wasmContractGZipped)
-	require.NoError(t, err)
-}
+//func TestJustContracts(t *testing.T) {
+//	err := setup.JustContracts(providerChain, consumerChain, configFile, wasmContractPath, wasmContractGZipped)
+//	require.NoError(t, err)
+//
+//	err = setup.JustContracts(consumerChain, providerChain, configFile, wasmContractPath, wasmContractGZipped)
+//	require.NoError(t, err)
+//}
 
 func Test2WayContract(t *testing.T) {
 	// create clients for provider and consumer

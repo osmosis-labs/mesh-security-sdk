@@ -2,7 +2,7 @@ chains:
   - name: mesh-1
     type: custom
     numValidators: 1
-    image: ghcr.io/osmosis-labs/meshd:anmol-docker-debian
+    image: ghcr.io/osmosis-labs/meshd:anmol-restart-starship
     home: /root/.meshd
     binary: meshd
     prefix: mesh
@@ -36,7 +36,7 @@ chains:
   - name: mesh-2
     type: custom
     numValidators: 1
-    image: ghcr.io/osmosis-labs/meshd:anmol-docker-debian
+    image: ghcr.io/osmosis-labs/meshd:anmol-restart-starship
     home: /root/.meshd
     binary: meshd
     prefix: mesh
