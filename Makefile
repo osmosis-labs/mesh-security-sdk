@@ -28,6 +28,20 @@ build-linux-static:
 	$(MAKE) -C tests/e2e build-linux
 
 ########################################
+### Docker
+
+DOCKER_REPO := anmol1696
+DOCKER_IMAGE := meshd
+DOCKER_TAG := latest
+
+docker-build:
+	docker buildx build --platform linux/arm64 -f Dockerfile . -t $(DOCKER_REPO)/$(DOCKER_IMAGE):$(DOCKER_TAG) --no-cache
+
+docker-build-push:
+	docker buildx build --platform linux/arm64 -f Dockerfile . -t $(DOCKER_REPO)/$(DOCKER_IMAGE):$(DOCKER_TAG) --no-cache --push
+
+
+########################################
 ### Testing
 
 test-all: test
