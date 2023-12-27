@@ -30,7 +30,6 @@ chains:
       enabled: true
       type: starship
       image: "ghcr.io/cosmology-tech/starship/faucet:20231215-7c22b86"
-      concurreny: 2
       resources:
         cpu: "0.1"
         memory: "100M"
@@ -65,7 +64,6 @@ chains:
       enabled: true
       type: starship
       image: "ghcr.io/cosmology-tech/starship/faucet:20231215-7c22b86"
-      concurreny: 2
       resources:
         cpu: "0.1"
         memory: "100M"
