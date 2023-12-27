@@ -204,7 +204,7 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 			return false
 		},
 		300*time.Second,
-		5*time.Second,
+		2*time.Second,
 		"list remote validators failed: %v",
 		qRsp,
 	)

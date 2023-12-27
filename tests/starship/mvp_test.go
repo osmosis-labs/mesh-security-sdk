@@ -43,7 +43,7 @@ func Test2WayContract(t *testing.T) {
 			return false
 		},
 		120*time.Second,
-		5*time.Second,
+		2*time.Second,
 		"list remote validators failed: %v",
 		qRsp,
 	)
@@ -121,7 +121,7 @@ func Test2WayContract(t *testing.T) {
 			return false
 		},
 		120*time.Second,
-		5*time.Second,
+		2*time.Second,
 		"list remote validators failed: %v",
 		qRsp,
 	)

@@ -182,7 +182,7 @@ func (c *Client) WaitForTx(t *testing.T, txHex string) {
 			return false
 		},
 		300*time.Second,
-		5*time.Second,
+		2*time.Second,
 		"waited for too long, still txn not successful",
 	)
 	require.NotNil(t, tx)
@@ -200,7 +200,7 @@ func (c *Client) WaitForHeight(t *testing.T, height int64) {
 			return false
 		},
 		300*time.Second,
-		5*time.Second,
+		2*time.Second,
 		"waited for too long, still height did not reach desired block height",
 	)
 }

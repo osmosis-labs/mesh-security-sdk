@@ -91,7 +91,7 @@ func voteAndPassGovProposal(chain *Client, proposalID uint64) error {
 			return false
 		},
 		300*time.Second,
-		5*time.Second,
+		2*time.Second,
 		"waited for too long, still proposal did not pass",
 	)
 	if err != nil {
