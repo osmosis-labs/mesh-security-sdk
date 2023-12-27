@@ -26,7 +26,7 @@ RUN cd demo/ && LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make 
   && (file /code/demo/build/meshd | grep "statically linked")
 
 # --------------------------------------------------------
-FROM alpine3.17
+FROM alpine:3.17
 
 COPY --from=go-builder /code/demo/build/meshd /usr/bin/meshd
 
