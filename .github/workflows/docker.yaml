@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - anmol/restart-starship  # debug branch
     tags:
       - "v*.*.*"
   pull_request:
@@ -72,6 +71,6 @@ jobs:
       - name: Publish to GitHub Packages
         uses: docker/build-push-action@v4
         with:
-          platforms: linux/amd64 # ,linux/arm64 (removed for debugging)
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
