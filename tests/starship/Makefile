@@ -5,7 +5,7 @@ BUILD_DIR = ./build
 all: test
 
 test:
-	go test -count=1 -mod=readonly -v -race -run Test2WayContract ./...
+	go test -count=1 -mod=readonly -timeout 20m -v -race ./...
 
 build-setup:
 	cd setup && go build cmd/... -o build/ ./setup
@@ -29,7 +29,7 @@ FILE = configs/local.yaml
 
 HELM_REPO = starship
 HELM_CHART = devnet
-HELM_VERSION = v0.1.46-rc1
+HELM_VERSION = v0.1.48-rc0
 
 .PHONY: check
 setup-deps:

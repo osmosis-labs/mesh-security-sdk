@@ -91,7 +91,7 @@ func voteAndPassGovProposal(chain *Client, proposalID uint64) error {
 			return false
 		},
 		300*time.Second,
-		5*time.Second,
+		2*time.Second,
 		"waited for too long, still proposal did not pass",
 	)
 	if err != nil {
@@ -105,6 +105,7 @@ func voteAndPassGovProposal(chain *Client, proposalID uint64) error {
 }
 
 func InstantiateContract(chain *Client, codeID uint64, label string, initMsg []byte, funds ...sdk.Coin) (map[uint64]string, error) {
+	fmt.Printf("instantiating contract with id: %v, label: %v, chain: %v\n", codeID, label, chain.ChainID)
 	instantiateMsg := &wasmtypes.MsgInstantiateContract{
 		Sender: chain.Address,
 		Admin:  chain.Address,
@@ -146,26 +147,26 @@ func InstantiateContract(chain *Client, codeID uint64, label string, initMsg []b
 }
 
 func StoreCodeFile(chain *Client, filename string) (wasmtypes.MsgStoreCodeResponse, error) {
+	fmt.Printf("storecode file: %s chain: %s \n", filename, chain.ChainID)
 	var resp wasmtypes.MsgStoreCodeResponse
 	wasmCode, err := os.ReadFile(filename)
 	if err != nil {
 		return resp, err
 	}
 
-	if !strings.HasSuffix(filename, "wasm") {
-		return StoreCode(chain, wasmCode)
+	if strings.HasSuffix(filename, "wasm") {
+		var buf bytes.Buffer
+		gz := gzip.NewWriter(&buf)
+		_, err := gz.Write(wasmCode)
+		if err != nil {
+			return resp, err
+		}
+		err = gz.Close()
+		if err != nil {
+			return resp, err
+		}
+		wasmCode = buf.Bytes()
 	}
-
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-
-	if _, err = gz.Write(wasmCode); err != nil {
-		return resp, err
-	}
-	if err := gz.Close(); err != nil {
-		return resp, err
-	}
-	wasmCode = buf.Bytes()
 
 	return StoreCode(chain, wasmCode)
 }
@@ -178,6 +179,7 @@ func StoreCode(chain *Client, byteCode []byte) (wasmtypes.MsgStoreCodeResponse, 
 		Sender:       chain.Address,
 		WASMByteCode: byteCode,
 	}
+
 	r, err := chain.Client.SendMsg(context.Background(), storeMsg, "")
 	if err != nil {
 		return resp, err
@@ -200,7 +202,7 @@ func StoreCode(chain *Client, byteCode []byte) (wasmtypes.MsgStoreCodeResponse, 
 		}
 	}
 
-	fmt.Printf("response for storeCodeID: %v\n", resp.CodeID)
+	fmt.Printf("response for storeCodeID: %v, response: %v\n", resp.CodeID, resp)
 
 	return resp, nil
 }

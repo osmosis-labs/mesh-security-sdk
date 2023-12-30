@@ -6,17 +6,16 @@ import (
 	"os/exec"
 	"strings"
 
-	starship "github.com/cosmology-tech/starship/clients/go/client"
 	"go.uber.org/zap"
 )
 
 // CmdRunner will help you to run admin commands on
 type CmdRunner struct {
 	logger *zap.Logger
-	config *starship.Config
+	config *Config
 }
 
-func NewCmdRunner(logger *zap.Logger, config *starship.Config) (*CmdRunner, error) {
+func NewCmdRunner(logger *zap.Logger, config *Config) (*CmdRunner, error) {
 	return &CmdRunner{
 		logger: logger,
 		config: config,

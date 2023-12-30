@@ -1,11 +1,11 @@
-FROM golang:1.21-alpine AS go-builder
+FROM golang:1.20-alpine3.17 AS go-builder
 
 RUN apk add --no-cache ca-certificates build-base git
 
 WORKDIR /code
 
 # Download dependencies and CosmWasm libwasmvm if found.
-ADD go.mod go.sum ./
+ADD demo/go.mod demo/go.sum ./
 
 #ADD https://github.com/CosmWasm/wasmvm/releases/download/v$wasmvm/libwasmvm_muslc.$arch.a /lib/libwasmvm_muslc.$arch.a
 ## Download
@@ -20,15 +20,15 @@ COPY . /code
 # force it to use static lib (from above) not standard libgo_cosmwasm.so file
 # then log output of file /code/bin/meshd
 # then ensure static linking
-RUN LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build-vendored \
-  && file /code/build/meshd \
+RUN cd demo/ && LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build \
+  && file /code/demo/build/meshd \
   && echo "Ensuring binary is statically linked ..." \
-  && (file /code/build/meshd | grep "statically linked")
+  && (file /code/demo/build/meshd | grep "statically linked")
 
 # --------------------------------------------------------
-FROM alpine:3.16
+FROM alpine:3.17
 
-COPY --from=go-builder /code/build/meshd /usr/bin/meshd
+COPY --from=go-builder /code/demo/build/meshd /usr/bin/meshd
 
 # Install dependencies used for Starship
 RUN apk add --no-cache curl make bash jq sed

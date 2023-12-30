@@ -9,7 +9,6 @@ import (
 	"time"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	_ "github.com/cosmology-tech/starship/clients/go/client"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -41,7 +40,7 @@ func Querier(chain *Client) func(contract string, query Query) map[string]any {
 				return true
 			},
 			300*time.Second,
-			5*time.Second,
+			2*time.Second,
 			"locked contract response for too long: %v",
 			qRsp,
 		)
@@ -69,32 +68,68 @@ type ProviderContracts struct {
 	ExternalStaking       string
 }
 
-func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) (*ProviderContracts, error) {
-	var (
-		unbondingPeriod  = 100 // 21 days - make configurable?
-		maxLocalSlashing = "0.10"
-		maxExtSlashing   = "0.05"
-		localTokenDenom  = p.Chain.Denom
-	)
+func (p *ProviderClient) StoreContracts() ([]uint64, error) {
 	vaultCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_vault.wasm", p.wasmContractGZipped))
 	if err != nil {
 		return nil, err
 	}
 	vaultCodeID := vaultCodeResp.CodeID
+	time.Sleep(1 * time.Second)
+
 	proxyCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_native_staking_proxy.wasm", p.wasmContractGZipped))
 	if err != nil {
 		return nil, err
 	}
 	proxyCodeID := proxyCodeResp.CodeID
+	time.Sleep(1 * time.Second)
+
 	nativeStakingCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_native_staking.wasm", p.wasmContractGZipped))
 	nativeStakingCodeID := nativeStakingCodeResp.CodeID
 
-	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d, "max_slashing": %q}`, localTokenDenom, proxyCodeID, maxLocalSlashing))
+	// external Staking
+	extStaking, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_external_staking.wasm", p.wasmContractGZipped))
+	if err != nil {
+		return nil, err
+	}
+	time.Sleep(1 * time.Second)
+
+	return []uint64{extStaking.CodeID, nativeStakingCodeID, proxyCodeID, vaultCodeID}, nil
+}
+
+func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) (*ProviderContracts, error) {
+	var (
+		unbondingPeriod           = 100 // 21 days - make configurable?
+		localSlashRatioDoubleSign = "0.20"
+		localSlashRatioOffline    = "0.10"
+		extSlashRatioDoubleSign   = "0.20"
+		extSlashRatioOffline      = "0.10"
+		localTokenDenom           = p.Chain.Denom
+	)
+	vaultCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_vault.wasm", p.wasmContractGZipped))
+	if err != nil {
+		return nil, err
+	}
+	//time.Sleep(time.Second)
+	vaultCodeID := vaultCodeResp.CodeID
+	proxyCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_native_staking_proxy.wasm", p.wasmContractGZipped))
+	if err != nil {
+		return nil, err
+	}
+	//time.Sleep(time.Second)
+	proxyCodeID := proxyCodeResp.CodeID
+	nativeStakingCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_native_staking.wasm", p.wasmContractGZipped))
+	nativeStakingCodeID := nativeStakingCodeResp.CodeID
+
+	//time.Sleep(time.Second)
+
+	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d, "slash_ratio_dsign": %q, "slash_ratio_offline": %q }`, localTokenDenom, proxyCodeID, localSlashRatioDoubleSign, localSlashRatioOffline))
 	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, localTokenDenom, nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
 	contracts, err := InstantiateContract(p.Chain, vaultCodeID, "provider-valut-contract", initMsg)
 	if err != nil {
 		return nil, err
 	}
+
+	//time.Sleep(time.Second)
 
 	vaultContract := contracts[vaultCodeID]
 	nativeStakingContract := contracts[nativeStakingCodeID]
@@ -104,10 +139,12 @@ func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) 
 	if err != nil {
 		return nil, err
 	}
+	//time.Sleep(time.Second)
+
 	extStakingCodeID := extStaking.CodeID
 	initMsg = []byte(fmt.Sprintf(
-		`{"remote_contact": {"connection_id":%q, "port_id":%q}, "denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q, "max_slashing": %q }`,
-		connId, portID, localTokenDenom, vaultContract, unbondingPeriod, rewardDenom, maxExtSlashing))
+		`{"remote_contact": {"connection_id":%q, "port_id":%q}, "denom": %q, "vault": %q, "unbonding_period": %d, "rewards_denom": %q, "slash_ratio": { "double_sign": %q, "offline": %q } }`,
+		connId, portID, localTokenDenom, vaultContract, unbondingPeriod, rewardDenom, extSlashRatioDoubleSign, extSlashRatioOffline))
 	externalStakingContracts, err := InstantiateContract(p.Chain, extStakingCodeID, "provider-external-staking-contract", initMsg)
 	if err != nil {
 		return nil, err
@@ -125,6 +162,7 @@ func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) 
 		r.NativeStakingContract,
 		proxyCodeID)
 	p.Contracts = r
+	time.Sleep(time.Second)
 	return r, nil
 }
 
@@ -191,7 +229,7 @@ func (p ProviderClient) QueryVaultFreeBalance() int {
 			return true
 		},
 		300*time.Second,
-		5*time.Second,
+		2*time.Second,
 		"vault token locked for too long: %v",
 		qRsp,
 	)
@@ -238,6 +276,33 @@ type ConsumerContract struct {
 	Converter string
 }
 
+func (p *ConsumerClient) StoreContracts() ([]uint64, error) {
+	code, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_simple_price_feed.wasm", p.wasmContractGZipped))
+	if err != nil {
+		return nil, err
+	}
+	codeID := code.CodeID
+	time.Sleep(2 * time.Second)
+
+	// virtual Staking is setup by the consumer
+	virtStakeCode, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_virtual_staking.wasm", p.wasmContractGZipped))
+	if err != nil {
+		return nil, err
+	}
+	virtStakeCodeID := virtStakeCode.CodeID
+	time.Sleep(2 * time.Second)
+
+	// instantiate Converter
+	converterCode, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_converter.wasm", p.wasmContractGZipped))
+	if err != nil {
+		return nil, err
+	}
+	converterCodeID := converterCode.CodeID
+	time.Sleep(2 * time.Second)
+
+	return []uint64{codeID, virtStakeCodeID, converterCodeID}, nil
+}
+
 func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContract, error) {
 	// what does this do????
 	// modify end-blocker to fail fast in tests
@@ -249,6 +314,7 @@ func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContra
 		return nil, err
 	}
 	codeID := code.CodeID
+	//time.Sleep(time.Second)
 
 	initMsg := []byte(fmt.Sprintf(`{"native_per_foreign": "%s"}`, "0.5")) // todo: configure price
 	priceFeedContracts, err := InstantiateContract(p.Chain, codeID, "consumer-price-feeder-contract", initMsg)
@@ -256,6 +322,7 @@ func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContra
 		return nil, err
 	}
 	priceFeedContract := priceFeedContracts[codeID]
+	//time.Sleep(time.Second)
 
 	// virtual Staking is setup by the consumer
 	virtStakeCode, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_virtual_staking.wasm", p.wasmContractGZipped))
@@ -263,6 +330,7 @@ func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContra
 		return nil, err
 	}
 	virtStakeCodeID := virtStakeCode.CodeID
+	//time.Sleep(time.Second)
 
 	// instantiate Converter
 	code, err = StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_converter.wasm", p.wasmContractGZipped))
@@ -270,6 +338,7 @@ func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContra
 		return nil, err
 	}
 	codeID = code.CodeID
+	//time.Sleep(time.Second)
 
 	discount := "0.1" // todo: configure price
 	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d}`,
@@ -288,6 +357,7 @@ func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContra
 	}
 	fmt.Printf("Consumer Contracts:\n  Staking: %s\n  PriceFeed: %s\n  Converter: %s\n", r.Staking, r.PriceFeed, r.Converter)
 	p.Contracts = r
+	time.Sleep(time.Second)
 	return r, nil
 }
 

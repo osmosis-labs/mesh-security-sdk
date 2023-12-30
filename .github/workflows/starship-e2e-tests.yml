@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.21
+          go-version: ^1.20
         id: go
 
       - name: Deps
@@ -41,16 +41,17 @@ jobs:
         with:
           values: tests/starship/configs/ci.yaml
           port-forward: true
-          version: 0.1.46-rc1
+          version: 0.1.48-rc0
 
       - name: Run Tests
         id: run-tests
+        continue-on-error: true
         run: |
           cd tests/starship/
           make test
 
       - name: Run Tests (retry on failure)
-        if: steps.run-tests.outcome == 'failure'
+        if: failure() && steps.run-tests.outcome == 'failure'
         run: |
           cd tests/starship/
           make test

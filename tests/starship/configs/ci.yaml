@@ -2,7 +2,7 @@ chains:
   - name: mesh-1
     type: custom
     numValidators: 1
-    image: ghcr.io/osmosis-labs/meshd:latest
+    image: ghcr.io/osmosis-labs/meshd:anmol-restart-starship@sha256:a2d44df58adf71dabecb9c03ae4eb5fdf460843de72b04ee49b91d55705005c9
     home: /root/.meshd
     binary: meshd
     prefix: mesh
@@ -27,14 +27,16 @@ chains:
       cpu: "0.2"
       memory: "200M"
     faucet:
-      concurreny: 2
+      enabled: true
+      type: starship
+      image: "ghcr.io/cosmology-tech/starship/faucet:20231215-7c22b86"
       resources:
         cpu: "0.1"
         memory: "100M"
   - name: mesh-2
     type: custom
     numValidators: 1
-    image: ghcr.io/osmosis-labs/meshd:latest
+    image: ghcr.io/osmosis-labs/meshd:anmol-restart-starship@sha256:a2d44df58adf71dabecb9c03ae4eb5fdf460843de72b04ee49b91d55705005c9
     home: /root/.meshd
     binary: meshd
     prefix: mesh
@@ -59,7 +61,9 @@ chains:
       cpu: "0.2"
       memory: "200M"
     faucet:
-      concurreny: 2
+      enabled: true
+      type: starship
+      image: "ghcr.io/cosmology-tech/starship/faucet:20231215-7c22b86"
       resources:
         cpu: "0.1"
         memory: "100M"
@@ -81,6 +85,7 @@ relayers:
 
 registry:
   enabled: true
+  image: ghcr.io/cosmology-tech/starship/registry:20231215-7c22b86
   ports:
     rest: 8081
   resources:
@@ -88,6 +93,7 @@ registry:
     memory: "100M"
 
 exposer:
+  image: "ghcr.io/cosmology-tech/starship/exposer:20231215-7c22b86"
   resources:
     cpu: "0.1"
     memory: "100M"
