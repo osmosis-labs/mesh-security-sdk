@@ -1,16 +1,17 @@
 package keeper
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/cometbft/cometbft/libs/log"
+	"cosmossdk.io/log"
 
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
 
+	"cosmossdk.io/store/prefix"
+	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/store/prefix"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
@@ -90,13 +91,23 @@ func (k Keeper) HasMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) bool {
 // GetMaxCapLimit the cap limit is set per consumer contract. Different providers can have different limits
 // Returns zero amount when no limit is stored.
 func (k Keeper) GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
-	return sdk.NewCoin(k.Staking.BondDenom(ctx), k.mustLoadInt(ctx, k.storeKey, types.BuildMaxCapLimitKey(actor)))
+	bondDenom, err := k.Staking.BondDenom(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	return sdk.NewCoin(bondDenom, k.mustLoadInt(ctx, k.storeKey, types.BuildMaxCapLimitKey(actor)))
 }
 
 // SetMaxCapLimit stores the max cap limit for the given contract address.
 // Any existing limit for this contract will be overwritten
 func (k Keeper) SetMaxCapLimit(ctx sdk.Context, contract sdk.AccAddress, newAmount sdk.Coin) error {
-	if k.Staking.BondDenom(ctx) != newAmount.Denom {
+	bondDenom, err := k.Staking.BondDenom(ctx)
+	if err != nil {
+		return err
+	}
+
+	if bondDenom != newAmount.Denom {
 		return sdkerrors.ErrInvalidCoins
 	}
 	// ensure that the total max cap amount for all contracts is not exceeded
@@ -130,12 +141,23 @@ func (k Keeper) GetTotalDelegated(ctx sdk.Context, actor sdk.AccAddress) sdk.Coi
 	if v.IsNegative() {
 		v = math.ZeroInt()
 	}
-	return sdk.NewCoin(k.Staking.BondDenom(ctx), v)
+
+	bondDenom, err := k.Staking.BondDenom(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	return sdk.NewCoin(bondDenom, v)
 }
 
 // internal setter. must only be used with bonding token denom or panics
 func (k Keeper) setTotalDelegated(ctx sdk.Context, actor sdk.AccAddress, newAmount sdk.Coin) {
-	if k.Staking.BondDenom(ctx) != newAmount.Denom {
+	bond, err := k.Staking.BondDenom(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	if bond != newAmount.Denom {
 		panic(sdkerrors.ErrInvalidCoins.Wrapf("not a staking denom: %s", newAmount.Denom))
 	}
 
@@ -153,7 +175,7 @@ func (k Keeper) mustLoadInt(ctx sdk.Context, storeKey storetypes.StoreKey, key [
 	store := ctx.KVStore(storeKey)
 	bz := store.Get(key)
 	if bz == nil {
-		return sdk.ZeroInt()
+		return math.ZeroInt()
 	}
 	var r math.Int
 	if err := r.Unmarshal(bz); err != nil {
@@ -182,6 +204,6 @@ func (k Keeper) IterateMaxCapLimit(ctx sdk.Context, cb func(sdk.AccAddress, math
 }
 
 // ModuleLogger returns logger with module attribute
-func ModuleLogger(ctx sdk.Context) log.Logger {
-	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
+func ModuleLogger(ctx context.Context) log.Logger {
+	return sdk.UnwrapSDKContext(ctx).Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
 }

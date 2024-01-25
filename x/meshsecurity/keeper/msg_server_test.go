@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"context"
 	"testing"
 
 	"github.com/cometbft/cometbft/libs/rand"
@@ -16,10 +17,12 @@ func TestSetVirtualStakingMaxCap(t *testing.T) {
 	pCtx, keepers := CreateDefaultTestInput(t)
 	k := keepers.MeshKeeper
 	myContract := sdk.AccAddress(rand.Bytes(32))
-	denom := keepers.StakingKeeper.BondDenom(pCtx)
+	denom, err := keepers.StakingKeeper.BondDenom(pCtx)
+	require.NoError(t, err)
+
 	myAmount := sdk.NewInt64Coin(denom, 123)
 
-	k.wasm = MockWasmKeeper{HasContractInfoFn: func(ctx sdk.Context, contractAddress sdk.AccAddress) bool {
+	k.wasm = MockWasmKeeper{HasContractInfoFn: func(ctx context.Context, contractAddress sdk.AccAddress) bool {
 		return contractAddress.Equals(myContract)
 	}}
 	m := NewMsgServer(k)

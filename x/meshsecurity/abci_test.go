@@ -2,11 +2,12 @@ package meshsecurity
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"testing"
 
-	"github.com/cometbft/cometbft/libs/log"
+	"cosmossdk.io/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -74,7 +75,9 @@ func TestEndBlocker(t *testing.T) {
 				anyLimit := sdk.NewCoin(sdk.DefaultBondDenom, sdkmath.NewInt(1_000_000_000))
 				require.NoError(t, k.SetMaxCapLimit(ctx, myContractAddr, anyLimit))
 				require.NoError(t, k.SetMaxCapLimit(ctx, myOtherContractAddr, anyLimit))
-				require.NoError(t, k.Hooks().AfterValidatorBonded(ctx, nil, val1.GetOperator()))
+				val1Addr, err := sdk.ValAddressFromBech32(val1.GetOperator())
+				require.NoError(t, err)
+				require.NoError(t, k.Hooks().AfterValidatorBonded(ctx, nil, val1Addr))
 			},
 			assert: func(t *testing.T, ctx sdk.Context) {
 				require.Len(t, capturedCalls, 2)
@@ -92,7 +95,9 @@ func TestEndBlocker(t *testing.T) {
 				anyLimit := sdk.NewCoin(sdk.DefaultBondDenom, sdkmath.NewInt(1_000_000_000))
 				require.NoError(t, k.SetMaxCapLimit(ctx, myContractAddr, anyLimit))
 				require.NoError(t, k.SetMaxCapLimit(ctx, myOtherContractAddr, anyLimit))
-				require.NoError(t, k.Hooks().AfterValidatorBonded(ctx, nil, val1.GetOperator()))
+				val1Addr, err := sdk.ValAddressFromBech32(val1.GetOperator())
+				require.NoError(t, err)
+				require.NoError(t, k.Hooks().AfterValidatorBonded(ctx, nil, val1Addr))
 				contractErr = myError
 			},
 			assert: func(t *testing.T, ctx sdk.Context) {
@@ -108,7 +113,7 @@ func TestEndBlocker(t *testing.T) {
 			ctx, _ := pCtx.CacheContext()
 			spec.setup(t, ctx)
 			// when
-			EndBlocker(ctx.WithLogger(log.NewTMLogger(log.NewSyncWriter(&logRecords))), k, DefaultExecutionResponseHandler())
+			EndBlocker(ctx.WithLogger(log.NewNopLogger()), k, DefaultExecutionResponseHandler())
 			spec.assert(t, ctx)
 		})
 	}
@@ -121,11 +126,11 @@ type capturedSudo = struct {
 
 func captureSudos(captured *[]capturedSudo, e *error) *keeper.MockWasmKeeper {
 	return &keeper.MockWasmKeeper{
-		SudoFn: func(ctx sdk.Context, contractAddress sdk.AccAddress, msg []byte) ([]byte, error) {
+		SudoFn: func(ctx context.Context, contractAddress sdk.AccAddress, msg []byte) ([]byte, error) {
 			*captured = append(*captured, capturedSudo{contractAddress: contractAddress, msg: msg})
 			return nil, *e
 		},
-		HasContractInfoFn: func(ctx sdk.Context, contractAddress sdk.AccAddress) bool {
+		HasContractInfoFn: func(ctx context.Context, contractAddress sdk.AccAddress) bool {
 			return true
 		},
 	}

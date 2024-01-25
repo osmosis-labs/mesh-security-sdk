@@ -17,9 +17,11 @@ func TestQueryVirtualStakingMaxCapLimit(t *testing.T) {
 	ctx, keepers := CreateDefaultTestInput(t)
 	k := keepers.MeshKeeper
 	myContract := sdk.AccAddress(rand.Bytes(32))
-	myAmount := sdk.NewInt64Coin(keepers.StakingKeeper.BondDenom(ctx), 123)
+	bondDenom, err := keepers.StakingKeeper.BondDenom(ctx)
+	require.NoError(t, err)
+	myAmount := sdk.NewInt64Coin(bondDenom, 123)
 
-	err := k.SetMaxCapLimit(ctx, myContract, myAmount)
+	err = k.SetMaxCapLimit(ctx, myContract, myAmount)
 	require.NoError(t, err)
 	specs := map[string]struct {
 		addr      string
@@ -66,9 +68,12 @@ func TestQueryVirtualStakingMaxCapLimits(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, gotRsp.MaxCapInfos, 0)
 
+	bondDenom, err := keepers.StakingKeeper.BondDenom(ctx)
+	require.NoError(t, err)
+
 	// set max cap for a random contract
 	myContract := sdk.AccAddress(bytes.Repeat([]byte{1}, 32))
-	myAmount := sdk.NewInt64Coin(keepers.StakingKeeper.BondDenom(ctx), 123)
+	myAmount := sdk.NewInt64Coin(bondDenom, 123)
 	err = k.SetMaxCapLimit(ctx, myContract, myAmount)
 	require.NoError(t, err)
 

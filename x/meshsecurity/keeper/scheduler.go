@@ -5,8 +5,9 @@ import (
 	"math"
 
 	errorsmod "cosmossdk.io/errors"
+	storetypes "cosmossdk.io/store/types"
 
-	"github.com/cosmos/cosmos-sdk/store/prefix"
+	"cosmossdk.io/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
@@ -144,8 +145,8 @@ type ExecResult struct {
 	ExecErr       error
 	RescheduleErr error
 	DeleteTaskErr error
-	GasUsed       sdk.Gas
-	GasLimit      sdk.Gas
+	GasUsed       storetypes.Gas
+	GasLimit      storetypes.Gas
 	NextRunHeight uint64
 }
 
@@ -165,7 +166,7 @@ func (k Keeper) ExecScheduledTasks(pCtx sdk.Context, tp types.SchedulerTaskType,
 	err := k.IterateScheduledTasks(pCtx, tp, currentHeight, func(contract sdk.AccAddress, scheduledHeight uint64, repeat bool) bool {
 		gasLimit := k.GetMaxSudoGas(pCtx)
 		cachedCtx, done := pCtx.CacheContext()
-		gasMeter := sdk.NewGasMeter(gasLimit)
+		gasMeter := storetypes.NewGasMeter(gasLimit)
 		cachedCtx = cachedCtx.WithGasMeter(gasMeter)
 		result := ExecResult{Contract: contract, GasLimit: gasLimit}
 		err := safeExec(func() error { return cb(cachedCtx, contract) })

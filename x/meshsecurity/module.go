@@ -86,6 +86,11 @@ type AppModule struct {
 	asyncTaskRspHandler TaskExecutionResponseHandler
 }
 
+// IsOnePerModuleType implements module.AppModule.
+func (AppModule) IsOnePerModuleType() {
+	panic("unimplemented")
+}
+
 // NewAppModule constructor with defaults
 func NewAppModule(cdc codec.Codec, k *keeper.Keeper) *AppModule {
 	return NewAppModuleX(cdc, k, DefaultExecutionResponseHandler())
@@ -142,11 +147,10 @@ func (AppModule) ConsensusVersion() uint64 {
 }
 
 // BeginBlock executed before every block
-func (am AppModule) BeginBlock(ctx sdk.Context, _ abci.RequestBeginBlock) {
-}
+func (AppModule) BeginBlock(_ sdk.Context) {}
 
 // EndBlock executed after every block. It returns no validator updates.
-func (am AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
+func (am AppModule) EndBlock(ctx sdk.Context) []abci.ValidatorUpdate {
 	EndBlocker(ctx, am.k, am.asyncTaskRspHandler)
 	return nil
 }

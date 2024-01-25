@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
@@ -30,8 +31,8 @@ func (k Keeper) GetParams(clientCtx sdk.Context) (params types.Params) {
 	return params
 }
 
-func (k Keeper) GetMaxSudoGas(ctx sdk.Context) sdk.Gas {
-	return sdk.Gas(k.GetParams(ctx).MaxGasEndBlocker)
+func (k Keeper) GetMaxSudoGas(ctx sdk.Context) storetypes.Gas {
+	return storetypes.Gas(k.GetParams(ctx).MaxGasEndBlocker)
 }
 
 func (k Keeper) GetRebalanceEpochLength(ctx sdk.Context) uint64 {

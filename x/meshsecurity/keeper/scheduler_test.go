@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"context"
 	"testing"
 
 	"github.com/cometbft/cometbft/libs/rand"
@@ -18,7 +19,7 @@ func TestExecuteScheduledTask(t *testing.T) {
 	k := keepers.MeshKeeper
 	myContract := sdk.AccAddress(rand.Bytes(32))
 
-	k.wasm = MockWasmKeeper{HasContractInfoFn: func(ctx sdk.Context, contractAddress sdk.AccAddress) bool {
+	k.wasm = MockWasmKeeper{HasContractInfoFn: func(ctx context.Context, contractAddress sdk.AccAddress) bool {
 		return contractAddress.Equals(myContract)
 	}}
 
