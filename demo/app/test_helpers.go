@@ -9,17 +9,20 @@ import (
 	"testing"
 	"time"
 
+	"cosmossdk.io/log"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
-	dbm "github.com/cometbft/cometbft-db"
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmjson "github.com/cometbft/cometbft/libs/json"
-	"github.com/cometbft/cometbft/libs/log"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	tmtypes "github.com/cometbft/cometbft/types"
+	dbm "github.com/cosmos/cosmos-db"
 	"github.com/stretchr/testify/require"
 
 	"cosmossdk.io/math"
 
+	pruningtypes "cosmossdk.io/store/pruning/types"
+	"cosmossdk.io/store/snapshots"
+	snapshottypes "cosmossdk.io/store/snapshots/types"
 	bam "github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -30,9 +33,6 @@ import (
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/server"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
-	"github.com/cosmos/cosmos-sdk/snapshots"
-	snapshottypes "github.com/cosmos/cosmos-sdk/snapshots/types"
-	pruningtypes "github.com/cosmos/cosmos-sdk/store/pruning/types"
 	"github.com/cosmos/cosmos-sdk/testutil/mock"
 	"github.com/cosmos/cosmos-sdk/testutil/network"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
@@ -78,6 +78,8 @@ func setup(t testing.TB, chainID string, withGenesis bool, invCheckPeriod uint, 
 func NewMeshAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOptions) *MeshApp {
 	t.Helper()
 
+	SetAddressPrefixes()
+
 	privVal := mock.NewPV()
 	pubKey, err := privVal.GetPubKey()
 	require.NoError(t, err)
@@ -90,13 +92,18 @@ func NewMeshAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOpti
 	acc := authtypes.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), senderPrivKey.PubKey(), 0, 0)
 	balance := banktypes.Balance{
 		Address: acc.GetAddress().String(),
-		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100000000000000))),
+		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(100000000000000))),
 	}
 
 	app := NewMeshApp(options.Logger, options.DB, nil, true, options.AppOpts, options.WasmOpts)
 	genesisState := NewDefaultGenesisState(app.appCodec)
 	genesisState, err = GenesisStateWithValSet(app.AppCodec(), genesisState, valSet, []authtypes.GenesisAccount{acc}, balance)
 	require.NoError(t, err)
+
+	ctx := app.BaseApp.NewUncachedContext(true, tmproto.Header{})
+
+	// set consensus params
+	require.NoError(t, app.ConsensusParamsKeeper.ParamsStore.Set(ctx, *simtestutil.DefaultConsensusParams))
 
 	if !isCheckTx {
 		// init chain must be called to stop deliverState from being nil
@@ -105,10 +112,13 @@ func NewMeshAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOpti
 
 		// Initialize the chain
 		app.InitChain(
-			abci.RequestInitChain{
+			&abci.RequestInitChain{
 				Validators:      []abci.ValidatorUpdate{},
 				ConsensusParams: simtestutil.DefaultConsensusParams,
 				AppStateBytes:   stateBytes,
+				Time:            time.Now().UTC(),
+				ChainId:         "testing",
+				InitialHeight:   1,
 			},
 		)
 	}
@@ -133,7 +143,7 @@ func Setup(t *testing.T, opts ...wasmkeeper.Option) *MeshApp {
 	acc := authtypes.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), senderPrivKey.PubKey(), 0, 0)
 	balance := banktypes.Balance{
 		Address: acc.GetAddress().String(),
-		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100000000000000))),
+		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(100000000000000))),
 	}
 	chainID := "testing"
 	app := SetupWithGenesisValSet(t, valSet, []authtypes.GenesisAccount{acc}, chainID, opts, balance)
@@ -148,6 +158,8 @@ func Setup(t *testing.T, opts ...wasmkeeper.Option) *MeshApp {
 func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount, chainID string, opts []wasmkeeper.Option, balances ...banktypes.Balance) *MeshApp {
 	t.Helper()
 
+	SetAddressPrefixes()
+
 	app, genesisState := setup(t, chainID, true, 5, opts...)
 	genesisState, err := GenesisStateWithValSet(app.AppCodec(), genesisState, valSet, genAccs, balances...)
 	require.NoError(t, err)
@@ -159,7 +171,7 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 	consensusParams := simtestutil.DefaultConsensusParams
 	consensusParams.Block.MaxGas = 100 * simtestutil.DefaultGenTxGas
 	app.InitChain(
-		abci.RequestInitChain{
+		&abci.RequestInitChain{
 			ChainId:         chainID,
 			Validators:      []abci.ValidatorUpdate{},
 			ConsensusParams: consensusParams,
@@ -172,24 +184,31 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 	votes := make([]abci.VoteInfo, len(valSet.Validators))
 	for i, v := range valSet.Validators {
 		votes[i] = abci.VoteInfo{
-			Validator:       abci.Validator{Address: v.Address, Power: v.VotingPower},
-			SignedLastBlock: true,
+			Validator: abci.Validator{Address: v.Address, Power: v.VotingPower},
+			// SignedLastBlock: true,
 		}
 	}
 
-	app.BeginBlock(abci.RequestBeginBlock{
-		Header: tmproto.Header{
-			ChainID:            chainID,
-			Height:             app.LastBlockHeight() + 1,
-			AppHash:            app.LastCommitID().Hash,
-			Time:               time.Now().UTC(),
-			ValidatorsHash:     valSet.Hash(),
-			NextValidatorsHash: valSet.Hash(),
-		},
-		LastCommitInfo: abci.CommitInfo{
-			Votes: votes,
-		},
-	})
+	ctx := app.BaseApp.NewContext(false)
+	ctx = ctx.WithBlockHeight(1)
+	ctx = ctx.WithBlockTime(time.Now().UTC())
+
+	res, err := app.BeginBlocker(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	// app.BeginBlock(abci.RequestBeginBlock{
+	// 	Header: tmproto.Header{
+	// 		ChainID:            chainID,
+	// 		Height:             app.LastBlockHeight() + 1,
+	// 		AppHash:            app.LastCommitID().Hash,
+	// 		Time:               time.Now().UTC(),
+	// 		ValidatorsHash:     valSet.Hash(),
+	// 		NextValidatorsHash: valSet.Hash(),
+	// 	},
+	// 	LastCommitInfo: abci.CommitInfo{
+	// 		Votes: votes,
+	// 	},
+	// })
 
 	return app
 }
@@ -219,7 +238,7 @@ func GenesisStateWithSingleValidator(t *testing.T, app *MeshApp) GenesisState {
 	balances := []banktypes.Balance{
 		{
 			Address: acc.GetAddress().String(),
-			Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100000000000000))),
+			Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(100000000000000))),
 		},
 	}
 
@@ -239,7 +258,12 @@ func AddTestAddrsIncremental(app *MeshApp, ctx sdk.Context, accNum int, accAmt m
 func addTestAddrs(app *MeshApp, ctx sdk.Context, accNum int, accAmt math.Int, strategy simtestutil.GenerateAccountStrategy) []sdk.AccAddress {
 	testAddrs := strategy(accNum)
 
-	initCoins := sdk.NewCoins(sdk.NewCoin(app.StakingKeeper.BondDenom(ctx), accAmt))
+	bondDenom, err := app.StakingKeeper.BondDenom(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	initCoins := sdk.NewCoins(sdk.NewCoin(bondDenom, accAmt))
 
 	for _, addr := range testAddrs {
 		initAccountWithCoins(app, ctx, addr, initCoins)
@@ -350,8 +374,13 @@ func GenesisStateWithValSet(
 			return nil, fmt.Errorf("failed to create new any: %w", err)
 		}
 
+		valAddr, err := sdk.ValAddressFromHex(val.Address.String())
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert validator address: %w", err)
+		}
+
 		validator := stakingtypes.Validator{
-			OperatorAddress:   sdk.ValAddress(val.Address).String(),
+			OperatorAddress:   valAddr.String(),
 			ConsensusPubkey:   pkAny,
 			Jailed:            false,
 			Status:            stakingtypes.Bonded,
@@ -364,7 +393,7 @@ func GenesisStateWithValSet(
 			MinSelfDelegation: math.ZeroInt(),
 		}
 		validators = append(validators, validator)
-		delegations = append(delegations, stakingtypes.NewDelegation(genAccs[0].GetAddress(), val.Address.Bytes(), math.LegacyOneDec()))
+		delegations = append(delegations, stakingtypes.NewDelegation(genAccs[0].GetAddress().String(), valAddr.String(), math.LegacyOneDec()))
 	}
 
 	// set validators and delegations
@@ -400,5 +429,6 @@ func GenesisStateWithValSet(
 	bankGenesis := banktypes.NewGenesisState(banktypes.DefaultGenesisState().Params, balances, totalSupply, []banktypes.Metadata{}, []banktypes.SendEnabled{})
 	genesisState[banktypes.ModuleName] = codec.MustMarshalJSON(bankGenesis)
 	println(string(genesisState[banktypes.ModuleName]))
+
 	return genesisState, nil
 }

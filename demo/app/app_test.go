@@ -4,9 +4,11 @@ import (
 	"os"
 	"testing"
 
+	"cosmossdk.io/log"
 	"github.com/CosmWasm/wasmd/x/wasm"
-	dbm "github.com/cometbft/cometbft-db"
-	"github.com/cometbft/cometbft/libs/log"
+	abci "github.com/cometbft/cometbft/abci/types"
+	dbm "github.com/cosmos/cosmos-db"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
@@ -17,16 +19,26 @@ var emptyWasmOpts []wasm.Option
 
 func TestMeshdExport(t *testing.T) {
 	db := dbm.NewMemDB()
+	logger := log.NewCustomLogger(zerolog.New(os.Stdout).With().Timestamp().Logger())
+
 	gapp := NewMeshAppWithCustomOptions(t, false, SetupOptions{
-		Logger:  log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
+		Logger:  logger,
 		DB:      db,
 		AppOpts: simtestutil.NewAppOptionsWithFlagHome(t.TempDir()),
 	})
-	gapp.Commit()
+	// finalize block so we have CheckTx state set
+	_, err := gapp.FinalizeBlock(&abci.RequestFinalizeBlock{
+		Height: 1,
+	})
+	require.NoError(t, err)
+
+	_, err = gapp.Commit()
+	require.NoError(t, err)
 
 	// Making a new app object with the db, so that initchain hasn't been called
-	newGapp := NewMeshApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, simtestutil.NewAppOptionsWithFlagHome(t.TempDir()), emptyWasmOpts)
-	_, err := newGapp.ExportAppStateAndValidators(false, []string{}, nil)
+
+	newGapp := NewMeshApp(logger, db, nil, true, simtestutil.NewAppOptionsWithFlagHome(t.TempDir()), emptyWasmOpts)
+	_, err = newGapp.ExportAppStateAndValidators(false, []string{}, nil)
 	require.NoError(t, err, "ExportAppStateAndValidators should not have an error")
 }
 
