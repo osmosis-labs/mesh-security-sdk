@@ -1,10 +1,12 @@
 package keeper
 
 import (
+	"context"
+
 	"cosmossdk.io/math"
 
+	evidencetypes "cosmossdk.io/x/evidence/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
@@ -46,9 +48,9 @@ func NewStakingKeeperAdapter(k types.SDKStakingKeeper, b types.SDKBankKeeper) *S
 // but skips the creation and deletion of UnbondingDelegationEntry
 //
 // The code is copied from the Osmosis SDK fork https://github.com/osmosis-labs/cosmos-sdk/blob/v0.45.0x-osmo-v9.3/x/staking/keeper/delegation.go#L757
-func (s StakingKeeperAdapter) InstantUndelegate(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec) (sdk.Coins, error) {
-	validator, found := s.GetValidator(ctx, valAddr)
-	if !found {
+func (s StakingKeeperAdapter) InstantUndelegate(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount math.LegacyDec) (sdk.Coins, error) {
+	validator, err := s.GetValidator(ctx, valAddr)
+	if err != nil {
 		return nil, stakingtypes.ErrNoDelegatorForAddress
 	}
 
@@ -57,7 +59,10 @@ func (s StakingKeeperAdapter) InstantUndelegate(ctx sdk.Context, delAddr sdk.Acc
 		return nil, err
 	}
 
-	bondDenom := s.BondDenom(ctx)
+	bondDenom, err := s.BondDenom(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	amt := sdk.NewCoin(bondDenom, returnAmount)
 	res := sdk.NewCoins(amt)
@@ -88,18 +93,27 @@ func CaptureTombstoneDecorator(k *Keeper, slashingKeeper evidencetypes.SlashingK
 }
 
 // Tombstone is executed in the end-blocker by the evidence module
-func (e SlashingKeeperDecorator) Tombstone(ctx sdk.Context, address sdk.ConsAddress) {
-	v, ok := e.stakingKeeper.GetValidatorByConsAddr(ctx, address)
-	if !ok {
+func (e SlashingKeeperDecorator) Tombstone(ctx context.Context, address sdk.ConsAddress) error {
+	v, err := e.stakingKeeper.GetValidatorByConsAddr(ctx, address)
+	if err != nil {
 		ModuleLogger(ctx).
 			Error("can not propagate tompstone: validator not found", "validator", address.String())
-	} else if err := e.k.ScheduleTombstoned(ctx, v.GetOperator()); err != nil {
-		ModuleLogger(ctx).
-			Error("can not propagate tompstone: scheduler",
-				"cause", err,
-				"validator", address.String())
+	} else {
+		vAddr, err2 := sdk.ValAddressFromBech32(v.GetOperator())
+		if err2 != nil {
+			ModuleLogger(ctx).
+				Error("can not propagate tompstone: validator address is invalid", "validator", address.String())
+			return err2
+		}
+
+		if err := e.k.ScheduleTombstoned(ctx, vAddr); err != nil {
+			ModuleLogger(ctx).
+				Error("can not propagate tompstone: scheduler",
+					"cause", err,
+					"validator", address.String())
+		}
 	}
-	e.SlashingKeeper.Tombstone(ctx, address)
+	return e.SlashingKeeper.Tombstone(ctx, address)
 }
 
 // StakingDecorator decorate vanilla staking keeper to capture the jail and unjail events
@@ -114,13 +128,23 @@ func NewStakingDecorator(stakingKeeper slashingtypes.StakingKeeper, k *Keeper) *
 }
 
 // Slash captures the slash event and calls the decorated staking keeper slash method
-func (s StakingDecorator) Slash(ctx sdk.Context, consAddr sdk.ConsAddress, power int64, height int64, slashRatio sdk.Dec) math.Int {
-	val := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
-	totalSlashAmount := s.StakingKeeper.Slash(ctx, consAddr, power, height, slashRatio)
-	if val == nil {
+func (s StakingDecorator) Slash(ctx context.Context, consAddr sdk.ConsAddress, power int64, height int64, slashRatio math.LegacyDec) math.Int {
+	val, err := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
+	if err != nil {
 		ModuleLogger(ctx).
 			Error("can not propagate slash: validator not found", "validator", consAddr.String())
-	} else if err := s.k.ScheduleSlashed(ctx, val.GetOperator(), power, height, totalSlashAmount, slashRatio); err != nil {
+		return math.ZeroInt()
+	}
+
+	vAddr, err2 := sdk.ValAddressFromBech32(val.GetOperator())
+	if err2 != nil {
+		ModuleLogger(ctx).
+			Error("can not propagate slash: validator address is invalid", "validator", consAddr.String())
+		return math.ZeroInt()
+	}
+
+	totalSlashAmount, err := s.StakingKeeper.Slash(ctx, consAddr, power, height, slashRatio)
+	if err := s.k.ScheduleSlashed(ctx, vAddr, power, height, totalSlashAmount, slashRatio); err != nil {
 		ModuleLogger(ctx).
 			Error("can not propagate slash: schedule event",
 				"cause", err,
@@ -130,36 +154,55 @@ func (s StakingDecorator) Slash(ctx sdk.Context, consAddr sdk.ConsAddress, power
 }
 
 // SlashWithInfractionReason implementation doesn't require the infraction (types.Infraction) to work but is required by Interchain Security.
-func (s StakingDecorator) SlashWithInfractionReason(ctx sdk.Context, consAddr sdk.ConsAddress, infractionHeight int64, power int64, slashFactor sdk.Dec, _ stakingtypes.Infraction) math.Int {
+func (s StakingDecorator) SlashWithInfractionReason(ctx context.Context, consAddr sdk.ConsAddress, infractionHeight int64, power int64, slashFactor math.LegacyDec, _ stakingtypes.Infraction) math.Int {
 	return s.Slash(ctx, consAddr, infractionHeight, power, slashFactor)
 }
 
 // Jail captures the jail event and calls the decorated staking keeper jail method
-func (s StakingDecorator) Jail(ctx sdk.Context, consAddr sdk.ConsAddress) {
-	val := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
-	if val == nil {
+func (s StakingDecorator) Jail(ctx context.Context, consAddr sdk.ConsAddress) {
+
+	val, err := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
+	if err != nil {
 		ModuleLogger(ctx).
 			Error("can not propagate jail: validator not found", "validator", consAddr.String())
-	} else if err := s.k.ScheduleJailed(ctx, val.GetOperator()); err != nil {
-		ModuleLogger(ctx).
-			Error("can not propagate jail: schedule event",
-				"cause", err,
-				"validator", consAddr.String())
+	} else {
+		vAddr, err2 := sdk.ValAddressFromBech32(val.GetOperator())
+		if err2 != nil {
+			ModuleLogger(ctx).
+				Error("can not propagate jail: validator address is invalid", "validator", consAddr.String())
+			return
+		}
+
+		if err := s.k.ScheduleJailed(ctx, vAddr); err != nil {
+			ModuleLogger(ctx).
+				Error("can not propagate jail: schedule event",
+					"cause", err,
+					"validator", consAddr.String())
+		}
 	}
 	s.StakingKeeper.Jail(ctx, consAddr)
 }
 
 // Unjail captures the unjail event and calls the decorated staking keeper unjail method
-func (s StakingDecorator) Unjail(ctx sdk.Context, consAddr sdk.ConsAddress) {
-	val := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
-	if val == nil {
+func (s StakingDecorator) Unjail(ctx context.Context, consAddr sdk.ConsAddress) {
+	val, err := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
+	if err != nil {
 		ModuleLogger(ctx).
 			Error("can not propagate unjail: validator not found", "validator", consAddr.String())
-	} else if err := s.k.ScheduleUnjailed(ctx, val.GetOperator()); err != nil {
-		ModuleLogger(ctx).
-			Error("can not propagate unjail: schedule event",
-				"cause", err,
-				"validator", consAddr.String())
+	} else {
+		vAddr, err2 := sdk.ValAddressFromBech32(val.GetOperator())
+		if err2 != nil {
+			ModuleLogger(ctx).
+				Error("can not propagate unjail: validator address is invalid", "validator", consAddr.String())
+			return
+		}
+
+		if err := s.k.ScheduleUnjailed(ctx, vAddr); err != nil {
+			ModuleLogger(ctx).
+				Error("can not propagate unjail: schedule event",
+					"cause", err,
+					"validator", consAddr.String())
+		}
 	}
 	s.StakingKeeper.Unjail(ctx, consAddr)
 }
