@@ -40,7 +40,7 @@ func SubmitProposalCmd() *cobra.Command {
 func ProposalSetVirtualStakingMaxCapCmd() *cobra.Command {
 	bech32Prefix := sdk.GetConfig().GetBech32AccountAddrPrefix()
 	cmd := &cobra.Command{
-		Use:   "set-virtual-staking-max-cap [contract_addr_bech32] [max_cap] --title [text] --summary [text] --authority [address]",
+		Use:   "set-virtual-staking-max-cap [contract_addr_bech32] [max_cap] --title [text] --summary [text] --authority [address] --expedited [bool]",
 		Short: "Submit a set virtual staking max cap proposal",
 		Args:  cobra.ExactArgs(2),
 		Long: strings.TrimSpace(
@@ -59,6 +59,11 @@ $ %s tx meshsecurity submit-proposal set-virtual-staking-max-cap %s1l94ptufswr6v
 				return fmt.Errorf("authority: %s", err)
 			}
 
+			expedited, err := cmd.Flags().GetBool(flagExpedited)
+			if err != nil {
+				return fmt.Errorf("expedited: %s", err)
+			}
+
 			if len(authority) == 0 {
 				return errors.New("authority address is required")
 			}
@@ -68,11 +73,8 @@ $ %s tx meshsecurity submit-proposal set-virtual-staking-max-cap %s1l94ptufswr6v
 				return err
 			}
 
-			proposalMsg, err := v1.NewMsgSubmitProposal([]sdk.Msg{&src}, deposit, clientCtx.GetFromAddress().String(), metadata, proposalTitle, summary)
+			proposalMsg, err := v1.NewMsgSubmitProposal([]sdk.Msg{&src}, deposit, clientCtx.GetFromAddress().String(), metadata, proposalTitle, summary, expedited)
 			if err != nil {
-				return err
-			}
-			if err = proposalMsg.ValidateBasic(); err != nil {
 				return err
 			}
 
