@@ -119,8 +119,12 @@ func TestDelegateVirtualStake(t *testing.T) {
 				assert.Equal(t, spec.expNewUsed, k.GetTotalDelegated(ctx, myContractAddr))
 			}
 			// and delegation was persisted
-			_, ok := keepers.StakingKeeper.GetDelegation(ctx, myContractAddr, myValAddr)
-			require.Equal(t, !spec.expErr, ok)
+			_, err := keepers.StakingKeeper.GetDelegation(ctx, myContractAddr, myValAddr)
+			if spec.expErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 
 			currentSupply := totalBondTokenSupply(ctx)
 			// total supply increased

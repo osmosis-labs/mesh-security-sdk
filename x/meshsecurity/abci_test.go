@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"cosmossdk.io/log"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -113,7 +114,8 @@ func TestEndBlocker(t *testing.T) {
 			ctx, _ := pCtx.CacheContext()
 			spec.setup(t, ctx)
 			// when
-			EndBlocker(ctx.WithLogger(log.NewNopLogger()), k, DefaultExecutionResponseHandler())
+			logger := log.NewCustomLogger(zerolog.New(&logRecords).With().Timestamp().Logger())
+			EndBlocker(ctx.WithLogger(logger), k, DefaultExecutionResponseHandler())
 			spec.assert(t, ctx)
 		})
 	}
