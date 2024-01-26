@@ -79,6 +79,7 @@ func NewMeshAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOpti
 	t.Helper()
 
 	SetAddressPrefixes()
+	app := NewMeshApp(options.Logger, options.DB, nil, true, options.AppOpts, options.WasmOpts)
 
 	privVal := mock.NewPV()
 	pubKey, err := privVal.GetPubKey()
@@ -95,7 +96,6 @@ func NewMeshAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOpti
 		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(100000000000000))),
 	}
 
-	app := NewMeshApp(options.Logger, options.DB, nil, true, options.AppOpts, options.WasmOpts)
 	genesisState := NewDefaultGenesisState(app.appCodec)
 	genesisState, err = GenesisStateWithValSet(app.AppCodec(), genesisState, valSet, []authtypes.GenesisAccount{acc}, balance)
 	require.NoError(t, err)
@@ -158,8 +158,6 @@ func Setup(t *testing.T, opts ...wasmkeeper.Option) *MeshApp {
 func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount, chainID string, opts []wasmkeeper.Option, balances ...banktypes.Balance) *MeshApp {
 	t.Helper()
 
-	SetAddressPrefixes()
-
 	app, genesisState := setup(t, chainID, true, 5, opts...)
 	genesisState, err := GenesisStateWithValSet(app.AppCodec(), genesisState, valSet, genAccs, balances...)
 	require.NoError(t, err)
@@ -176,6 +174,8 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 			Validators:      []abci.ValidatorUpdate{},
 			ConsensusParams: consensusParams,
 			AppStateBytes:   stateBytes,
+			Time:            time.Now().UTC(),
+			InitialHeight:   1,
 		},
 	)
 	// commit genesis changes
