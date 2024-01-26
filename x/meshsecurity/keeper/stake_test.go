@@ -111,7 +111,7 @@ func TestDelegateVirtualStake(t *testing.T) {
 			// then
 			if spec.expErr {
 				require.Error(t, gotErr)
-				expSupplyDiff = sdk.NewCoin(sdk.DefaultBondDenom, sdk.ZeroInt())
+				expSupplyDiff = sdk.NewCoin(sdk.DefaultBondDenom, math.ZeroInt())
 			} else {
 				require.NoError(t, gotErr)
 				require.False(t, gotShares.IsZero())
@@ -119,8 +119,12 @@ func TestDelegateVirtualStake(t *testing.T) {
 				assert.Equal(t, spec.expNewUsed, k.GetTotalDelegated(ctx, myContractAddr))
 			}
 			// and delegation was persisted
-			_, ok := keepers.StakingKeeper.GetDelegation(ctx, myContractAddr, myValAddr)
-			require.Equal(t, !spec.expErr, ok)
+			_, err := keepers.StakingKeeper.GetDelegation(ctx, myContractAddr, myValAddr)
+			if spec.expErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 
 			currentSupply := totalBondTokenSupply(ctx)
 			// total supply increased
@@ -266,7 +270,7 @@ func add3Validators(t *testing.T, pCtx sdk.Context, stakingKeeper *stakingkeeper
 	PKs := simtestutil.CreateTestPubKeys(accNum)
 
 	// construct the validators
-	amts := []math.Int{sdk.NewInt(9), sdk.NewInt(8), sdk.NewInt(7)}
+	amts := []math.Int{math.NewInt(9), math.NewInt(8), math.NewInt(7)}
 	validators := make([]stakingtypes.Validator, accNum)
 	for i, amt := range amts {
 		validators[i] = stakingtestutil.NewValidator(t, valAddrs[i], PKs[i])

@@ -11,6 +11,8 @@ option (gogoproto.goproto_getters_all) = false;
 
 // Msg defines the wasm Msg service.
 service Msg {
+  option (cosmos.msg.v1.service) = true;
+
   // SetVirtualStakingMaxCap creates or updates a maximum cap limit for virtual
   // staking coins
   rpc SetVirtualStakingMaxCap(MsgSetVirtualStakingMaxCap)
@@ -22,6 +24,7 @@ service Msg {
 message MsgSetVirtualStakingMaxCap {
   option (amino.name) = "meshsecurity/MsgSetVirtualStakingMaxCap";
   option (cosmos.msg.v1.signer) = "authority";
+
 
   // Authority is the address that controls the module (defaults to x/gov unless
   // overwritten).

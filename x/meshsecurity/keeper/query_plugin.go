@@ -1,12 +1,14 @@
 package keeper
 
 import (
+	"context"
 	"encoding/json"
 
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 
 	errorsmod "cosmossdk.io/errors"
+	"cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -21,8 +23,8 @@ type (
 		GetTotalDelegated(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
 	}
 	slashingKeeper interface {
-		SlashFractionDoubleSign(ctx sdk.Context) (res sdk.Dec)
-		SlashFractionDowntime(ctx sdk.Context) (res sdk.Dec)
+		SlashFractionDoubleSign(ctx context.Context) (res math.LegacyDec, err error)
+		SlashFractionDowntime(ctx context.Context) (res math.LegacyDec, err error)
 	}
 )
 
@@ -79,9 +81,20 @@ func ChainedCustomQuerier(k viewKeeper, sk slashingKeeper, next wasmkeeper.WasmV
 				Delegated: wasmkeeper.ConvertSdkCoinToWasmCoin(k.GetTotalDelegated(ctx, contractAddr)),
 			}
 		case query.SlashRatio != nil:
+
+			slashDoubleSign, err := sk.SlashFractionDoubleSign(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			slashDowntime, err := sk.SlashFractionDowntime(ctx)
+			if err != nil {
+				return nil, err
+			}
+
 			res = contract.SlashRatioResponse{
-				SlashFractionDowntime:   sk.SlashFractionDowntime(ctx).String(),
-				SlashFractionDoubleSign: sk.SlashFractionDoubleSign(ctx).String(),
+				SlashFractionDowntime:   slashDowntime.String(),
+				SlashFractionDoubleSign: slashDoubleSign.String(),
 			}
 		default:
 			return nil, wasmvmtypes.UnsupportedRequest{Kind: "unknown virtual_stake query variant"}

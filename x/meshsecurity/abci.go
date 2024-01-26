@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	sdkmath "cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -34,23 +35,23 @@ func EndBlocker(ctx sdk.Context, k *keeper.Keeper, h TaskExecutionResponseHandle
 				if err != nil {
 					return fmt.Errorf("invalid validator address %s", slash.ValidatorAddr)
 				}
-				totalSlashAmount, ok := sdk.NewIntFromString(slash.SlashAmount)
+				totalSlashAmount, ok := sdkmath.NewIntFromString(slash.SlashAmount)
 				if !ok {
 					return fmt.Errorf("invalid slash amount %s", slash.SlashAmount)
 				}
 				// Get total validator shares
-				validator, found := k.Staking.GetValidator(ctx, valAddr)
-				if !found {
+				validator, err := k.Staking.GetValidator(ctx, valAddr)
+				if err != nil {
 					return fmt.Errorf("validator %s not found", slash.ValidatorAddr)
 				}
 				validatorShares := validator.GetDelegatorShares()
 
-				delegatorSlashAmount := sdk.ZeroDec()
+				delegatorSlashAmount := sdkmath.LegacyZeroDec()
 				if !validatorShares.IsZero() {
 					// Query the `contract` delegation
-					delegation, found := k.Staking.GetDelegation(ctx, contract, valAddr)
-					delegatorShares := sdk.ZeroDec()
-					if found {
+					delegation, err := k.Staking.GetDelegation(ctx, contract, valAddr)
+					delegatorShares := sdkmath.LegacyZeroDec()
+					if err != nil {
 						delegatorShares = delegation.GetShares()
 					}
 					delegatorSlashAmount = delegatorShares.Quo(validatorShares).MulInt(totalSlashAmount)

@@ -1,13 +1,15 @@
 package app
 
 import (
-	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	icacontrollertypes "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/controller/types"
-	icahosttypes "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/host/types"
-	ibctransfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
+	"context"
 
+	icacontrollertypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/controller/types"
+	icahosttypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/host/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
+
+	storetypes "cosmossdk.io/store/types"
+	upgradetypes "cosmossdk.io/x/upgrade/types"
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -21,7 +23,6 @@ import (
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 )
 
 // UpgradeName defines the on-chain upgrade name for the sample SimApp upgrade
@@ -63,8 +64,8 @@ func (app MeshApp) RegisterUpgradeHandlers() {
 		case icacontrollertypes.SubModuleName:
 			keyTable = icacontrollertypes.ParamKeyTable()
 			// wasm
-		case wasmtypes.ModuleName:
-			keyTable = wasmtypes.ParamKeyTable() //nolint:staticcheck
+		// case wasmtypes.ModuleName:
+		// 	keyTable = wasmtypes.ParamKeyTable()
 		default:
 			continue
 		}
@@ -78,9 +79,10 @@ func (app MeshApp) RegisterUpgradeHandlers() {
 
 	app.UpgradeKeeper.SetUpgradeHandler(
 		UpgradeName,
-		func(ctx sdk.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		func(ctx context.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 			// Migrate Tendermint consensus parameters from x/params module to a dedicated x/consensus module.
-			baseapp.MigrateParams(ctx, baseAppLegacySS, &app.ConsensusParamsKeeper)
+			goCtx := sdk.UnwrapSDKContext(ctx)
+			baseapp.MigrateParams(goCtx, baseAppLegacySS, app.ConsensusParamsKeeper.ParamsStore)
 
 			// Note: this migration is optional,
 			// You can include x/gov proposal migration documented in [UPGRADING.md](https://github.com/cosmos/cosmos-sdk/blob/main/UPGRADING.md)

@@ -1,10 +1,12 @@
 package keeper
 
 import (
+	"context"
+
 	"cosmossdk.io/math"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 
-	"github.com/cosmos/cosmos-sdk/store/prefix"
+	"cosmossdk.io/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
@@ -15,17 +17,17 @@ import (
 )
 
 // ScheduleBonded store a validator update to bonded status for the valset update report
-func (k Keeper) ScheduleBonded(ctx sdk.Context, addr sdk.ValAddress) error {
+func (k Keeper) ScheduleBonded(ctx context.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorBonded, addr, nil)
 }
 
 // ScheduleUnbonded store a validator update to unbonded status for the valset update report
-func (k Keeper) ScheduleUnbonded(ctx sdk.Context, addr sdk.ValAddress) error {
+func (k Keeper) ScheduleUnbonded(ctx context.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorUnbonded, addr, nil)
 }
 
 // ScheduleSlashed store a validator slash event / data for the valset update report
-func (k Keeper) ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, power int64, height int64, totalSlashAmount math.Int, slashRatio sdk.Dec) error {
+func (k Keeper) ScheduleSlashed(ctx context.Context, addr sdk.ValAddress, power int64, height int64, totalSlashAmount math.Int, slashRatio math.LegacyDec) error {
 	var slashInfo = &types.SlashInfo{
 		Power:            power,
 		InfractionHeight: height,
@@ -36,35 +38,37 @@ func (k Keeper) ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, power int6
 }
 
 // ScheduleJailed store a validator update to jailed status for the valset update report
-func (k Keeper) ScheduleJailed(ctx sdk.Context, addr sdk.ValAddress) error {
+func (k Keeper) ScheduleJailed(ctx context.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorJailed, addr, nil)
 }
 
 // ScheduleTombstoned store a validator update to tombstoned status for the valset update report
-func (k Keeper) ScheduleTombstoned(ctx sdk.Context, addr sdk.ValAddress) error {
+func (k Keeper) ScheduleTombstoned(ctx context.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorTombstoned, addr, nil)
 }
 
 // ScheduleUnjailed store a validator update to unjailed status for the valset update report
-func (k Keeper) ScheduleUnjailed(ctx sdk.Context, addr sdk.ValAddress) error {
+func (k Keeper) ScheduleUnjailed(ctx context.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorUnjailed, addr, nil)
 }
 
 // ScheduleModified store a validator metadata update for the valset update report
-func (k Keeper) ScheduleModified(ctx sdk.Context, addr sdk.ValAddress) error {
+func (k Keeper) ScheduleModified(ctx context.Context, addr sdk.ValAddress) error {
 	return k.sendAsync(ctx, types.ValidatorModified, addr, nil)
 }
 
 // instead of sync calls to the contracts for the different kind of valset changes in a block, we store them in the mem db
 // and async send to all registered contracts in the end blocker
-func (k Keeper) sendAsync(ctx sdk.Context, op types.PipedValsetOperation, valAddr sdk.ValAddress, slashInfo *types.SlashInfo) error {
+func (k Keeper) sendAsync(ctx context.Context, op types.PipedValsetOperation, valAddr sdk.ValAddress, slashInfo *types.SlashInfo) error {
+	goCtx := sdk.UnwrapSDKContext(ctx)
+
 	ModuleLogger(ctx).Debug("storing for async update", "operation", int(op), "val", valAddr.String())
-	ctx.KVStore(k.memKey).Set(types.BuildPipedValsetOpKey(op, valAddr, slashInfo), []byte{})
+	goCtx.KVStore(k.memKey).Set(types.BuildPipedValsetOpKey(op, valAddr, slashInfo), []byte{})
 	// and schedule an update callback for all registered contracts
 	var innerErr error
-	k.IterateMaxCapLimit(ctx, func(contractAddr sdk.AccAddress, m math.Int) bool {
+	k.IterateMaxCapLimit(goCtx, func(contractAddr sdk.AccAddress, m math.Int) bool {
 		if m.GT(math.ZeroInt()) {
-			innerErr = k.ScheduleOneShotTask(ctx, types.SchedulerTaskValsetUpdate, contractAddr, uint64(ctx.BlockHeight()))
+			innerErr = k.ScheduleOneShotTask(goCtx, types.SchedulerTaskValsetUpdate, contractAddr, uint64(goCtx.BlockHeight()))
 			if innerErr != nil {
 				return true
 			}
@@ -77,11 +81,12 @@ func (k Keeper) sendAsync(ctx sdk.Context, op types.PipedValsetOperation, valAdd
 // ValsetUpdateReport aggregate all stored changes of the current block. Should be called by an end-blocker.
 // The events reported are categorized by type and not time. Conflicting events as Bonded/ Unbonded
 // are not supposed to happen within the same block
-func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, error) {
+func (k Keeper) ValsetUpdateReport(ctx context.Context) (contract.ValsetUpdate, error) {
+	goCtx := sdk.UnwrapSDKContext(ctx)
 	var innerErr error
 	appendValidator := func(set *[]wasmvmtypes.Validator, valAddr sdk.ValAddress) bool {
-		val, ok := k.Staking.GetValidator(ctx, valAddr)
-		if !ok {
+		val, err := k.Staking.GetValidator(ctx, valAddr)
+		if err != nil {
 			innerErr = types.ErrUnknown.Wrapf("validator %s", valAddr)
 			return true
 		}
@@ -95,8 +100,8 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 			Power:            power,
 			InfractionHeight: infractionHeight,
 			InfractionTime:   infractionTime,
-			Height:           ctx.BlockHeight(),
-			Time:             ctx.BlockTime().Unix(),
+			Height:           goCtx.BlockHeight(),
+			Time:             goCtx.BlockTime().Unix(),
 			SlashAmount:      slashAmount,
 			SlashRatio:       slashRatio,
 		}
@@ -143,9 +148,10 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 }
 
 // ClearPipedValsetOperations delete all entries from the temporary store that contains the valset updates.
-func (k Keeper) ClearPipedValsetOperations(ctx sdk.Context) {
+func (k Keeper) ClearPipedValsetOperations(ctx context.Context) {
+	goCtx := sdk.UnwrapSDKContext(ctx)
 	var keys [][]byte
-	pStore := prefix.NewStore(ctx.KVStore(k.memKey), types.PipedValsetPrefix)
+	pStore := prefix.NewStore(goCtx.KVStore(k.memKey), types.PipedValsetPrefix)
 	iter := pStore.Iterator(nil, nil)
 	for ; iter.Valid(); iter.Next() {
 		keys = append(keys, iter.Key())
@@ -157,8 +163,9 @@ func (k Keeper) ClearPipedValsetOperations(ctx sdk.Context) {
 }
 
 // iterate through all stored valset updates. Due to the storage key, there are no contract duplicates within an operation type.
-func (k Keeper) iteratePipedValsetOperations(ctx sdk.Context, cb func(valAddress sdk.ValAddress, op types.PipedValsetOperation, slashInfo *types.SlashInfo) bool) error {
-	pStore := prefix.NewStore(ctx.KVStore(k.memKey), types.PipedValsetPrefix)
+func (k Keeper) iteratePipedValsetOperations(ctx context.Context, cb func(valAddress sdk.ValAddress, op types.PipedValsetOperation, slashInfo *types.SlashInfo) bool) error {
+	goCtx := sdk.UnwrapSDKContext(ctx)
+	pStore := prefix.NewStore(goCtx.KVStore(k.memKey), types.PipedValsetPrefix)
 	iter := pStore.Iterator(nil, nil)
 	for ; iter.Valid(); iter.Next() {
 		key := iter.Key()

@@ -13,40 +13,43 @@ import (
 // Delegate mints new "virtual" bonding tokens and delegates them to the given validator.
 // The amount minted is removed from the SupplyOffset (so that it will become negative), when supported.
 // Authorization of the actor should be handled before entering this method.
-func (k Keeper) Delegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Coin) (sdk.Dec, error) {
+func (k Keeper) Delegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Coin) (math.LegacyDec, error) {
 	if amt.Amount.IsNil() || amt.Amount.IsZero() || amt.Amount.IsNegative() {
-		return sdk.ZeroDec(), errors.ErrInvalidRequest.Wrap("amount")
+		return math.LegacyZeroDec(), errors.ErrInvalidRequest.Wrap("amount")
 	}
 
 	// Ensure staking constraints
-	bondDenom := k.Staking.BondDenom(pCtx)
-	if amt.Denom != bondDenom {
-		return sdk.ZeroDec(), errors.ErrInvalidRequest.Wrapf("invalid coin denomination: got %s, expected %s", amt.Denom, bondDenom)
+	bondDenom, err := k.Staking.BondDenom(pCtx)
+	if err != nil {
+		return math.LegacyZeroDec(), err
 	}
-	validator, found := k.Staking.GetValidator(pCtx, valAddr)
-	if !found {
-		return sdk.ZeroDec(), stakingtypes.ErrNoValidatorFound
+
+	if amt.Denom != bondDenom {
+		return math.LegacyZeroDec(), errors.ErrInvalidRequest.Wrapf("invalid coin denomination: got %s, expected %s", amt.Denom, bondDenom)
+	}
+	validator, err := k.Staking.GetValidator(pCtx, valAddr)
+	if err != nil {
+		return math.LegacyZeroDec(), stakingtypes.ErrNoValidatorFound
 	}
 
 	// Ensure MS constraints:
 	newTotalDelegatedAmount := k.GetTotalDelegated(pCtx, actor).Add(amt)
 	max := k.GetMaxCapLimit(pCtx, actor)
 	if max.IsLT(newTotalDelegatedAmount) {
-		return sdk.ZeroDec(), types.ErrMaxCapExceeded.Wrapf("%s exceeds %s", newTotalDelegatedAmount, max)
+		return math.LegacyZeroDec(), types.ErrMaxCapExceeded.Wrapf("%s exceeds %s", newTotalDelegatedAmount, max)
 	}
 
 	cacheCtx, done := pCtx.CacheContext() // work in a cached store as osmosis (safety net?)
 
 	// mint tokens as virtual coins that do not count to the total supply
 	coins := sdk.NewCoins(amt)
-	err := k.bank.MintCoins(cacheCtx, types.ModuleName, coins)
-	if err != nil {
-		return sdk.ZeroDec(), err
+	if err := k.bank.MintCoins(cacheCtx, types.ModuleName, coins); err != nil {
+		return math.LegacyZeroDec(), err
 	}
 	k.bank.AddSupplyOffset(cacheCtx, bondDenom, amt.Amount.Neg())
 	err = k.bank.SendCoinsFromModuleToAccount(cacheCtx, types.ModuleName, actor, coins)
 	if err != nil {
-		return sdk.ZeroDec(), err
+		return math.LegacyZeroDec(), err
 	}
 	// delegate virtual coins to the validator
 	newShares, err := k.Staking.Delegate(
@@ -73,7 +76,11 @@ func (k Keeper) Undelegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.V
 	}
 
 	// Ensure staking constraints
-	bondDenom := k.Staking.BondDenom(pCtx)
+	bondDenom, err := k.Staking.BondDenom(pCtx)
+	if err != nil {
+		return err
+	}
+
 	if amt.Denom != bondDenom {
 		return errors.ErrInvalidRequest.Wrapf("invalid coin denomination: got %s, expected %s", amt.Denom, bondDenom)
 	}

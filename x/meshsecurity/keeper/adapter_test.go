@@ -1,15 +1,16 @@
 package keeper
 
 import (
+	"context"
 	"testing"
 
 	"github.com/cometbft/cometbft/libs/rand"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	evidencetypes "cosmossdk.io/x/evidence/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/address"
-	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
@@ -75,7 +76,7 @@ func TestCaptureStakingEvents(t *testing.T) {
 	decorator := NewStakingDecorator(keepers.StakingKeeper, keepers.MeshKeeper)
 	specs := map[string]struct {
 		consAddr  sdk.ConsAddress
-		op        func(sdk.Context, sdk.ConsAddress)
+		op        func(context.Context, sdk.ConsAddress)
 		expStored []types.PipedValsetOperation
 		expJailed bool
 	}{
@@ -99,11 +100,12 @@ func TestCaptureStakingEvents(t *testing.T) {
 			spec.op(ctx, spec.consAddr)
 
 			// then
-			loadedVal := keepers.StakingKeeper.ValidatorByConsAddr(ctx, spec.consAddr)
+			loadedVal, err := keepers.StakingKeeper.ValidatorByConsAddr(ctx, spec.consAddr)
+			require.NoError(t, err)
 			assert.Equal(t, spec.expJailed, loadedVal.IsJailed())
 			// and stored for async propagation
 			allStoredOps := FetchAllStoredOperations(t, ctx, keepers.MeshKeeper)
-			assert.Equal(t, spec.expStored, allStoredOps[loadedVal.GetOperator().String()])
+			assert.Equal(t, spec.expStored, allStoredOps[loadedVal.GetOperator()])
 		})
 	}
 }
@@ -118,6 +120,7 @@ func NewMockEvidenceSlashingKeeper() (*MockEvidenceSlashingKeeper, *[]sdk.ConsAd
 	return &r, &r.tombstoned
 }
 
-func (e *MockEvidenceSlashingKeeper) Tombstone(ctx sdk.Context, address sdk.ConsAddress) {
+func (e *MockEvidenceSlashingKeeper) Tombstone(ctx context.Context, address sdk.ConsAddress) error {
 	e.tombstoned = append(e.tombstoned, address)
+	return nil
 }

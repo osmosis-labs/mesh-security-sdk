@@ -8,7 +8,10 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
-const flagAuthority = "authority"
+const (
+	flagAuthority = "authority"
+	flagExpedited = "expedited"
+)
 
 // GetTxCmd returns the transaction commands for this module
 func GetTxCmd() *cobra.Command {
