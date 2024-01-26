@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"cosmossdk.io/log"
+	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmjson "github.com/cometbft/cometbft/libs/json"
@@ -40,9 +42,17 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
+
+	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	govv1types "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	icatypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/controller/types"
+	icahosttypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/host/types"
+	transfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	connectiontypes "github.com/cosmos/ibc-go/v8/modules/core/03-connection/types"
 )
 
 // SetupOptions defines arguments that are passed into `MeshApp` constructor.
@@ -53,7 +63,7 @@ type SetupOptions struct {
 	WasmOpts []wasmkeeper.Option
 }
 
-func setup(t testing.TB, chainID string, withGenesis bool, invCheckPeriod uint, opts ...wasmkeeper.Option) (*MeshApp, GenesisState) {
+func setup(t testing.TB, chainID string, withGenesis bool, invCheckPeriod uint, opts ...wasmkeeper.Option) (*MeshApp, context.Context, GenesisState) {
 	db := dbm.NewMemDB()
 	nodeHome := t.TempDir()
 	snapshotDir := filepath.Join(nodeHome, "data", "snapshots")
@@ -68,18 +78,50 @@ func setup(t testing.TB, chainID string, withGenesis bool, invCheckPeriod uint, 
 	appOptions[flags.FlagHome] = nodeHome // ensure unique folder
 	appOptions[server.FlagInvCheckPeriod] = invCheckPeriod
 	app := NewMeshApp(log.NewNopLogger(), db, nil, true, appOptions, opts, bam.SetChainID(chainID), bam.SetSnapshot(snapshotStore, snapshottypes.SnapshotOptions{KeepRecent: 2}))
+
+	// Setup Context
+	ctx := app.BaseApp.NewUncachedContext(false, tmproto.Header{
+		ChainID: chainID,
+		Height:  1,
+		Time:    time.Now().UTC(),
+	})
+
+	// Set Default Params
+	app.MintKeeper.Minter.Set(ctx, minttypes.DefaultInitialMinter())
+	app.MintKeeper.Params.Set(ctx, minttypes.DefaultParams())
+	app.CrisisKeeper.ConstantFee.Set(ctx, sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(100000)))
+	app.DistrKeeper.Params.Set(ctx, distrtypes.DefaultParams())
+	app.DistrKeeper.FeePool.Set(ctx, distrtypes.FeePool{
+		CommunityPool: sdk.NewDecCoins(),
+	})
+	app.TransferKeeper.SetParams(ctx, transfertypes.DefaultParams())
+	app.StakingKeeper.SetParams(ctx, stakingtypes.DefaultParams())
+	app.IBCKeeper.ClientKeeper.SetParams(ctx, clienttypes.DefaultParams())
+	app.IBCKeeper.ClientKeeper.SetNextClientSequence(ctx, 0)
+	app.IBCKeeper.ConnectionKeeper.SetNextConnectionSequence(ctx, 0)
+	app.IBCKeeper.ConnectionKeeper.SetParams(ctx, connectiontypes.DefaultParams())
+	app.IBCKeeper.ChannelKeeper.SetNextChannelSequence(ctx, 0)
+	app.WasmKeeper.SetParams(ctx, wasm.DefaultParams())
+	app.ICAControllerKeeper.SetParams(ctx, icatypes.DefaultParams())
+	app.ICAHostKeeper.SetParams(ctx, icahosttypes.DefaultParams())
+	app.GovKeeper.Constitution.Set(ctx, "")
+	app.GovKeeper.Params.Set(ctx, govv1types.DefaultParams())
+	app.ConsensusParamsKeeper.ParamsStore.Set(ctx, *simtestutil.DefaultConsensusParams)
+
 	if withGenesis {
-		return app, NewDefaultGenesisState(app.AppCodec())
+		return app, ctx, NewDefaultGenesisState(app.AppCodec())
 	}
-	return app, GenesisState{}
+
+	return app, ctx, GenesisState{}
 }
 
 // NewMeshAppWithCustomOptions initializes a new MeshApp with custom options.
-func NewMeshAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOptions) *MeshApp {
+func NewMeshAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOptions) (*MeshApp, context.Context) {
 	t.Helper()
 
 	SetAddressPrefixes()
-	app := NewMeshApp(options.Logger, options.DB, nil, true, options.AppOpts, options.WasmOpts)
+	// app := NewMeshApp(options.Logger, options.DB, nil, true, options.AppOpts, options.WasmOpts)
+	app, ctx, _ := setup(t, "testing", false, 0, options.WasmOpts...)
 
 	privVal := mock.NewPV()
 	pubKey, err := privVal.GetPubKey()
@@ -100,11 +142,6 @@ func NewMeshAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOpti
 	genesisState, err = GenesisStateWithValSet(app.AppCodec(), genesisState, valSet, []authtypes.GenesisAccount{acc}, balance)
 	require.NoError(t, err)
 
-	ctx := app.BaseApp.NewUncachedContext(true, tmproto.Header{})
-
-	// set consensus params
-	require.NoError(t, app.ConsensusParamsKeeper.ParamsStore.Set(ctx, *simtestutil.DefaultConsensusParams))
-
 	if !isCheckTx {
 		// init chain must be called to stop deliverState from being nil
 		stateBytes, err := tmjson.MarshalIndent(genesisState, "", " ")
@@ -123,7 +160,7 @@ func NewMeshAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOpti
 		)
 	}
 
-	return app
+	return app, ctx
 }
 
 // Setup initializes a new MeshApp. A Nop logger is set in MeshApp.
@@ -158,7 +195,7 @@ func Setup(t *testing.T, opts ...wasmkeeper.Option) *MeshApp {
 func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount, chainID string, opts []wasmkeeper.Option, balances ...banktypes.Balance) *MeshApp {
 	t.Helper()
 
-	app, genesisState := setup(t, chainID, true, 5, opts...)
+	app, ctx, genesisState := setup(t, chainID, true, 5, opts...)
 	genesisState, err := GenesisStateWithValSet(app.AppCodec(), genesisState, valSet, genAccs, balances...)
 	require.NoError(t, err)
 
@@ -189,11 +226,7 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 		}
 	}
 
-	ctx := app.BaseApp.NewContext(false)
-	ctx = ctx.WithBlockHeight(1)
-	ctx = ctx.WithBlockTime(time.Now().UTC())
-
-	res, err := app.BeginBlocker(ctx)
+	res, err := app.BeginBlocker(sdk.UnwrapSDKContext(ctx))
 	require.NoError(t, err)
 	require.NotNil(t, res)
 	// app.BeginBlock(abci.RequestBeginBlock{
@@ -215,7 +248,7 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 
 // SetupWithEmptyStore set up a wasmd app instance with empty DB
 func SetupWithEmptyStore(t testing.TB) *MeshApp {
-	app, _ := setup(t, "testing", false, 0)
+	app, _, _ := setup(t, "testing", false, 0)
 	return app
 }
 

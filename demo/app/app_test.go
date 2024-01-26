@@ -21,14 +21,17 @@ func TestMeshdExport(t *testing.T) {
 	db := dbm.NewMemDB()
 	logger := log.NewCustomLogger(zerolog.New(os.Stdout).With().Timestamp().Logger())
 
-	gapp := NewMeshAppWithCustomOptions(t, false, SetupOptions{
-		Logger:  logger,
-		DB:      db,
-		AppOpts: simtestutil.NewAppOptionsWithFlagHome(t.TempDir()),
+	gapp, ctx := NewMeshAppWithCustomOptions(t, false, SetupOptions{
+		Logger:   logger,
+		DB:       db,
+		AppOpts:  simtestutil.NewAppOptionsWithFlagHome(t.TempDir()),
+		WasmOpts: emptyWasmOpts,
 	})
+
 	// finalize block so we have CheckTx state set
 	_, err := gapp.FinalizeBlock(&abci.RequestFinalizeBlock{
 		Height: 1,
+		Time:   sdk.UnwrapSDKContext(ctx).BlockTime(),
 	})
 	require.NoError(t, err)
 
