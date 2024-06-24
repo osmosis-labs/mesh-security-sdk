@@ -23,8 +23,8 @@ type AuthSource interface {
 
 // abstract keeper
 type msKeeper interface {
-	Delegate(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) (sdk.Dec, error)
-	Undelegate(ctx sdk.Context, actor sdk.AccAddress, addr sdk.ValAddress, coin sdk.Coin) error
+	Delegate(ctx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin) (sdk.Dec, error)
+	Undelegate(ctx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin) error
 }
 
 type CustomMsgHandler struct {
@@ -88,7 +88,11 @@ func (h CustomMsgHandler) handleBondMsg(ctx sdk.Context, actor sdk.AccAddress, b
 	if err != nil {
 		return nil, nil, err
 	}
-	_, err = h.k.Delegate(ctx, actor, valAddr, coin)
+	delAddr, err := sdk.AccAddressFromBech32(bondMsg.Delegator)
+	if err != nil {
+		return nil, nil, err
+	}
+	_, err = h.k.Delegate(ctx, actor, delAddr, valAddr, coin)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -111,7 +115,11 @@ func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress,
 	if err != nil {
 		return nil, nil, err
 	}
-	err = h.k.Undelegate(ctx, actor, valAddr, coin)
+	delAddr, err := sdk.AccAddressFromBech32(bondMsg.Delegator)
+	if err != nil {
+		return nil, nil, err
+	}
+	err = h.k.Undelegate(ctx, actor, delAddr, valAddr, coin)
 	if err != nil {
 		return nil, nil, err
 	}

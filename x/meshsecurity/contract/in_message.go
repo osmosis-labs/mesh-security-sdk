@@ -12,10 +12,12 @@ type (
 	}
 	BondMsg struct {
 		Amount    wasmvmtypes.Coin `json:"amount"`
+		Delegator string           `json:"delegator"`
 		Validator string           `json:"validator"`
 	}
 	UnbondMsg struct {
 		Amount    wasmvmtypes.Coin `json:"amount"`
+		Delegator string           `json:"delegator"`
 		Validator string           `json:"validator"`
 	}
 )

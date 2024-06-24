@@ -24,6 +24,7 @@ func TestDelegateVirtualStake(t *testing.T) {
 	k := keepers.MeshKeeper
 
 	myContractAddr := sdk.AccAddress(rand.Bytes(32))
+	myDelegatorAddr := sdk.AccAddress(rand.Bytes(32))
 	vAddrs := add3Validators(t, pCtx, keepers.StakingKeeper)
 	myValAddr := vAddrs[0]
 	totalBondTokenSupply := func(ctx sdk.Context) sdk.Coin {
@@ -107,7 +108,7 @@ func TestDelegateVirtualStake(t *testing.T) {
 			expSupplyDiff := spec.delegation
 
 			// when
-			gotShares, gotErr := k.Delegate(ctx, myContractAddr, spec.valAddr, spec.delegation)
+			gotShares, gotErr := k.Delegate(ctx, myContractAddr, myDelegatorAddr, spec.valAddr, spec.delegation)
 			// then
 			if spec.expErr {
 				require.Error(t, gotErr)
@@ -136,6 +137,7 @@ func TestInstantUndelegateVirtualStake(t *testing.T) {
 	k := keepers.MeshKeeper
 
 	myContractAddr := sdk.AccAddress(rand.Bytes(32))
+	myDelegatorAddr := sdk.AccAddress(rand.Bytes(32))
 	vAddrs := add3Validators(t, pCtx, keepers.StakingKeeper)
 	myValAddr := vAddrs[0]
 	totalBondTokenSupply := func(ctx sdk.Context) sdk.Coin {
@@ -146,7 +148,7 @@ func TestInstantUndelegateVirtualStake(t *testing.T) {
 	initialDelegation := sdk.NewInt64Coin(sdk.DefaultBondDenom, 1_000_000_000)
 	totalCapLimit := initialDelegation.AddAmount(math.OneInt())
 	require.NoError(t, k.SetMaxCapLimit(pCtx, myContractAddr, totalCapLimit))
-	_, err := k.Delegate(pCtx, myContractAddr, myValAddr, initialDelegation)
+	_, err := k.Delegate(pCtx, myContractAddr, myDelegatorAddr, myValAddr, initialDelegation)
 	require.NoError(t, err)
 
 	startSupply := totalBondTokenSupply(pCtx)
@@ -216,7 +218,7 @@ func TestInstantUndelegateVirtualStake(t *testing.T) {
 			k.bank = captBankKeeper
 
 			// when
-			gotErr := k.Undelegate(ctx, myContractAddr, spec.valAddr, spec.undelegation)
+			gotErr := k.Undelegate(ctx, myContractAddr, myDelegatorAddr, spec.valAddr, spec.undelegation)
 			// then
 			if spec.expErr {
 				require.Error(t, gotErr)

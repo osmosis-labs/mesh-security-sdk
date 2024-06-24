@@ -147,6 +147,66 @@ func (k Keeper) setTotalDelegated(ctx sdk.Context, actor sdk.AccAddress, newAmou
 	store.Set(types.BuildTotalDelegatedAmountKey(actor), bz)
 }
 
+// GetDelegation returns contract delegation for a specified delegator bond with validator.
+func (k Keeper) GetDelegation(ctx sdk.Context, storeKey storetypes.StoreKey, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress) types.Delegation {
+	store := ctx.KVStore(storeKey)
+	key := types.BuildDelegationKey(actor, delAddr, valAddr)
+	bz := store.Get(key)
+	if bz == nil {
+		return types.Delegation{
+			DelegatorAddress: delAddr.String(),
+			ValidatorAddress: valAddr.String(),
+			Amount:           math.ZeroInt(),
+		}
+	}
+	var del types.Delegation
+	if err := del.Unmarshal(bz); err != nil {
+		panic(err)
+	}
+	return del
+}
+
+// GetAllDelegations returns all delegations for a specific contract
+func (k Keeper) GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) (delegations []types.Delegation) {
+	delegations = make([]types.Delegation, maxRetrieve)
+	store := ctx.KVStore(k.storeKey)
+	contractPrefixKey := types.BuildDelegationsKey(actor)
+
+	iterator := sdk.KVStorePrefixIterator(store, contractPrefixKey)
+	defer iterator.Close()
+
+	i := 0
+	for ; iterator.Valid() && i < int(maxRetrieve); iterator.Next() {
+		var del types.Delegation
+		if err := del.Unmarshal(iterator.Value()); err != nil {
+			panic(err)
+		}
+
+		delegations[i] = del
+		i++
+	}
+
+	return delegations[:i] // trim if the array length < maxRetrieve
+}
+
+// setDelegation store the delegation of a given delegator bond with validator
+func (k Keeper) setDelegation(ctx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, changeAmount math.Int) {
+	store := ctx.KVStore(k.storeKey)
+
+	newDelegation := k.GetDelegation(ctx, k.storeKey, actor, delAddr, valAddr)
+	newDelegation.Amount = newDelegation.Amount.Add(changeAmount)
+	if !newDelegation.Amount.IsPositive() {
+		store.Delete(types.BuildDelegationKey(actor, delAddr, valAddr))
+		return
+	}
+
+	bz, err := newDelegation.Marshal()
+	if err != nil { // always nil
+		panic(err)
+	}
+	store.Set(types.BuildDelegationKey(actor, delAddr, valAddr), bz)
+}
+
 // helper to deserialize a math.Int from store. Returns zero when key does not exist.
 // Panics when Unmarshal fails
 func (k Keeper) mustLoadInt(ctx sdk.Context, storeKey storetypes.StoreKey, key []byte) math.Int {
