@@ -1,0 +1,18 @@
+syntax = "proto3";
+package osmosis.meshsecurityprovider;
+
+import "gogoproto/gogo.proto";
+import "cosmos/base/v1beta1/coin.proto";
+
+option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types";
+
+service Msg {
+    rpc Test(MsgTest) returns (MsgTestResponse);
+}
+
+// ===================== MsgTest
+message MsgTest {
+    string sender = 1 [ (gogoproto.moretags) = "yaml:\"sender\"" ];
+}
+
+message MsgTestResponse {}
