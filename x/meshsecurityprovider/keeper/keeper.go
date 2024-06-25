@@ -1,38 +1,65 @@
 package keeper
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cometbft/cometbft/libs/log"
+
+	"github.com/cosmos/cosmos-sdk/codec"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 )
 
-
 type Keeper struct {
-	storeKey storetypes.StoreKey
-
-	paramSpace paramtypes.Subspace
+	storeKey  storetypes.StoreKey
+	cdc       codec.BinaryCodec
+	authority string
 }
 
-func NewKeeper(storeKey storetypes.StoreKey, paramSpace paramtypes.Subspace) *Keeper {
-	// set KeyTable if it has not already been set
-	if !paramSpace.HasKeyTable() {
-		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
+func NewKeeper(cdc codec.BinaryCodec, storeKey storetypes.StoreKey, authority string) *Keeper {
+	return &Keeper{
+		storeKey:  storeKey,
+		cdc:       cdc,
+		authority: authority,
+	}
+}
+
+// Logger returns a module-specific logger.
+func (k Keeper) Logger(ctx sdk.Context) log.Logger {
+	return ctx.Logger().With("module", "x/"+types.ModuleName)
+}
+
+// GetAuthority returns the x/staking module's authority.
+func (k Keeper) GetAuthority() string {
+	return k.authority
+}
+
+// SetParams sets the x/staking module parameters.
+func (k Keeper) SetParams(ctx sdk.Context, params types.Params) error {
+	if err := params.Validate(); err != nil {
+		return err
 	}
 
-	return &Keeper{storeKey: storeKey, paramSpace: paramSpace}
+	store := ctx.KVStore(k.storeKey)
+	bz, err := k.cdc.Marshal(&params)
+	if err != nil {
+		return err
+	}
+	store.Set(types.ParamsKey, bz)
+
+	return nil
 }
 
-// GetParams returns the total set of meshsecurity provider parameters.
+// GetParams sets the x/staking module parameters.
 func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
-	k.paramSpace.GetParamSet(ctx, &params)
-	return params
-}
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.ParamsKey)
+	if bz == nil {
+		return params
+	}
 
-// SetParams sets the total set of meshsecurity provider parameters.
-func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
-	k.paramSpace.SetParamSet(ctx, &params)
+	k.cdc.MustUnmarshal(bz, &params)
+	return params
 }
 
 // InitGenesis initializes the meshsecurity provider module's state from a provided genesis

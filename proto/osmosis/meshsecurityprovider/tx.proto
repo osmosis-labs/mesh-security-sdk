@@ -2,17 +2,46 @@ syntax = "proto3";
 package osmosis.meshsecurityprovider;
 
 import "gogoproto/gogo.proto";
+import "cosmos/msg/v1/msg.proto";
 import "cosmos/base/v1beta1/coin.proto";
+import "osmosis/meshsecurityprovider/genesis.proto";
 
 option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types";
 
 service Msg {
-    rpc Test(MsgTest) returns (MsgTestResponse);
+  option (cosmos.msg.v1.service) = true;
+
+  rpc Test(MsgTest) returns (MsgTestResponse);
+  // UpdateParams defines an operation for updating the x/staking module
+  // parameters.
+  // Since: cosmos-sdk 0.47
+  rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
 }
 
 // ===================== MsgTest
 message MsgTest {
-    string sender = 1 [ (gogoproto.moretags) = "yaml:\"sender\"" ];
+  string sender = 1 [ (gogoproto.moretags) = "yaml:\"sender\"" ];
 }
 
 message MsgTestResponse {}
+
+// MsgUpdateParams is the Msg/UpdateParams request type.
+//
+// Since: cosmos-sdk 0.47
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+
+  // authority is the address that controls the module (defaults to x/gov unless
+  // overwritten).
+  string authority = 1;
+  // params defines the x/staking parameters to update.
+  //
+  // NOTE: All parameters must be supplied.
+  Params params = 2 [ (gogoproto.nullable) = false ];
+};
+
+// MsgUpdateParamsResponse defines the response structure for executing a
+// MsgUpdateParams message.
+//
+// Since: cosmos-sdk 0.47
+message MsgUpdateParamsResponse {};

@@ -11,13 +11,10 @@ option (gogoproto.goproto_getters_all) = false;
 option (gogoproto.equal_all) = false;
 
 //
-message ScheduledWork {
-  bool repeat = 1;
-}
-
+message ScheduledWork { bool repeat = 1; }
 
 // ValidatorAddress payload data to be used with the scheduler
 message ValidatorAddress {
   // Address is the ValAddress bech32 string
-  string address = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string address = 1 [ (cosmos_proto.scalar) = "cosmos.AddressString" ];
 }
