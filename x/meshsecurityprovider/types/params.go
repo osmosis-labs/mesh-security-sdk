@@ -1,7 +1,7 @@
 package types
 
 import (
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	"sigs.k8s.io/yaml"
 )
 
 // Parameter store keys.
@@ -9,13 +9,15 @@ var (
 	KeyParamField = []byte("TODO: CHANGE ME")
 )
 
-// ParamTable for meshsecurityprovider module.
-func ParamKeyTable() paramtypes.KeyTable {
-	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
+func NewParams(vaultAddress string) Params {
+	return Params{
+		VaultAddress: vaultAddress,
+	}
 }
 
-func NewParams() Params {
-	return Params{}
+func (p Params) String() string {
+	out, _ := yaml.Marshal(p)
+	return string(out)
 }
 
 // DefaultParams are the default meshsecurityprovider module parameters.
@@ -26,11 +28,4 @@ func DefaultParams() Params {
 // Validate validates params.
 func (p Params) Validate() error {
 	return nil
-}
-
-// Implements params.ParamSet.
-func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
-	return paramtypes.ParamSetPairs{
-		// paramtypes.NewParamSetPair(KeyParamField, &p.Field, validateFn),
-	}
 }

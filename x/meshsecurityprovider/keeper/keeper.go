@@ -14,6 +14,8 @@ type Keeper struct {
 	storeKey  storetypes.StoreKey
 	cdc       codec.BinaryCodec
 	authority string
+
+	bank
 }
 
 func NewKeeper(cdc codec.BinaryCodec, storeKey storetypes.StoreKey, authority string) *Keeper {
@@ -34,7 +36,7 @@ func (k Keeper) GetAuthority() string {
 	return k.authority
 }
 
-// SetParams sets the x/staking module parameters.
+// SetParams sets the module's parameters.
 func (k Keeper) SetParams(ctx sdk.Context, params types.Params) error {
 	if err := params.Validate(); err != nil {
 		return err
@@ -50,7 +52,7 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) error {
 	return nil
 }
 
-// GetParams sets the x/staking module parameters.
+// GetParams gets the module's parameters.
 func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.ParamsKey)

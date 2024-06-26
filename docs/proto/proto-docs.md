@@ -15,6 +15,8 @@
     - [Query](#osmosis.meshsecurityprovider.Query)
   
 - [osmosis/meshsecurityprovider/tx.proto](#osmosis/meshsecurityprovider/tx.proto)
+    - [MsgBond](#osmosis.meshsecurityprovider.MsgBond)
+    - [MsgBondResponse](#osmosis.meshsecurityprovider.MsgBondResponse)
     - [MsgTest](#osmosis.meshsecurityprovider.MsgTest)
     - [MsgTestResponse](#osmosis.meshsecurityprovider.MsgTestResponse)
     - [MsgUpdateParams](#osmosis.meshsecurityprovider.MsgUpdateParams)
@@ -52,6 +54,11 @@ GenesisState defines the meshsecurityprovider module's genesis state.
 
 ### Params
 
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `vault_address` | [string](#string) |  |  |
 
 
 
@@ -122,6 +129,32 @@ GenesisState defines the meshsecurityprovider module's genesis state.
 <p align="right"><a href="#top">Top</a></p>
 
 ## osmosis/meshsecurityprovider/tx.proto
+
+
+
+<a name="osmosis.meshsecurityprovider.MsgBond"></a>
+
+### MsgBond
+MsgBond defines a message for bonding to vault contract.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `delegator_address` | [string](#string) |  |  |
+| `amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
+
+
+
+
+
+
+<a name="osmosis.meshsecurityprovider.MsgBondResponse"></a>
+
+### MsgBondResponse
+MsgBondResponse defines the Msg/Bond response type.
+
+
+
 
 
 
@@ -197,7 +230,8 @@ Since: cosmos-sdk 0.47
 | Method Name | Request Type | Response Type | Description | HTTP Verb | Endpoint |
 | ----------- | ------------ | ------------- | ------------| ------- | -------- |
 | `Test` | [MsgTest](#osmosis.meshsecurityprovider.MsgTest) | [MsgTestResponse](#osmosis.meshsecurityprovider.MsgTestResponse) |  | |
-| `UpdateParams` | [MsgUpdateParams](#osmosis.meshsecurityprovider.MsgUpdateParams) | [MsgUpdateParamsResponse](#osmosis.meshsecurityprovider.MsgUpdateParamsResponse) | UpdateParams defines an operation for updating the x/staking module parameters. Since: cosmos-sdk 0.47 | |
+| `UpdateParams` | [MsgUpdateParams](#osmosis.meshsecurityprovider.MsgUpdateParams) | [MsgUpdateParamsResponse](#osmosis.meshsecurityprovider.MsgUpdateParamsResponse) | UpdateParams defines an operation for updating the module's parameters. Since: cosmos-sdk 0.47 | |
+| `Bond` | [MsgBond](#osmosis.meshsecurityprovider.MsgBond) | [MsgBondResponse](#osmosis.meshsecurityprovider.MsgBondResponse) | Bond defines an operation for bonding to vault contract. | |
 
  <!-- end services -->
 
