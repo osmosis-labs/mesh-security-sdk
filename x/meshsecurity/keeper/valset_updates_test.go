@@ -4,6 +4,7 @@ import (
 	"bytes"
 	stdrand "math/rand"
 	"testing"
+	"time"
 
 	"github.com/cometbft/cometbft/libs/rand"
 	"github.com/stretchr/testify/assert"
@@ -231,4 +232,35 @@ func TestClearPipedValsetOperations(t *testing.T) {
 	k.ClearPipedValsetOperations(ctx)
 	// then
 	assert.Empty(t, FetchAllStoredOperations(t, ctx, k))
+}
+
+func TestSetAndGetScheduleSlashed(t *testing.T) {
+	ctx, keepers := CreateDefaultTestInput(t)
+	k := keepers.MeshKeeper
+
+	slashInfo := &types.SlashInfo{
+		Power:            12,
+		InfractionHeight: 123,
+		TotalSlashAmount: sdk.NewInt(1000).String(),
+		SlashFraction:    sdk.NewDec(1).String(),
+		TimeInfraction:   time.Now(),
+	}
+	// set
+	err := k.sendAsync(ctx, types.ValidatorSlashed, rand.Bytes(address.Len), slashInfo)
+	require.NoError(t, err)
+	// get
+	var getSlash types.SlashInfo
+	err = k.iteratePipedValsetOperations(ctx, func(valAddress sdk.ValAddress, op types.PipedValsetOperation, slashInfo *types.SlashInfo) bool {
+		if op == types.ValidatorSlashed {
+			getSlash = *slashInfo
+			return true
+		}
+		return false
+	})
+	require.NoError(t, err)
+	// check
+	require.Equal(t, slashInfo.TimeInfraction.Unix(), getSlash.TimeInfraction.Unix())
+	require.Equal(t, slashInfo.Power, getSlash.Power)
+	require.Equal(t, slashInfo.InfractionHeight, getSlash.InfractionHeight)
+	require.Equal(t, slashInfo.TotalSlashAmount, getSlash.TotalSlashAmount)
 }

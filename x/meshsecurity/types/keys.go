@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/address"
+	"time"
 )
 
 const (
@@ -51,6 +52,7 @@ type SlashInfo struct {
 	Power            int64
 	TotalSlashAmount string
 	SlashFraction    string
+	TimeInfraction   time.Time
 }
 
 // BuildMaxCapLimitKey build max cap limit store key
@@ -100,7 +102,7 @@ func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress, slashInf
 		if slashInfo == nil {
 			panic("slash info is nil")
 		}
-		sn = 8 + 8 + 1 + len(slashInfo.TotalSlashAmount) + len(slashInfo.SlashFraction) // 8 for height, 8 for power, +1 for total amount length
+		sn = 8 + 8 + 1 + len(slashInfo.TotalSlashAmount) + 1 + len(slashInfo.SlashFraction) + 8 // 8 for height, 8 for power, +1 for total amount length ,+1 for slash length, +8 for time
 	}
 	r := make([]byte, pn+an+sn+1+1) // +1 for address prefix, +1 for op
 	copy(r, PipedValsetPrefix)
@@ -112,10 +114,18 @@ func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress, slashInf
 		copy(r[pn+an+1+1:], b)
 		binary.BigEndian.PutUint64(b, uint64(slashInfo.Power))
 		copy(r[pn+an+1+1+8:], b)
+
 		tn := len(slashInfo.TotalSlashAmount)
 		r[pn+an+1+1+8+8] = byte(tn)
 		copy(r[pn+an+1+1+8+8+1:], slashInfo.TotalSlashAmount)
-		copy(r[pn+an+1+1+8+8+1+tn:], slashInfo.SlashFraction)
+
+		sn := len(slashInfo.SlashFraction)
+		r[pn+an+1+1+8+8+1+tn] = byte(sn)
+		copy(r[pn+an+1+1+8+8+1+tn+1:], slashInfo.SlashFraction)
+
+		timeUnix := slashInfo.TimeInfraction.Unix()
+		binary.BigEndian.PutUint64(b, uint64(timeUnix))
+		copy(r[pn+an+1+1+8+8+1+tn+1+sn:], b)
 	}
 	return r
 }

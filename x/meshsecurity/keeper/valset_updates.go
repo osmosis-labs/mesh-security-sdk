@@ -3,6 +3,7 @@ package keeper
 import (
 	"cosmossdk.io/math"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -25,12 +26,13 @@ func (k Keeper) ScheduleUnbonded(ctx sdk.Context, addr sdk.ValAddress) error {
 }
 
 // ScheduleSlashed store a validator slash event / data for the valset update report
-func (k Keeper) ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, power int64, height int64, totalSlashAmount math.Int, slashRatio sdk.Dec) error {
+func (k Keeper) ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, power int64, height int64, totalSlashAmount math.Int, slashRatio sdk.Dec, timeInfraction time.Time) error {
 	var slashInfo = &types.SlashInfo{
 		Power:            power,
 		InfractionHeight: height,
 		TotalSlashAmount: totalSlashAmount.String(),
 		SlashFraction:    slashRatio.String(),
+		TimeInfraction:   timeInfraction,
 	}
 	return k.sendAsync(ctx, types.ValidatorSlashed, addr, slashInfo)
 }
@@ -127,8 +129,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		case types.ValidatorModified:
 			return appendValidator(&r.Updated, valAddr)
 		case types.ValidatorSlashed:
-			// TODO: Add / send the infraction time
-			return slashValidator(&r.Slashed, valAddr, slashInfo.Power, slashInfo.InfractionHeight, 0,
+			return slashValidator(&r.Slashed, valAddr, slashInfo.Power, slashInfo.InfractionHeight, slashInfo.TimeInfraction.Unix(),
 				slashInfo.TotalSlashAmount, slashInfo.SlashFraction)
 		default:
 			innerErr = types.ErrInvalid.Wrapf("undefined operation type %X", op)
@@ -170,11 +171,13 @@ func (k Keeper) iteratePipedValsetOperations(ctx sdk.Context, cb func(valAddress
 				return types.ErrInvalid.Wrapf("invalid slash key length %d", len(key))
 			}
 			totalSlashAmountLen := key[addrLen+2+8+8]
+			slashFractionLen := key[addrLen+2+8+8+1+totalSlashAmountLen]
 			slashInfo = &types.SlashInfo{
-				Power:            int64(sdk.BigEndianToUint64(key[addrLen+2 : addrLen+2+8])),
-				InfractionHeight: int64(sdk.BigEndianToUint64(key[addrLen+2+8 : addrLen+2+8+8])),
+				InfractionHeight: int64(sdk.BigEndianToUint64(key[addrLen+2 : addrLen+2+8])),
+				Power:            int64(sdk.BigEndianToUint64(key[addrLen+2+8 : addrLen+2+8+8])),
 				TotalSlashAmount: string(key[addrLen+2+8+8+1 : addrLen+2+8+8+1+totalSlashAmountLen]),
-				SlashFraction:    string(key[addrLen+2+8+8+1+totalSlashAmountLen:]),
+				SlashFraction:    string(key[addrLen+2+8+8+1+totalSlashAmountLen+1 : addrLen+2+8+8+1+totalSlashAmountLen+1+slashFractionLen]),
+				TimeInfraction:   time.Unix(int64(sdk.BigEndianToUint64(key[addrLen+2+8+8+1+totalSlashAmountLen+1+slashFractionLen:addrLen+2+8+8+1+totalSlashAmountLen+1+slashFractionLen+8])), 0),
 			}
 		}
 		if cb(addr, types.PipedValsetOperation(op), slashInfo) {
