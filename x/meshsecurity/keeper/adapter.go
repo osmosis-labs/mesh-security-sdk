@@ -122,7 +122,7 @@ func (s StakingDecorator) Slash(ctx sdk.Context, consAddr sdk.ConsAddress, power
 	if val == nil {
 		ModuleLogger(ctx).
 			Error("can not propagate slash: validator not found", "validator", consAddr.String())
-		// todo: add TimeInfraction
+		// TODO: add TimeInfraction (Needs to be gathered from the caller)
 	} else if err := s.k.ScheduleSlashed(ctx, val.GetOperator(), power, height, totalSlashAmount, slashRatio, time.Unix(0, 0)); err != nil {
 		ModuleLogger(ctx).
 			Error("can not propagate slash: schedule event",
