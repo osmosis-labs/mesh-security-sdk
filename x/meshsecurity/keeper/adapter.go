@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"time"
+
 	"cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -120,7 +122,8 @@ func (s StakingDecorator) Slash(ctx sdk.Context, consAddr sdk.ConsAddress, power
 	if val == nil {
 		ModuleLogger(ctx).
 			Error("can not propagate slash: validator not found", "validator", consAddr.String())
-	} else if err := s.k.ScheduleSlashed(ctx, val.GetOperator(), power, height, totalSlashAmount, slashRatio); err != nil {
+		// todo: add TimeInfraction
+	} else if err := s.k.ScheduleSlashed(ctx, val.GetOperator(), power, height, totalSlashAmount, slashRatio, time.Unix(0, 0)); err != nil {
 		ModuleLogger(ctx).
 			Error("can not propagate slash: schedule event",
 				"cause", err,
