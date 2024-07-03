@@ -129,6 +129,9 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity"
 	meshseckeeper "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/keeper"
 	meshsectypes "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
+	meshsecprov "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider"
+	meshsecprovkeeper "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/keeper"
+	meshsecprovtypes "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 )
 
 const appName = "MeshApp"
@@ -200,6 +203,7 @@ var (
 		ica.AppModuleBasic{},
 		ibcfee.AppModuleBasic{},
 		meshsecurity.AppModuleBasic{},
+		meshsecprov.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -263,6 +267,7 @@ type MeshApp struct {
 	TransferKeeper      ibctransferkeeper.Keeper
 	WasmKeeper          wasmkeeper.Keeper
 	MeshSecKeeper       *meshseckeeper.Keeper
+	MeshSecProvKeeper   meshsecprovkeeper.Keeper
 
 	ScopedIBCKeeper           capabilitykeeper.ScopedKeeper
 	ScopedICAHostKeeper       capabilitykeeper.ScopedKeeper
@@ -314,6 +319,7 @@ func NewMeshApp(
 		wasmtypes.StoreKey, icahosttypes.StoreKey,
 		icacontrollertypes.StoreKey,
 		meshsectypes.StoreKey,
+		meshsecprovtypes.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
@@ -415,6 +421,13 @@ func NewMeshApp(
 		app.StakingKeeper,
 		&app.WasmKeeper, // ensure this is a pointer as we instantiate the keeper a bit later
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
+
+	app.MeshSecProvKeeper = *meshsecprovkeeper.NewKeeper(
+		appCodec,
+		keys[meshsecprovtypes.StoreKey],
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		app.BankKeeper,
 	)
 
 	app.SlashingKeeper = slashingkeeper.NewKeeper(
@@ -591,7 +604,12 @@ func NewMeshApp(
 			meshseckeeper.NewDefaultCustomMsgHandler(app.MeshSecKeeper),
 		)
 	})
-	wasmOpts = append(wasmOpts, meshMessageHandler,
+	meshProvMessageHandler := wasmkeeper.WithMessageHandlerDecorator(func(nested wasmkeeper.Messenger) wasmkeeper.Messenger {
+		return wasmkeeper.NewMessageHandlerChain(
+			meshsecprovkeeper.NewDefaultCustomMsgHandler(&app.MeshSecProvKeeper),
+		)
+	})
+	wasmOpts = append(wasmOpts, meshMessageHandler, meshProvMessageHandler,
 		// add support for the mesh-security queries
 		wasmkeeper.WithQueryHandlerDecorator(meshseckeeper.NewQueryDecorator(app.MeshSecKeeper, app.SlashingKeeper)),
 	)
@@ -694,6 +712,7 @@ func NewMeshApp(
 		ibcfee.NewAppModule(app.IBCFeeKeeper),
 		ica.NewAppModule(&app.ICAControllerKeeper, &app.ICAHostKeeper),
 		meshsecurity.NewAppModule(appCodec, app.MeshSecKeeper),
+		meshsecprov.NewAppModule(app.MeshSecProvKeeper),
 		crisis.NewAppModule(app.CrisisKeeper, skipGenesisInvariants, app.GetSubspace(crisistypes.ModuleName)), // always be last to make sure that it checks for all invariants and not only part of them
 	)
 
