@@ -13,7 +13,7 @@ import (
 // Delegate mints new "virtual" bonding tokens and delegates them to the given validator.
 // The amount minted is removed from the SupplyOffset (so that it will become negative), when supported.
 // Authorization of the actor should be handled before entering this method.
-func (k Keeper) Delegate(pCtx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Coin) (sdk.Dec, error) {
+func (k Keeper) Delegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Coin) (sdk.Dec, error) {
 	if amt.Amount.IsNil() || amt.Amount.IsZero() || amt.Amount.IsNegative() {
 		return sdk.ZeroDec(), errors.ErrInvalidRequest.Wrap("amount")
 	}
@@ -60,7 +60,7 @@ func (k Keeper) Delegate(pCtx sdk.Context, actor, delAddr sdk.AccAddress, valAdd
 
 	// and update our records
 	k.setTotalDelegated(cacheCtx, actor, newTotalDelegatedAmount)
-	k.setDelegation(cacheCtx, actor, delAddr, valAddr, amt.Amount)
+
 	done()
 	return newShares, err
 }
@@ -68,7 +68,7 @@ func (k Keeper) Delegate(pCtx sdk.Context, actor, delAddr sdk.AccAddress, valAdd
 // Undelegate executes an instant undelegate and burns the released virtual staking tokens.
 // The amount burned is added to the (negative) SupplyOffset, when supported.
 // Authorization of the actor should be handled before entering this method.
-func (k Keeper) Undelegate(pCtx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Coin) error {
+func (k Keeper) Undelegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Coin) error {
 	if amt.Amount.IsNil() || amt.Amount.IsZero() || amt.Amount.IsNegative() {
 		return errors.ErrInvalidRequest.Wrap("amount")
 	}
@@ -112,8 +112,16 @@ func (k Keeper) Undelegate(pCtx sdk.Context, actor, delAddr sdk.AccAddress, valA
 		newDelegatedAmt = sdk.NewCoin(bondDenom, math.ZeroInt())
 	}
 	k.setTotalDelegated(cacheCtx, actor, newDelegatedAmt)
-	k.setDelegation(cacheCtx, actor, delAddr, valAddr, amt.Amount.Neg())
 
 	done()
 	return nil
+}
+
+func (k Keeper) UpdateDelegation(pCtx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Coin, isDeduct bool) {
+	cacheCtx, done := pCtx.CacheContext() // work in a cached store (safety net?)
+	if isDeduct {
+		amt.Amount = amt.Amount.Neg()
+	}
+	k.setDelegation(cacheCtx, actor, delAddr, valAddr, amt.Amount.Neg())
+	done()
 }

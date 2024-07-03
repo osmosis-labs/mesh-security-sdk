@@ -23,8 +23,9 @@ type AuthSource interface {
 
 // abstract keeper
 type msKeeper interface {
-	Delegate(ctx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin) (sdk.Dec, error)
-	Undelegate(ctx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin) error
+	Delegate(ctx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin) (sdk.Dec, error)
+	Undelegate(ctx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin) error
+	UpdateDelegation(ctx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin, isDeduct bool)
 }
 
 type CustomMsgHandler struct {
@@ -75,6 +76,8 @@ func (h CustomMsgHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddre
 		return h.handleBondMsg(ctx, contractAddr, customMsg.VirtualStake.Bond)
 	case customMsg.VirtualStake.Unbond != nil:
 		return h.handleUnbondMsg(ctx, contractAddr, customMsg.VirtualStake.Unbond)
+	case customMsg.VirtualStake.UpdateDelegation != nil:
+		return h.handleUpdateDelegationMsg(ctx, contractAddr, customMsg.VirtualStake.UpdateDelegation)
 	}
 	return nil, nil, wasmtypes.ErrUnknownMsg
 }
@@ -88,11 +91,7 @@ func (h CustomMsgHandler) handleBondMsg(ctx sdk.Context, actor sdk.AccAddress, b
 	if err != nil {
 		return nil, nil, err
 	}
-	delAddr, err := sdk.AccAddressFromBech32(bondMsg.Delegator)
-	if err != nil {
-		return nil, nil, err
-	}
-	_, err = h.k.Delegate(ctx, actor, delAddr, valAddr, coin)
+	_, err = h.k.Delegate(ctx, actor, valAddr, coin)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -115,11 +114,7 @@ func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress,
 	if err != nil {
 		return nil, nil, err
 	}
-	delAddr, err := sdk.AccAddressFromBech32(bondMsg.Delegator)
-	if err != nil {
-		return nil, nil, err
-	}
-	err = h.k.Undelegate(ctx, actor, delAddr, valAddr, coin)
+	err = h.k.Undelegate(ctx, actor, valAddr, coin)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -127,6 +122,31 @@ func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress,
 	return []sdk.Event{sdk.NewEvent(
 		types.EventTypeUnbond,
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		sdk.NewAttribute(types.AttributeKeyValidator, valAddr.String()),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
+		sdk.NewAttribute(sdk.AttributeKeySender, actor.String()),
+	)}, nil, nil
+}
+
+func (h CustomMsgHandler) handleUpdateDelegationMsg(ctx sdk.Context, actor sdk.AccAddress, updateDelegationMsg *contract.UpdateDelegationMsg) ([]sdk.Event, [][]byte, error) {
+	coin, err := wasmkeeper.ConvertWasmCoinToSdkCoin(updateDelegationMsg.Amount)
+	if err != nil {
+		return nil, nil, err
+	}
+	delAddr, err := sdk.AccAddressFromBech32(updateDelegationMsg.Delegator)
+	if err != nil {
+		return nil, nil, err
+	}
+	valAddr, err := sdk.ValAddressFromBech32(updateDelegationMsg.Validator)
+	if err != nil {
+		return nil, nil, err
+	}
+	h.k.UpdateDelegation(ctx, actor, delAddr, valAddr, coin, updateDelegationMsg.IsDeduct)
+
+	return []sdk.Event{sdk.NewEvent(
+		types.EventTypeUpdateDelegation,
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		sdk.NewAttribute(types.AttributeKeyDelegator, delAddr.String()),
 		sdk.NewAttribute(types.AttributeKeyValidator, valAddr.String()),
 		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
 		sdk.NewAttribute(sdk.AttributeKeySender, actor.String()),
