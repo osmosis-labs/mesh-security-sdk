@@ -75,7 +75,7 @@ func (k Keeper) sendAsync(ctx sdk.Context, op types.PipedValsetOperation, valAdd
 // ValsetUpdateReport aggregate all stored changes of the current block. Should be called by an end-blocker.
 // The events reported are categorized by type and not time. Conflicting events as Bonded/ Unbonded
 // are not supposed to happen within the same block
-func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, error) {
+func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.HandleValsetUpdate, error) {
 	var innerErr error
 	appendValidator := func(set *[]wasmvmtypes.Validator, valAddr sdk.ValAddress) bool {
 		val, ok := k.Staking.GetValidator(ctx, valAddr)
@@ -101,7 +101,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		*set = append(*set, valSlash)
 		return false
 	}
-	r := contract.ValsetUpdate{ // init with empty slices for contract that does not handle null or omitted fields
+	r := contract.HandleValsetUpdate{ // init with empty slices for contract that does not handle null or omitted fields
 		Additions:  make([]contract.Validator, 0),
 		Removals:   make([]contract.ValidatorAddr, 0),
 		Updated:    make([]contract.Validator, 0),

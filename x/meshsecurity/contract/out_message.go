@@ -6,8 +6,8 @@ import (
 
 type (
 	SudoMsg struct {
-		HandleEpoch  *struct{}     `json:"handle_epoch,omitempty"`
-		ValsetUpdate *ValsetUpdate `json:"valset_update,omitempty"`
+		HandleEpoch        *struct{}           `json:"handle_epoch,omitempty"`
+		HandleValsetUpdate *HandleValsetUpdate `json:"handle_valset_update,omitempty"`
 	}
 
 	// Validator alias to wasmVM type
@@ -27,7 +27,7 @@ type (
 	}
 
 	// ValsetUpdate updates to the active validator set
-	ValsetUpdate struct {
+	HandleValsetUpdate struct {
 		Additions  []Validator      `json:"additions"`
 		Removals   []ValidatorAddr  `json:"removals"`
 		Updated    []Validator      `json:"updated"`

@@ -148,7 +148,7 @@ func TestBuildValsetUpdateReport(t *testing.T) {
 	got, err := k.ValsetUpdateReport(ctx)
 	// then
 	require.NoError(t, err)
-	exp := contract.ValsetUpdate{
+	exp := contract.HandleValsetUpdate{
 		Additions: []contract.Validator{
 			{
 				Address:       val4.String(),
