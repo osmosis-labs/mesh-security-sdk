@@ -6,6 +6,7 @@
 
 - [osmosis/meshsecurity/v1beta1/meshsecurity.proto](#osmosis/meshsecurity/v1beta1/meshsecurity.proto)
     - [Params](#osmosis.meshsecurity.v1beta1.Params)
+    - [SlashInfo](#osmosis.meshsecurity.v1beta1.SlashInfo)
     - [VirtualStakingMaxCapInfo](#osmosis.meshsecurity.v1beta1.VirtualStakingMaxCapInfo)
   
 - [osmosis/meshsecurity/v1beta1/genesis.proto](#osmosis/meshsecurity/v1beta1/genesis.proto)
@@ -22,6 +23,7 @@
     - [Query](#osmosis.meshsecurity.v1beta1.Query)
   
 - [osmosis/meshsecurity/v1beta1/scheduler.proto](#osmosis/meshsecurity/v1beta1/scheduler.proto)
+    - [ScheduledWork](#osmosis.meshsecurity.v1beta1.ScheduledWork)
     - [ValidatorAddress](#osmosis.meshsecurity.v1beta1.ValidatorAddress)
   
 - [osmosis/meshsecurity/v1beta1/tx.proto](#osmosis/meshsecurity/v1beta1/tx.proto)
@@ -52,6 +54,25 @@ Params defines the parameters for the x/meshsecurity module.
 | `total_contracts_max_cap` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  | TotalContractsMaxCap is the maximum that the sum of all contract max caps must not exceed |
 | `epoch_length` | [uint32](#uint32) |  | Epoch length is the number of blocks that defines an epoch |
 | `max_gas_end_blocker` | [uint32](#uint32) |  | MaxGasEndBlocker defines the maximum gas that can be spent in a contract sudo callback |
+
+
+
+
+
+
+<a name="osmosis.meshsecurity.v1beta1.SlashInfo"></a>
+
+### SlashInfo
+SlashInfo defines info event from slashing
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `infraction_height` | [int64](#int64) |  |  |
+| `power` | [int64](#int64) |  |  |
+| `total_slash_amount` | [string](#string) |  |  |
+| `slash_fraction` | [string](#string) |  |  |
+| `time_infraction` | [int64](#int64) |  |  |
 
 
 
@@ -235,6 +256,21 @@ Query provides defines the gRPC querier service
 <p align="right"><a href="#top">Top</a></p>
 
 ## osmosis/meshsecurity/v1beta1/scheduler.proto
+
+
+
+<a name="osmosis.meshsecurity.v1beta1.ScheduledWork"></a>
+
+### ScheduledWork
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `repeat` | [bool](#bool) |  |  |
+
+
+
 
 
 

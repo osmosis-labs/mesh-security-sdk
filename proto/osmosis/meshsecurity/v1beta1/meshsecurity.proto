@@ -37,3 +37,12 @@ message Params {
   // sudo callback
   uint32 max_gas_end_blocker = 3;
 }
+
+// SlashInfo defines info event from slashing
+message SlashInfo {
+  int64 infraction_height = 1;
+  int64 power = 2;
+  string total_slash_amount = 3;
+  string slash_fraction = 4;
+  int64 time_infraction = 5;
+}

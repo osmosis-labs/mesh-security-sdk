@@ -238,29 +238,35 @@ func TestSetAndGetScheduleSlashed(t *testing.T) {
 	ctx, keepers := CreateDefaultTestInput(t)
 	k := keepers.MeshKeeper
 
+	var valAdrees sdk.ValAddress
+	valAdrees = rand.Bytes(address.Len)
 	slashInfo := &types.SlashInfo{
 		Power:            12,
 		InfractionHeight: 123,
 		TotalSlashAmount: sdk.NewInt(1000).String(),
 		SlashFraction:    sdk.NewDec(1).String(),
-		TimeInfraction:   time.Now(),
+		TimeInfraction:   time.Now().Unix(),
 	}
 	// set
-	err := k.sendAsync(ctx, types.ValidatorSlashed, rand.Bytes(address.Len), slashInfo)
+	err := k.sendAsync(ctx, types.ValidatorSlashed, valAdrees, slashInfo)
 	require.NoError(t, err)
 	// get
 	var getSlash types.SlashInfo
+	var val sdk.ValAddress
 	err = k.iteratePipedValsetOperations(ctx, func(valAddress sdk.ValAddress, op types.PipedValsetOperation, slashInfo *types.SlashInfo) bool {
+
 		if op == types.ValidatorSlashed {
 			getSlash = *slashInfo
+			val = valAddress
 			return true
 		}
 		return false
 	})
 	require.NoError(t, err)
 	// check
-	require.Equal(t, slashInfo.TimeInfraction.Unix(), getSlash.TimeInfraction.Unix())
+	require.Equal(t, slashInfo.TimeInfraction, getSlash.TimeInfraction)
 	require.Equal(t, slashInfo.Power, getSlash.Power)
 	require.Equal(t, slashInfo.InfractionHeight, getSlash.InfractionHeight)
 	require.Equal(t, slashInfo.TotalSlashAmount, getSlash.TotalSlashAmount)
+	require.Equal(t, valAdrees, val)
 }
