@@ -34,10 +34,7 @@ func Querier(chain *Client) func(contract string, query Query) map[string]any {
 					panic(fmt.Sprintf("error in query: %s\n. Stopping early...", err))
 				}
 				_, ok := qRsp["locked"]
-				if ok {
-					return false
-				}
-				return true
+				return !ok
 			},
 			300*time.Second,
 			2*time.Second,
@@ -84,6 +81,9 @@ func (p *ProviderClient) StoreContracts() ([]uint64, error) {
 	time.Sleep(1 * time.Second)
 
 	nativeStakingCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_native_staking.wasm", p.wasmContractGZipped))
+	if err != nil {
+		return nil, err
+	}
 	nativeStakingCodeID := nativeStakingCodeResp.CodeID
 
 	// external Staking
@@ -118,6 +118,9 @@ func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) 
 	//time.Sleep(time.Second)
 	proxyCodeID := proxyCodeResp.CodeID
 	nativeStakingCodeResp, err := StoreCodeFile(p.Chain, buildPathToWasm(p.wasmContractPath, "mesh_native_staking.wasm", p.wasmContractGZipped))
+	if err != nil {
+		return nil, err
+	}
 	nativeStakingCodeID := nativeStakingCodeResp.CodeID
 
 	//time.Sleep(time.Second)
@@ -223,10 +226,7 @@ func (p ProviderClient) QueryVaultFreeBalance() int {
 				"account": {"account": p.Chain.Address},
 			})
 			_, ok := qRsp["locked"]
-			if ok {
-				return false
-			}
-			return true
+			return !ok
 		},
 		300*time.Second,
 		2*time.Second,
@@ -237,6 +237,27 @@ func (p ProviderClient) QueryVaultFreeBalance() int {
 		panic(err)
 	}
 	return ParseHighLow(qRsp["free"]).Low
+}
+
+func (p ProviderClient) QueryVaultActiveExtStaking() {
+	qRsp := map[string]any{}
+	err := Eventually(
+		func() bool {
+			qRsp = p.QueryVault(Query{
+				"active_external_staking": {},
+			})
+			_, ok := qRsp["contracts"]
+			return ok
+		},
+		300*time.Second,
+		2*time.Second,
+		"vault token locked for too long: %v",
+		qRsp,
+	)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("contracts: ", qRsp["contracts"])
 }
 
 type HighLowType struct {

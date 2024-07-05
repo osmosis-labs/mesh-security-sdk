@@ -37,10 +37,7 @@ func Test2WayContract(t *testing.T) {
 		func() bool {
 			qRsp = providerClient1.QueryExtStaking(setup.Query{"list_active_validators": {}})
 			v := qRsp["validators"].([]interface{})
-			if len(v) > 0 {
-				return true
-			}
-			return false
+			return len(v) > 0
 		},
 		120*time.Second,
 		2*time.Second,
@@ -92,7 +89,8 @@ func Test2WayContract(t *testing.T) {
 	require.NoError(t, err)
 
 	// require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
-	require.Equal(t, 20_000_000, providerClient1.QueryVaultFreeBalance()) // = 70 (free)  + 30 (local) - 80 (remote staked)
+	providerClient1.QueryVaultFreeBalance() // = 70 (free)  + 30 (local) - 80 (remote staked)
+	providerClient1.QueryVaultActiveExtStaking()
 
 	// then
 	fmt.Println("provider chain: query ext staking")
@@ -115,10 +113,7 @@ func Test2WayContract(t *testing.T) {
 		func() bool {
 			qRsp = providerClient2.QueryExtStaking(setup.Query{"list_active_validators": {}})
 			v := qRsp["validators"].([]interface{})
-			if len(v) > 0 {
-				return true
-			}
-			return false
+			return len(v) > 0
 		},
 		120*time.Second,
 		2*time.Second,

@@ -198,10 +198,7 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 		func() bool {
 			qRsp = providerCli.QueryExtStaking(Query{"list_active_validators": {}})
 			v := qRsp["validators"].([]interface{})
-			if len(v) > 0 {
-				return true
-			}
-			return false
+			return len(v) > 0
 		},
 		300*time.Second,
 		2*time.Second,
@@ -221,6 +218,9 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 		return nil, nil, err
 	}
 	authAddrStr, err := bech32.ConvertAndEncode(*registry.Bech32Prefix, authAddr)
+	if err != nil {
+		return nil, nil, err
+	}
 	govProposal := &types.MsgSetVirtualStakingMaxCap{
 		Authority: authAddrStr,
 		Contract:  consumerContracts.Staking,
