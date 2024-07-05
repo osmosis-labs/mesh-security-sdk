@@ -10,8 +10,6 @@ import (
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
-
-	outmessage "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
 )
 
 // ScheduleBonded store a validator update to bonded status for the valset update report
@@ -88,9 +86,9 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		*set = append(*set, ConvertSdkValidatorToWasm(val))
 		return false
 	}
-	slashValidator := func(set *[]outmessage.ValidatorSlash, valAddr sdk.ValAddress, power int64, infractionHeight int64,
+	slashValidator := func(set *[]contract.ValidatorSlash, valAddr sdk.ValAddress, power int64, infractionHeight int64,
 		infractionTime int64, slashAmount string, slashRatio string) bool {
-		valSlash := outmessage.ValidatorSlash{
+		valSlash := contract.ValidatorSlash{
 			ValidatorAddr:    valAddr.String(),
 			Power:            power,
 			InfractionHeight: infractionHeight,
