@@ -324,7 +324,7 @@ func (p *ConsumerClient) StoreContracts() ([]uint64, error) {
 	return []uint64{codeID, virtStakeCodeID, converterCodeID}, nil
 }
 
-func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContract, error) {
+func (p *ConsumerClient) BootstrapContracts(remoteDenom string, maxRetrieve uint16) (*ConsumerContract, error) {
 	// what does this do????
 	// modify end-blocker to fail fast in tests
 	// msModule := p.app.ModuleManager.Modules[types.ModuleName].(*meshsecurity.AppModule)
@@ -362,8 +362,8 @@ func (p *ConsumerClient) BootstrapContracts(remoteDenom string) (*ConsumerContra
 	//time.Sleep(time.Second)
 
 	discount := "0.1" // todo: configure price
-	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d}`,
-		priceFeedContract, discount, remoteDenom, virtStakeCodeID))
+	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d, "max_retrieve": %d}`,
+		priceFeedContract, discount, remoteDenom, virtStakeCodeID, maxRetrieve))
 	// bug in lens that returns second contract instantiated
 	contracts, err := InstantiateContract(p.Chain, codeID, "consumer-converter-contract", initMsg)
 	if err != nil {

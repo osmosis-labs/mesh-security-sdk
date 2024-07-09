@@ -76,7 +76,7 @@ func JustContracts(provider, consumer, configFile, wasmContractPath string, wasm
 	return nil
 }
 
-func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmContractGZipped bool) (*ProviderClient, *ConsumerClient, error) {
+func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmContractGZipped bool, maxRetrieve uint16) (*ProviderClient, *ConsumerClient, error) {
 	// read config file from yaml
 	yamlFile, err := os.ReadFile(configFile)
 	if err != nil {
@@ -137,7 +137,7 @@ func MeshSecurity(provider, consumer, configFile, wasmContractPath string, wasmC
 
 	// setup Contracts on both chains
 	consumerCli := NewConsumerClient(consumerClient, wasmContractPath, wasmContractGZipped)
-	consumerContracts, err := consumerCli.BootstrapContracts(providerClient.Denom)
+	consumerContracts, err := consumerCli.BootstrapContracts(providerClient.Denom, maxRetrieve)
 	if err != nil {
 		return nil, nil, err
 	}

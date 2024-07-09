@@ -24,9 +24,11 @@ import (
 //	require.NoError(t, err)
 //}
 
+var maxRetrieve = uint16(50)
+
 func Test2WayContract(t *testing.T) {
 	// create clients for provider and consumer
-	providerClient1, consumerClient1, err := setup.MeshSecurity(providerChain, consumerChain, configFile, wasmContractPath, wasmContractGZipped)
+	providerClient1, consumerClient1, err := setup.MeshSecurity(providerChain, consumerChain, configFile, wasmContractPath, wasmContractGZipped, 50)
 	require.NoError(t, err)
 	require.NotEmpty(t, providerClient1)
 	require.NotEmpty(t, consumerClient1)
@@ -104,7 +106,7 @@ func Test2WayContract(t *testing.T) {
 	assert.Empty(t, qRsp["pending_unbonds"])
 
 	// create opposite clients
-	providerClient2, consumerClient2, err := setup.MeshSecurity(consumerChain, providerChain, configFile, wasmContractPath, wasmContractGZipped)
+	providerClient2, consumerClient2, err := setup.MeshSecurity(consumerChain, providerChain, configFile, wasmContractPath, wasmContractGZipped, maxRetrieve)
 	require.NoError(t, err)
 	require.NotEmpty(t, providerClient2)
 	require.NotEmpty(t, consumerClient2)
