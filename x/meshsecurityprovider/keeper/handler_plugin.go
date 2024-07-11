@@ -58,7 +58,7 @@ func (h CustomMsgHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddre
 	if err := json.Unmarshal(msg.Custom, &customMsg); err != nil {
 		return nil, nil, sdkerrors.ErrJSONUnmarshal.Wrap("custom message")
 	}
-	if customMsg.VaultMsg == nil {
+	if customMsg.ProviderMsg == nil {
 		// not our message type
 		return nil, nil, wasmtypes.ErrUnknownMsg
 	}
@@ -68,10 +68,10 @@ func (h CustomMsgHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddre
 	}
 
 	switch {
-	case customMsg.VaultMsg.Bond != nil:
-		return h.handleBondMsg(ctx, contractAddr, customMsg.VaultMsg.Bond)
-	case customMsg.VaultMsg.Unbond != nil:
-		return h.handleUnbondMsg(ctx, contractAddr, customMsg.VaultMsg.Unbond)
+	case customMsg.ProviderMsg.Bond != nil:
+		return h.handleBondMsg(ctx, contractAddr, customMsg.ProviderMsg.Bond)
+	case customMsg.ProviderMsg.Unbond != nil:
+		return h.handleUnbondMsg(ctx, contractAddr, customMsg.ProviderMsg.Unbond)
 	}
 
 	return nil, nil, wasmtypes.ErrUnknownMsg

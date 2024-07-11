@@ -4,9 +4,9 @@ import wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 
 type (
 	CustomMsg struct {
-		VaultMsg *VaultMsg `json:"virtual_stake,omitempty"`
+		ProviderMsg *ProviderMsg `json:"virtual_stake,omitempty"`
 	}
-	VaultMsg struct {
+	ProviderMsg struct {
 		Bond   *BondMsg   `json:"bond,omitempty"`
 		Unbond *UnbondMsg `json:"unbond,omitempty"`
 	}
@@ -15,7 +15,6 @@ type (
 		Amount    wasmvmtypes.Coin `json:"amount"`
 		Delegator string           `json:"delegator"`
 	}
-
 	UnbondMsg struct {
 		Amount    wasmvmtypes.Coin `json:"amount"`
 		Delegator string           `json:"delegator"`
