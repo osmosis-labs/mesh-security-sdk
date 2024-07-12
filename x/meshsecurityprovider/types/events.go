@@ -1,12 +1,13 @@
 package types
 
 const (
-	EventTypeUnbond = "vault_unbond"
-	EventTypeBond   = "vault_bond"
+	EventTypeUnbond  = "vault_unbond"
+	EventTypeBond    = "vault_bond"
+	EventTypeUnstake = "native_unstake"
 )
 
 const (
-	AttributeValueCategory   = ModuleName
-	AttributeKeyContractAddr = "vault_contract"
-	AttributeKeyDelegator    = "delegator"
+	AttributeValueCategory = ModuleName
+	AttributeKeyDelegator  = "delegator"
+	AttributeKeyValidator  = "validator"
 )

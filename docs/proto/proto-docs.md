@@ -57,6 +57,7 @@ GenesisState defines the meshsecurityprovider module's genesis state.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `vault_address` | [string](#string) |  |  |
+| `native_staking_address` | [string](#string) |  |  |
 
 
 

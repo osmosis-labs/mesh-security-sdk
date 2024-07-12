@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/json"
+	"fmt"
 
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
@@ -14,39 +15,13 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 )
 
-// AuthSource abstract type that provides contract authorization.
-// This is an extension point for custom implementations.
-type AuthSource interface {
-	// IsAuthorized returns if the contract authorized to execute a virtual stake message
-	IsAuthorized(ctx sdk.Context, contractAddr sdk.AccAddress) bool
-}
-
-// abstract keeper
-type msKeeper interface {
-	Bond(ctx sdk.Context, actor sdk.AccAddress, delegator sdk.AccAddress, coin sdk.Coin) error
-	Unbond(ctx sdk.Context, actor sdk.AccAddress, delegator sdk.AccAddress, coin sdk.Coin) error
-}
-
 type CustomMsgHandler struct {
-	k    msKeeper
-	auth AuthSource
+	k Keeper
 }
 
-// NewDefaultCustomMsgHandler constructor to set up the CustomMsgHandler with vault contract authorization
-func NewDefaultCustomMsgHandler(k *Keeper) *CustomMsgHandler {
-	return &CustomMsgHandler{k: k, auth: isVaultContract(k)}
-}
-
-func isVaultContract(k *Keeper) AuthSourceFn {
-	return func(ctx sdk.Context, contractAddr sdk.AccAddress) bool {
-		return k.VaultAddress(ctx) == contractAddr.String()
-	}
-}
-
-// NewCustomMsgHandler constructor to set up CustomMsgHandler with an individual auth source.
-// This is an extension point for non default contract authorization logic.
-func NewCustomMsgHandler(k msKeeper, auth AuthSource) *CustomMsgHandler {
-	return &CustomMsgHandler{k: k, auth: auth}
+// NewCustomMsgHandler constructor to set up CustomMsgHandler.
+func NewCustomMsgHandler(k Keeper) *CustomMsgHandler {
+	return &CustomMsgHandler{k: k}
 }
 
 // DispatchMsg handle contract message of type Custom in the mesh-security namespace
@@ -63,21 +38,23 @@ func (h CustomMsgHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddre
 		return nil, nil, wasmtypes.ErrUnknownMsg
 	}
 
-	if !h.auth.IsAuthorized(ctx, contractAddr) {
-		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
-	}
-
 	switch {
 	case customMsg.ProviderMsg.Bond != nil:
 		return h.handleBondMsg(ctx, contractAddr, customMsg.ProviderMsg.Bond)
 	case customMsg.ProviderMsg.Unbond != nil:
 		return h.handleUnbondMsg(ctx, contractAddr, customMsg.ProviderMsg.Unbond)
+	case customMsg.ProviderMsg.Unstake != nil:
+		return h.handleUnstakeMsg(ctx, contractAddr, customMsg.ProviderMsg.Unstake)
 	}
 
 	return nil, nil, wasmtypes.ErrUnknownMsg
 }
 
 func (h CustomMsgHandler) handleBondMsg(ctx sdk.Context, actor sdk.AccAddress, bondMsg *contract.BondMsg) ([]sdk.Event, [][]byte, error) {
+	if actor.String() != h.k.VaultAddress(ctx) {
+		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
+	}
+
 	coin, err := wasmkeeper.ConvertWasmCoinToSdkCoin(bondMsg.Amount)
 	if err != nil {
 		return nil, nil, err
@@ -102,6 +79,10 @@ func (h CustomMsgHandler) handleBondMsg(ctx sdk.Context, actor sdk.AccAddress, b
 }
 
 func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress, unbondMsg *contract.UnbondMsg) ([]sdk.Event, [][]byte, error) {
+	if actor.String() != h.k.VaultAddress(ctx) {
+		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
+	}
+
 	coin, err := wasmkeeper.ConvertWasmCoinToSdkCoin(unbondMsg.Amount)
 	if err != nil {
 		return nil, nil, err
@@ -118,17 +99,50 @@ func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress,
 	}
 
 	return []sdk.Event{sdk.NewEvent(
-		types.EventTypeBond,
+		types.EventTypeUnbond,
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
 		sdk.NewAttribute(types.AttributeKeyDelegator, delAddr.String()),
 	)}, nil, nil
 }
 
-// AuthSourceFn is helper for simple AuthSource types
-type AuthSourceFn func(ctx sdk.Context, contractAddr sdk.AccAddress) bool
+func (h CustomMsgHandler) handleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, unstakeMsg *contract.UnstakeMsg) ([]sdk.Event, [][]byte, error) {
+	nativeContractAddr := h.k.NativeStakingAddress(ctx)
+	var proxyRes types.ProxyByOwnerResponse
 
-// IsAuthorized returns if the contract authorized to execute a stake message
-func (a AuthSourceFn) IsAuthorized(ctx sdk.Context, contractAddr sdk.AccAddress) bool {
-	return a(ctx, contractAddr)
+	resBytes, err := h.k.wasmKeeper.QuerySmart(ctx, 
+		sdk.AccAddress(nativeContractAddr),
+		[]byte(fmt.Sprintf(`{"proxy_by_owner": {"owner": "%s"}}`, actor.String())),
+	)
+	if err != nil {
+		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
+	}
+	if err = json.Unmarshal(resBytes, &proxyRes); err != nil {
+		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
+	}
+	if proxyRes.Proxy == "" {
+		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
+	}
+
+	coin, err := wasmkeeper.ConvertWasmCoinToSdkCoin(unstakeMsg.Amount)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	valAddr, err := sdk.ValAddressFromBech32(unstakeMsg.Validator)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = h.k.Unstake(ctx, actor, valAddr, coin)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []sdk.Event{sdk.NewEvent(
+		types.EventTypeUnstake,
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
+		sdk.NewAttribute(types.AttributeKeyValidator, valAddr.String()),
+	)}, nil, nil
 }

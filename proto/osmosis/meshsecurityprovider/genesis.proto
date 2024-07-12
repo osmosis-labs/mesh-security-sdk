@@ -10,6 +10,7 @@ message Params {
   option (gogoproto.equal)            = true;
   option (gogoproto.goproto_stringer) = false;
   string vault_address = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  string native_staking_address = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
 }
 
 // GenesisState defines the meshsecurityprovider module's genesis state.

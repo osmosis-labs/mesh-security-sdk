@@ -606,7 +606,7 @@ func NewMeshApp(
 	})
 	meshProvMessageHandler := wasmkeeper.WithMessageHandlerDecorator(func(nested wasmkeeper.Messenger) wasmkeeper.Messenger {
 		return wasmkeeper.NewMessageHandlerChain(
-			meshsecprovkeeper.NewDefaultCustomMsgHandler(&app.MeshSecProvKeeper),
+			meshsecprovkeeper.NewCustomMsgHandler(&app.MeshSecProvKeeper),
 		)
 	})
 	wasmOpts = append(wasmOpts, meshMessageHandler, meshProvMessageHandler,

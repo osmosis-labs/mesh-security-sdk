@@ -9,6 +9,7 @@ type (
 	ProviderMsg struct {
 		Bond   *BondMsg   `json:"bond,omitempty"`
 		Unbond *UnbondMsg `json:"unbond,omitempty"`
+		Unstake *UnstakeMsg `json:"unstake,omitempty"`
 	}
 
 	BondMsg struct {
@@ -18,5 +19,9 @@ type (
 	UnbondMsg struct {
 		Amount    wasmvmtypes.Coin `json:"amount"`
 		Delegator string           `json:"delegator"`
+	}
+	UnstakeMsg struct {
+		Amount    wasmvmtypes.Coin `json:"amount"`
+		Validator string           `json:"validator"`
 	}
 )
