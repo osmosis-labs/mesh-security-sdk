@@ -4,11 +4,15 @@ import (
 	"encoding/binary"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/address"
+	"github.com/osmosis-labs/mesh-security-sdk/x/types"
 )
 
 const (
 	// ModuleName defines the module name.
 	ModuleName = "meshsecurity"
+
+	// ConsumerPortID is the default port id the consumer module binds to
+	ConsumerPortID = "consumer"
 
 	// StoreKey defines the primary module store key.
 	StoreKey = ModuleName
@@ -30,28 +34,9 @@ var (
 	TotalDelegatedAmountKeyPrefix = []byte{0x3}
 	SchedulerKeyPrefix            = []byte{0x4}
 
-	PipedValsetPrefix = []byte{0x5}
+	PipedValsetPrefix      = []byte{0x5}
+	ProviderChannelByteKey = []byte{0x6}
 )
-
-type PipedValsetOperation byte
-
-const (
-	ValsetOperationUndefined PipedValsetOperation = iota
-	ValidatorBonded
-	ValidatorUnbonded
-	ValidatorJailed
-	ValidatorTombstoned
-	ValidatorUnjailed
-	ValidatorModified
-	ValidatorSlashed
-)
-
-type SlashInfo struct {
-	InfractionHeight int64
-	Power            int64
-	TotalSlashAmount string
-	SlashFraction    string
-}
 
 // BuildMaxCapLimitKey build max cap limit store key
 func BuildMaxCapLimitKey(contractAddr sdk.AccAddress) []byte {
@@ -90,13 +75,13 @@ func BuildSchedulerContractKey(tp SchedulerTaskType, blockHeight uint64, contrac
 }
 
 // BuildPipedValsetOpKey build store key for the temporary valset operation store
-func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress, slashInfo *SlashInfo) []byte {
-	if op == ValsetOperationUndefined {
+func BuildPipedValsetOpKey(op types.PipedValsetOperation, val sdk.ValAddress, slashInfo *types.SlashInfo) []byte {
+	if op == types.PipedValsetOperation_UNSPECIFIED {
 		panic("empty operation")
 	}
 	pn, an := len(PipedValsetPrefix), len(val)
 	sn := 0
-	if op == ValidatorSlashed {
+	if op == types.PipedValsetOperation_VALIDATOR_SLASHED {
 		if slashInfo == nil {
 			panic("slash info is nil")
 		}
@@ -106,7 +91,7 @@ func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress, slashInf
 	copy(r, PipedValsetPrefix)
 	copy(r[pn:], address.MustLengthPrefix(val))
 	r[pn+an+1] = byte(op)
-	if op == ValidatorSlashed {
+	if op == types.PipedValsetOperation_VALIDATOR_SLASHED {
 		b := make([]byte, 8)
 		binary.BigEndian.PutUint64(b, uint64(slashInfo.InfractionHeight))
 		copy(r[pn+an+1+1:], b)
@@ -118,4 +103,9 @@ func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress, slashInf
 		copy(r[pn+an+1+1+8+8+1+tn:], slashInfo.SlashFraction)
 	}
 	return r
+}
+
+// ProviderChannelKey returns the key for storing channelID of the provider chain
+func ProviderChannelKey() []byte {
+	return ProviderChannelByteKey
 }

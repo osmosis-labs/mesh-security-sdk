@@ -3,6 +3,7 @@ package types
 import (
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -28,4 +29,10 @@ func (p Params) ValidateBasic() error {
 		return ErrInvalid.Wrap("empty max gas end-blocker setting")
 	}
 	return nil
+}
+
+// GetCCVTimeoutPeriod returns the timeout period for sent ccv related ibc packets
+func (p Params) GetTimeoutPeriod() time.Duration {
+	// TODO: add TimeoutPeriod for params
+	return time.Duration(5) * time.Microsecond
 }

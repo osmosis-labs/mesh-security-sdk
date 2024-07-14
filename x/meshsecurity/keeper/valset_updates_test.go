@@ -17,6 +17,7 @@ import (
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
+	cptypes "github.com/osmosis-labs/mesh-security-sdk/x/types"
 )
 
 func TestSendAsync(t *testing.T) {
@@ -30,36 +31,36 @@ func TestSendAsync(t *testing.T) {
 	)
 	specs := map[string]struct {
 		setup  func(t *testing.T, ctx sdk.Context)
-		assert func(t *testing.T, ctx sdk.Context, ops map[string][]types.PipedValsetOperation)
+		assert func(t *testing.T, ctx sdk.Context, ops map[string][]cptypes.PipedValsetOperation)
 	}{
 		"no duplicates": {
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.sendAsync(ctx, types.ValidatorModified, myValAddr, nil))
+				require.NoError(t, k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, myValAddr, nil))
 			},
-			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]types.PipedValsetOperation) {
+			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]cptypes.PipedValsetOperation) {
 				assert.Len(t, ops, 1)
-				exp := []types.PipedValsetOperation{types.ValidatorModified}
+				exp := []cptypes.PipedValsetOperation{cptypes.PipedValsetOperation_VALIDATOR_MODIFIED}
 				assert.Equal(t, exp, ops[myValAddr.String()])
 			},
 		},
 		"separated by validator": {
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.sendAsync(ctx, types.ValidatorModified, myOtherValAddr, nil))
+				require.NoError(t, k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, myOtherValAddr, nil))
 			},
-			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]types.PipedValsetOperation) {
+			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]cptypes.PipedValsetOperation) {
 				assert.Len(t, ops, 2)
-				exp := []types.PipedValsetOperation{types.ValidatorModified}
+				exp := []cptypes.PipedValsetOperation{cptypes.PipedValsetOperation_VALIDATOR_MODIFIED}
 				assert.Equal(t, exp, ops[myValAddr.String()])
 				assert.Equal(t, exp, ops[myOtherValAddr.String()])
 			},
 		},
 		"separated by type": {
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.sendAsync(ctx, types.ValidatorBonded, myValAddr, nil))
+				require.NoError(t, k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_BONDED, myValAddr, nil))
 			},
-			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]types.PipedValsetOperation) {
+			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]cptypes.PipedValsetOperation) {
 				assert.Len(t, ops, 1)
-				exp := []types.PipedValsetOperation{types.ValidatorBonded, types.ValidatorModified}
+				exp := []cptypes.PipedValsetOperation{cptypes.PipedValsetOperation_VALIDATOR_BONDED, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED}
 				assert.Equal(t, exp, ops[myValAddr.String()])
 			},
 		},
@@ -70,7 +71,7 @@ func TestSendAsync(t *testing.T) {
 				err = k.SetMaxCapLimit(ctx, myOtherVStakingContractAddr, sdk.NewCoin("stake", sdkmath.NewInt(100_000_000)))
 				require.NoError(t, err)
 			},
-			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]types.PipedValsetOperation) {
+			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]cptypes.PipedValsetOperation) {
 				isScheduled := k.HasScheduledTask(ctx, types.SchedulerTaskValsetUpdate, myVStakingContractAddr, false)
 				assert.True(t, isScheduled)
 				isScheduled = k.HasScheduledTask(ctx, types.SchedulerTaskValsetUpdate, myOtherVStakingContractAddr, false)
@@ -82,7 +83,7 @@ func TestSendAsync(t *testing.T) {
 				err := k.SetMaxCapLimit(ctx, myVStakingContractAddr, sdk.NewCoin("stake", sdkmath.NewInt(100_000_000)))
 				require.NoError(t, err)
 			},
-			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]types.PipedValsetOperation) {
+			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]cptypes.PipedValsetOperation) {
 				isScheduled := k.HasScheduledTask(ctx, types.SchedulerTaskValsetUpdate, myVStakingContractAddr, false)
 				assert.True(t, isScheduled)
 				isScheduled = k.HasScheduledTask(ctx, types.SchedulerTaskValsetUpdate, myOtherVStakingContractAddr, false)
@@ -95,7 +96,7 @@ func TestSendAsync(t *testing.T) {
 			ctx, _ := pCtx.CacheContext()
 			spec.setup(t, ctx)
 			// when
-			gotErr := k.sendAsync(ctx, types.ValidatorModified, myValAddr, nil)
+			gotErr := k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, myValAddr, nil)
 			// then
 			require.NoError(t, gotErr)
 			allStoredOps := FetchAllStoredOperations(t, ctx, k)
@@ -123,19 +124,19 @@ func TestBuildValsetUpdateReport(t *testing.T) {
 	}
 
 	type tuple struct {
-		op      types.PipedValsetOperation
+		op      cptypes.PipedValsetOperation
 		valAddr sdk.ValAddress
 	}
 	allOps := []tuple{
-		{op: types.ValidatorJailed, valAddr: val1},
-		{op: types.ValidatorUnjailed, valAddr: val2},
-		{op: types.ValidatorModified, valAddr: val2},
-		{op: types.ValidatorUnbonded, valAddr: val3},
-		{op: types.ValidatorJailed, valAddr: val3},
-		{op: types.ValidatorTombstoned, valAddr: val3},
-		{op: types.ValidatorModified, valAddr: val3},
-		{op: types.ValidatorBonded, valAddr: val4},
-		{op: types.ValidatorModified, valAddr: val4},
+		{op: cptypes.PipedValsetOperation_VALIDATOR_JAILED, valAddr: val1},
+		{op: cptypes.PipedValsetOperation_VALIDATOR_UNJAILED, valAddr: val2},
+		{op: cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, valAddr: val2},
+		{op: cptypes.PipedValsetOperation_VALIDATOR_UNBONDED, valAddr: val3},
+		{op: cptypes.PipedValsetOperation_VALIDATOR_JAILED, valAddr: val3},
+		{op: cptypes.PipedValsetOperation_VALIDATOR_TOMBSTONED, valAddr: val3},
+		{op: cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, valAddr: val3},
+		{op: cptypes.PipedValsetOperation_VALIDATOR_BONDED, valAddr: val4},
+		{op: cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, valAddr: val4},
 	}
 	stdrand.Shuffle(len(allOps), func(i, j int) {
 		allOps[i], allOps[j] = allOps[j], allOps[i]
@@ -197,7 +198,7 @@ func TestValsetUpdateReportErrors(t *testing.T) {
 	}{
 		"unknown val address": {
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.sendAsync(ctx, types.ValidatorBonded, nonValAddr, nil))
+				require.NoError(t, k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_BONDED, nonValAddr, nil))
 			},
 			expErr: types.ErrUnknown,
 		},
@@ -223,9 +224,9 @@ func TestValsetUpdateReportErrors(t *testing.T) {
 func TestClearPipedValsetOperations(t *testing.T) {
 	ctx, keepers := CreateDefaultTestInput(t)
 	k := keepers.MeshKeeper
-	err := k.sendAsync(ctx, types.ValidatorModified, rand.Bytes(address.Len), nil)
+	err := k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, rand.Bytes(address.Len), nil)
 	require.NoError(t, err)
-	err = k.sendAsync(ctx, types.ValidatorUnjailed, rand.Bytes(address.Len), nil)
+	err = k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_UNJAILED, rand.Bytes(address.Len), nil)
 	require.NoError(t, err)
 	// when
 	k.ClearPipedValsetOperations(ctx)

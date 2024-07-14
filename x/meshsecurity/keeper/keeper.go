@@ -8,6 +8,9 @@ import (
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
 
+	channeltypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+	host "github.com/cosmos/ibc-go/v7/modules/core/24-host"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
@@ -29,6 +32,9 @@ type Keeper struct {
 	bank     types.XBankKeeper
 	Staking  types.XStakingKeeper
 	wasm     types.WasmKeeper
+
+	scopedKeeper  types.ScopedKeeper
+	channelKeeper types.ChannelKeeper
 	// the address capable of executing a MsgUpdateParams message. Typically, this
 	// should be the x/gov module account.
 	authority string
@@ -42,10 +48,12 @@ func NewKeeper(
 	bank types.SDKBankKeeper,
 	staking types.SDKStakingKeeper,
 	wasm types.WasmKeeper,
+	scopedKeeper types.ScopedKeeper,
+	channelKeeper types.ChannelKeeper,
 	authority string,
 	opts ...Option,
 ) *Keeper {
-	return NewKeeperX(cdc, storeKey, memoryStoreKey, NewBankKeeperAdapter(bank), NewStakingKeeperAdapter(staking, bank), wasm, authority, opts...)
+	return NewKeeperX(cdc, storeKey, memoryStoreKey, NewBankKeeperAdapter(bank), NewStakingKeeperAdapter(staking, bank), wasm, scopedKeeper, channelKeeper, authority, opts...)
 }
 
 // NewKeeperX constructor with extended Osmosis SDK keepers
@@ -56,17 +64,21 @@ func NewKeeperX(
 	bank types.XBankKeeper,
 	staking types.XStakingKeeper,
 	wasm types.WasmKeeper,
+	scopedKeeper types.ScopedKeeper,
+	channelKeeper types.ChannelKeeper,
 	authority string,
 	opts ...Option,
 ) *Keeper {
 	k := &Keeper{
-		storeKey:  storeKey,
-		memKey:    memoryStoreKey,
-		cdc:       cdc,
-		bank:      bank,
-		Staking:   staking,
-		wasm:      wasm,
-		authority: authority,
+		storeKey:      storeKey,
+		memKey:        memoryStoreKey,
+		cdc:           cdc,
+		bank:          bank,
+		Staking:       staking,
+		wasm:          wasm,
+		scopedKeeper:  scopedKeeper,
+		channelKeeper: channelKeeper,
+		authority:     authority,
 	}
 	for _, o := range opts {
 		o.apply(k)
@@ -184,4 +196,29 @@ func (k Keeper) IterateMaxCapLimit(ctx sdk.Context, cb func(sdk.AccAddress, math
 // ModuleLogger returns logger with module attribute
 func ModuleLogger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
+}
+
+// GetProviderChannel gets the channelID for the channel to the provider.
+func (k Keeper) GetProviderChannel(ctx sdk.Context) (string, bool) {
+	store := ctx.KVStore(k.storeKey)
+	channelIdBytes := store.Get(types.ProviderChannelKey())
+	if len(channelIdBytes) == 0 {
+		return "", false
+	}
+	return string(channelIdBytes), true
+}
+
+// SetProviderChannel sets the channelID for the channel to the provider.
+func (k Keeper) SetProviderChannel(ctx sdk.Context, channelID string) {
+	store := ctx.KVStore(k.storeKey)
+	store.Set(types.ProviderChannelKey(), []byte(channelID))
+}
+
+func (k Keeper) ChanCloseInit(ctx sdk.Context, portID, channelID string) error {
+	capName := host.ChannelCapabilityPath(portID, channelID)
+	chanCap, ok := k.scopedKeeper.GetCapability(ctx, capName)
+	if !ok {
+		return errorsmod.Wrapf(channeltypes.ErrChannelCapabilityNotFound, "could not retrieve channel capability at: %s", capName)
+	}
+	return k.channelKeeper.ChanCloseInit(ctx, portID, channelID, chanCap)
 }

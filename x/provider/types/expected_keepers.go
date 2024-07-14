@@ -9,6 +9,9 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
+	// transfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
+	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
+
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
 	channeltypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
@@ -16,7 +19,7 @@ import (
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 )
 
-type SDKBankKeeper interface {
+type BankKeeper interface {
 	GetBalance(ctx sdk.Context, addr sdk.AccAddress, denom string) sdk.Coin
 	MintCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) error
 	BurnCoins(ctx sdk.Context, moduleName string, amounts sdk.Coins) error
@@ -25,13 +28,8 @@ type SDKBankKeeper interface {
 	UndelegateCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
 }
 
-type XBankKeeper interface {
-	SDKBankKeeper
-	AddSupplyOffset(ctx sdk.Context, denom string, offsetAmount math.Int)
-}
-
 // SDKStakingKeeper expected staking keeper.
-type SDKStakingKeeper interface {
+type StakingKeeper interface {
 	BondDenom(ctx sdk.Context) string
 	GetAllValidators(ctx sdk.Context) (validators []stakingtypes.Validator)
 	GetValidator(ctx sdk.Context, addr sdk.ValAddress) (validator stakingtypes.Validator, found bool)
@@ -45,11 +43,7 @@ type SDKStakingKeeper interface {
 	TotalBondedTokens(ctx sdk.Context) math.Int
 	IterateDelegations(ctx sdk.Context, delegator sdk.AccAddress, fn func(int64, stakingtypes.DelegationI) bool)
 	GetValidatorByConsAddr(ctx sdk.Context, consAddr sdk.ConsAddress) (stakingtypes.Validator, bool)
-}
-
-type XStakingKeeper interface {
-	SDKStakingKeeper
-	InstantUndelegate(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec) (sdk.Coins, error)
+	MinCommissionRate(ctx sdk.Context) math.LegacyDec
 }
 
 // CommunityPoolKeeper expected distribution keeper.
@@ -91,4 +85,20 @@ type ScopedKeeper interface {
 	GetCapability(ctx sdk.Context, name string) (*capabilitytypes.Capability, bool)
 	AuthenticateCapability(ctx sdk.Context, cap *capabilitytypes.Capability, name string) bool
 	ClaimCapability(ctx sdk.Context, cap *capabilitytypes.Capability, name string) error
+}
+
+// ConnectionKeeper defines the expected IBC connection keeper
+type ConnectionKeeper interface {
+	GetConnection(ctx sdk.Context, connectionID string) (conntypes.ConnectionEnd, bool)
+}
+
+// ClientKeeper defines the expected IBC client keeper
+type ClientKeeper interface {
+	CreateClient(ctx sdk.Context, clientState ibcexported.ClientState, consensusState ibcexported.ConsensusState) (string, error)
+	GetClientState(ctx sdk.Context, clientID string) (ibcexported.ClientState, bool)
+	GetLatestClientConsensusState(ctx sdk.Context, clientID string) (ibcexported.ConsensusState, bool)
+	GetSelfConsensusState(ctx sdk.Context, height ibcexported.Height) (ibcexported.ConsensusState, error)
+	ClientStore(ctx sdk.Context, clientID string) sdk.KVStore
+	SetClientState(ctx sdk.Context, clientID string, clientState ibcexported.ClientState)
+	GetClientConsensusState(ctx sdk.Context, clientID string, height ibcexported.Height) (ibcexported.ConsensusState, bool)
 }

@@ -1,0 +1,22 @@
+syntax = "proto3";
+package osmosis.provider.v1beta1;
+
+import "cosmos/base/v1beta1/coin.proto";
+import "gogoproto/gogo.proto";
+import "amino/amino.proto";
+
+option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/provider/types";
+option (gogoproto.goproto_getters_all) = false;
+option (gogoproto.equal_all) = false;
+
+// Params defines the parameters for the x/meshsecurity module.
+message Params {
+  option (amino.name) = "provider/Params";
+  option (gogoproto.equal) = true;
+
+  uint64 infraction_time = 1;
+
+  // TimeoutPeriod has the unit time.Millisecond 
+  uint64 timeout_period = 2; 
+}
+

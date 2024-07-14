@@ -60,6 +60,7 @@ import (
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
+	cptypes "github.com/osmosis-labs/mesh-security-sdk/x/types"
 )
 
 type encodingConfig struct {
@@ -276,6 +277,8 @@ func CreateDefaultTestInput(t testing.TB, opts ...Option) (sdk.Context, TestKeep
 		bankKeeper,
 		stakingKeeper,
 		wasmKeeper,
+		scopedWasmKeeper,
+		ibcKeeper.ChannelKeeper,
 		authority,
 		opts...,
 	)
@@ -296,12 +299,12 @@ func CreateDefaultTestInput(t testing.TB, opts ...Option) (sdk.Context, TestKeep
 }
 
 // FetchAllStoredOperations load all ops from temp db
-func FetchAllStoredOperations(t *testing.T, ctx sdk.Context, msKeeper *Keeper) map[string][]types.PipedValsetOperation {
-	index := make(map[string][]types.PipedValsetOperation, 1)
-	err := msKeeper.iteratePipedValsetOperations(ctx, func(valAddr sdk.ValAddress, op types.PipedValsetOperation, slashInfo *types.SlashInfo) bool {
+func FetchAllStoredOperations(t *testing.T, ctx sdk.Context, msKeeper *Keeper) map[string][]cptypes.PipedValsetOperation {
+	index := make(map[string][]cptypes.PipedValsetOperation, 1)
+	err := msKeeper.iteratePipedValsetOperations(ctx, func(valAddr sdk.ValAddress, op cptypes.PipedValsetOperation, slashInfo *cptypes.SlashInfo) bool {
 		ops, ok := index[valAddr.String()]
 		if !ok {
-			ops = []types.PipedValsetOperation{}
+			ops = []cptypes.PipedValsetOperation{}
 		}
 		index[valAddr.String()] = append(ops, op)
 		return false

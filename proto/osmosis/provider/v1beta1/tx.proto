@@ -1,0 +1,32 @@
+syntax = "proto3";
+package osmosis.provider.v1beta1;
+
+import "cosmos_proto/cosmos.proto";
+import "cosmos/msg/v1/msg.proto";
+import "gogoproto/gogo.proto";
+import "amino/amino.proto";
+
+option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/provider/types";
+option (gogoproto.goproto_getters_all) = false;
+
+service Msg {
+    rpc SetConsumerCommissionRate(MsgSetConsumerCommissionRate) returns (MsgSetConsumerCommissionRateResponse);
+}
+
+message MsgSetConsumerCommissionRate {
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+   string provider_addr = 1 [ (gogoproto.moretags) = "yaml:\"address\"" ];
+ 
+  string chain_id = 2;
+
+  string rate = 3 [
+    (cosmos_proto.scalar)  = "cosmos.Dec",
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
+    (gogoproto.nullable)   = false 
+  ];
+}
+
+
+message MsgSetConsumerCommissionRateResponse {}

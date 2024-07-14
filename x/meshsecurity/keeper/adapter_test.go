@@ -11,7 +11,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/address"
 	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
+	cptypes "github.com/osmosis-labs/mesh-security-sdk/x/types"
 )
 
 func TestCaptureTombstone(t *testing.T) {
@@ -28,12 +28,12 @@ func TestCaptureTombstone(t *testing.T) {
 	specs := map[string]struct {
 		addr      sdk.ConsAddress
 		expPassed []sdk.ConsAddress
-		expStored []types.PipedValsetOperation
+		expStored []cptypes.PipedValsetOperation
 	}{
 		"with existing validator": {
 			addr:      myConsAddress,
 			expPassed: []sdk.ConsAddress{myConsAddress},
-			expStored: []types.PipedValsetOperation{types.ValidatorTombstoned},
+			expStored: []cptypes.PipedValsetOperation{cptypes.PipedValsetOperation_VALIDATOR_TOMBSTONED},
 		},
 		"unknown consensus address": {
 			addr:      otherConsAddress,
@@ -76,19 +76,19 @@ func TestCaptureStakingEvents(t *testing.T) {
 	specs := map[string]struct {
 		consAddr  sdk.ConsAddress
 		op        func(sdk.Context, sdk.ConsAddress)
-		expStored []types.PipedValsetOperation
+		expStored []cptypes.PipedValsetOperation
 		expJailed bool
 	}{
 		"jail": {
 			consAddr:  myConsAddress,
 			op:        decorator.Jail,
-			expStored: []types.PipedValsetOperation{types.ValidatorJailed},
+			expStored: []cptypes.PipedValsetOperation{cptypes.PipedValsetOperation_VALIDATOR_JAILED},
 			expJailed: true,
 		},
 		"unjail": {
 			consAddr:  myConsAddressJailed,
 			op:        decorator.Unjail,
-			expStored: []types.PipedValsetOperation{types.ValidatorUnjailed},
+			expStored: []cptypes.PipedValsetOperation{cptypes.PipedValsetOperation_VALIDATOR_UNJAILED},
 		},
 	}
 	for name, spec := range specs {
