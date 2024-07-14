@@ -12,20 +12,11 @@ option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecuritypro
 
 service Msg {
   option (cosmos.msg.v1.service) = true;
-
-  rpc Test(MsgTest) returns (MsgTestResponse);
   // UpdateParams defines an operation for updating the module's
   // parameters.
   // Since: cosmos-sdk 0.47
   rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
 }
-
-// ===================== MsgTest
-message MsgTest {
-  string sender = 1 [ (gogoproto.moretags) = "yaml:\"sender\"" ];
-}
-
-message MsgTestResponse {}
 
 // MsgUpdateParams is the Msg/UpdateParams request type.
 //
