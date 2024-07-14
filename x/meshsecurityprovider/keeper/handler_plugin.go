@@ -96,7 +96,7 @@ func (h CustomMsgHandler) handleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress,
 	}
 
 	return []sdk.Event{sdk.NewEvent(
-		types.EventTypeBond,
+		types.EventTypeUnbond,
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
 		sdk.NewAttribute(types.AttributeKeyDelegator, delAddr.String()),
