@@ -736,6 +736,7 @@ func NewMeshApp(
 		ibcfeetypes.ModuleName,
 		wasmtypes.ModuleName,
 		meshsectypes.ModuleName,
+		meshsecprovtypes.ModuleName,
 	)
 
 	app.ModuleManager.SetOrderEndBlockers(
@@ -752,6 +753,7 @@ func NewMeshApp(
 		ibcfeetypes.ModuleName,
 		wasmtypes.ModuleName,
 		meshsectypes.ModuleName, // last to capture all chain events
+		meshsecprovtypes.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
