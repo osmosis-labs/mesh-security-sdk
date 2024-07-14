@@ -15,8 +15,6 @@
     - [Query](#osmosis.meshsecurityprovider.Query)
   
 - [osmosis/meshsecurityprovider/tx.proto](#osmosis/meshsecurityprovider/tx.proto)
-    - [MsgTest](#osmosis.meshsecurityprovider.MsgTest)
-    - [MsgTestResponse](#osmosis.meshsecurityprovider.MsgTestResponse)
     - [MsgUpdateParams](#osmosis.meshsecurityprovider.MsgUpdateParams)
     - [MsgUpdateParamsResponse](#osmosis.meshsecurityprovider.MsgUpdateParamsResponse)
   
@@ -130,31 +128,6 @@ GenesisState defines the meshsecurityprovider module's genesis state.
 
 
 
-<a name="osmosis.meshsecurityprovider.MsgTest"></a>
-
-### MsgTest
-===================== MsgTest
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| `sender` | [string](#string) |  |  |
-
-
-
-
-
-
-<a name="osmosis.meshsecurityprovider.MsgTestResponse"></a>
-
-### MsgTestResponse
-
-
-
-
-
-
-
 <a name="osmosis.meshsecurityprovider.MsgUpdateParams"></a>
 
 ### MsgUpdateParams
@@ -201,7 +174,6 @@ Since: cosmos-sdk 0.47
 
 | Method Name | Request Type | Response Type | Description | HTTP Verb | Endpoint |
 | ----------- | ------------ | ------------- | ------------| ------- | -------- |
-| `Test` | [MsgTest](#osmosis.meshsecurityprovider.MsgTest) | [MsgTestResponse](#osmosis.meshsecurityprovider.MsgTestResponse) |  | |
 | `UpdateParams` | [MsgUpdateParams](#osmosis.meshsecurityprovider.MsgUpdateParams) | [MsgUpdateParamsResponse](#osmosis.meshsecurityprovider.MsgUpdateParamsResponse) | UpdateParams defines an operation for updating the module's parameters. Since: cosmos-sdk 0.47 | |
 
  <!-- end services -->

@@ -22,10 +22,6 @@ func NewMsgServerImpl(keeper *Keeper) types.MsgServer {
 
 var _ types.MsgServer = msgServer{}
 
-func (ms msgServer) Test(goCtx context.Context, msg *types.MsgTest) (*types.MsgTestResponse, error) {
-	return &types.MsgTestResponse{}, nil
-}
-
 func (ms msgServer) UpdateParams(goCtx context.Context, msg *types.MsgUpdateParams) (*types.MsgUpdateParamsResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
