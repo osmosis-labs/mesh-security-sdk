@@ -778,6 +778,7 @@ func NewMeshApp(
 		// wasm after ibc transfer
 		wasmtypes.ModuleName,
 		meshsectypes.ModuleName,
+		meshsecprovtypes.ModuleName,
 	}
 	app.ModuleManager.SetOrderInitGenesis(genesisModuleOrder...)
 	app.ModuleManager.SetOrderExportGenesis(genesisModuleOrder...)
