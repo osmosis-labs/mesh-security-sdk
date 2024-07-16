@@ -1,15 +1,14 @@
 package types
 
 import (
-	"encoding/binary"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/address"
-	"github.com/osmosis-labs/mesh-security-sdk/x/types"
+
+	cptypes "github.com/osmosis-labs/mesh-security-sdk/x/types"
 )
 
 const (
 	// ModuleName defines the module name.
-	ModuleName = "meshsecurity"
+	ModuleName = "meshsecurityconsummer"
 
 	// ConsumerPortID is the default port id the consumer module binds to
 	ConsumerPortID = "consumer"
@@ -75,34 +74,13 @@ func BuildSchedulerContractKey(tp SchedulerTaskType, blockHeight uint64, contrac
 }
 
 // BuildPipedValsetOpKey build store key for the temporary valset operation store
-func BuildPipedValsetOpKey(op types.PipedValsetOperation, val sdk.ValAddress, slashInfo *types.SlashInfo) []byte {
-	if op == types.PipedValsetOperation_UNSPECIFIED {
+func BuildPipedValsetOpKey(op cptypes.PipedValsetOperation, val sdk.ValAddress) []byte {
+	if op == cptypes.PipedValsetOperation_UNSPECIFIED {
 		panic("empty operation")
 	}
-	pn, an := len(PipedValsetPrefix), len(val)
-	sn := 0
-	if op == types.PipedValsetOperation_VALIDATOR_SLASHED {
-		if slashInfo == nil {
-			panic("slash info is nil")
-		}
-		sn = 8 + 8 + 1 + len(slashInfo.TotalSlashAmount) + len(slashInfo.SlashFraction) // 8 for height, 8 for power, +1 for total amount length
-	}
-	r := make([]byte, pn+an+sn+1+1) // +1 for address prefix, +1 for op
-	copy(r, PipedValsetPrefix)
-	copy(r[pn:], address.MustLengthPrefix(val))
-	r[pn+an+1] = byte(op)
-	if op == types.PipedValsetOperation_VALIDATOR_SLASHED {
-		b := make([]byte, 8)
-		binary.BigEndian.PutUint64(b, uint64(slashInfo.InfractionHeight))
-		copy(r[pn+an+1+1:], b)
-		binary.BigEndian.PutUint64(b, uint64(slashInfo.Power))
-		copy(r[pn+an+1+1+8:], b)
-		tn := len(slashInfo.TotalSlashAmount)
-		r[pn+an+1+1+8+8] = byte(tn)
-		copy(r[pn+an+1+1+8+8+1:], slashInfo.TotalSlashAmount)
-		copy(r[pn+an+1+1+8+8+1+tn:], slashInfo.SlashFraction)
-	}
-	return r
+	k := append(append(PipedValsetPrefix, byte(op)), val...)
+	// return
+	return k
 }
 
 // ProviderChannelKey returns the key for storing channelID of the provider chain

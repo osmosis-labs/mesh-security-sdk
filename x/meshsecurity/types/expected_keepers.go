@@ -45,6 +45,7 @@ type SDKStakingKeeper interface {
 	TotalBondedTokens(ctx sdk.Context) math.Int
 	IterateDelegations(ctx sdk.Context, delegator sdk.AccAddress, fn func(int64, stakingtypes.DelegationI) bool)
 	GetValidatorByConsAddr(ctx sdk.Context, consAddr sdk.ConsAddress) (stakingtypes.Validator, bool)
+	GetLastValidatorPower(ctx sdk.Context, operator sdk.ValAddress) int64
 }
 
 type XStakingKeeper interface {

@@ -36,4 +36,6 @@ message Params {
   // MaxGasEndBlocker defines the maximum gas that can be spent in a contract
   // sudo callback
   uint32 max_gas_end_blocker = 3;
+  
+  uint64 infraction_time = 4;
 }

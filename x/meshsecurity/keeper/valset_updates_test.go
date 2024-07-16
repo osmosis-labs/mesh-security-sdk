@@ -4,6 +4,7 @@ import (
 	"bytes"
 	stdrand "math/rand"
 	"testing"
+	"time"
 
 	"github.com/cometbft/cometbft/libs/rand"
 	"github.com/stretchr/testify/assert"
@@ -13,6 +14,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/address"
+
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
@@ -35,7 +37,15 @@ func TestSendAsync(t *testing.T) {
 	}{
 		"no duplicates": {
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, myValAddr, nil))
+				packet := cptypes.ConsumerPacketData{
+					Type: cptypes.PipedValsetOperation_VALIDATOR_MODIFIED,
+					Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+						SchedulePacketData: &cptypes.ScheduleInfo{
+							Validator: myValAddr.String(),
+						},
+					},
+				}
+				require.NoError(t, k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, myValAddr, packet))
 			},
 			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]cptypes.PipedValsetOperation) {
 				assert.Len(t, ops, 1)
@@ -45,7 +55,15 @@ func TestSendAsync(t *testing.T) {
 		},
 		"separated by validator": {
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, myOtherValAddr, nil))
+				packet := cptypes.ConsumerPacketData{
+					Type: cptypes.PipedValsetOperation_VALIDATOR_MODIFIED,
+					Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+						SchedulePacketData: &cptypes.ScheduleInfo{
+							Validator: myOtherValAddr.String(),
+						},
+					},
+				}
+				require.NoError(t, k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, myOtherValAddr, packet))
 			},
 			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]cptypes.PipedValsetOperation) {
 				assert.Len(t, ops, 2)
@@ -56,7 +74,15 @@ func TestSendAsync(t *testing.T) {
 		},
 		"separated by type": {
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_BONDED, myValAddr, nil))
+				packet := cptypes.ConsumerPacketData{
+					Type: cptypes.PipedValsetOperation_VALIDATOR_BONDED,
+					Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+						SchedulePacketData: &cptypes.ScheduleInfo{
+							Validator: myValAddr.String(),
+						},
+					},
+				}
+				require.NoError(t, k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_BONDED, myValAddr, packet))
 			},
 			assert: func(t *testing.T, ctx sdk.Context, ops map[string][]cptypes.PipedValsetOperation) {
 				assert.Len(t, ops, 1)
@@ -96,7 +122,15 @@ func TestSendAsync(t *testing.T) {
 			ctx, _ := pCtx.CacheContext()
 			spec.setup(t, ctx)
 			// when
-			gotErr := k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, myValAddr, nil)
+			packet := cptypes.ConsumerPacketData{
+				Type: cptypes.PipedValsetOperation_VALIDATOR_MODIFIED,
+				Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+					SchedulePacketData: &cptypes.ScheduleInfo{
+						Validator: myValAddr.String(),
+					},
+				},
+			}
+			gotErr := k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, myValAddr, packet)
 			// then
 			require.NoError(t, gotErr)
 			allStoredOps := FetchAllStoredOperations(t, ctx, k)
@@ -143,7 +177,15 @@ func TestBuildValsetUpdateReport(t *testing.T) {
 	})
 
 	for _, v := range allOps {
-		require.NoError(t, k.sendAsync(ctx, v.op, v.valAddr, nil))
+		packet := cptypes.ConsumerPacketData{
+			Type: v.op,
+			Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+				SchedulePacketData: &cptypes.ScheduleInfo{
+					Validator: v.valAddr.String(),
+				},
+			},
+		}
+		require.NoError(t, k.sendAsync(ctx, v.op, v.valAddr, packet))
 	}
 	// when
 	got, err := k.ValsetUpdateReport(ctx)
@@ -198,13 +240,29 @@ func TestValsetUpdateReportErrors(t *testing.T) {
 	}{
 		"unknown val address": {
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_BONDED, nonValAddr, nil))
+				packet := cptypes.ConsumerPacketData{
+					Type: cptypes.PipedValsetOperation_VALIDATOR_BONDED,
+					Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+						SchedulePacketData: &cptypes.ScheduleInfo{
+							Validator: nonValAddr.String(),
+						},
+					},
+				}
+				require.NoError(t, k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_BONDED, nonValAddr, packet))
 			},
 			expErr: types.ErrUnknown,
 		},
 		"unsupported val operation": {
 			setup: func(t *testing.T, ctx sdk.Context) {
-				require.NoError(t, k.sendAsync(ctx, 0xff, nonValAddr, nil))
+				packet := cptypes.ConsumerPacketData{
+					Type: cptypes.PipedValsetOperation_VALIDATOR_BONDED,
+					Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+						SchedulePacketData: &cptypes.ScheduleInfo{
+							Validator: nonValAddr.String(),
+						},
+					},
+				}
+				require.NoError(t, k.sendAsync(ctx, 0xff, nonValAddr, packet))
 			},
 			expErr: types.ErrInvalid,
 		},
@@ -224,12 +282,71 @@ func TestValsetUpdateReportErrors(t *testing.T) {
 func TestClearPipedValsetOperations(t *testing.T) {
 	ctx, keepers := CreateDefaultTestInput(t)
 	k := keepers.MeshKeeper
-	err := k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, rand.Bytes(address.Len), nil)
+	val := rand.Bytes(address.Len)
+	packet := cptypes.ConsumerPacketData{
+		Type: cptypes.PipedValsetOperation_VALIDATOR_MODIFIED,
+		Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+			SchedulePacketData: &cptypes.ScheduleInfo{
+				Validator: string(val),
+			},
+		},
+	}
+	err := k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, val, packet)
 	require.NoError(t, err)
-	err = k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_UNJAILED, rand.Bytes(address.Len), nil)
+
+	packet = cptypes.ConsumerPacketData{
+		Type: cptypes.PipedValsetOperation_VALIDATOR_UNJAILED,
+		Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+			SchedulePacketData: &cptypes.ScheduleInfo{
+				Validator: string(val),
+			},
+		},
+	}
+	err = k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_UNJAILED, val, packet)
 	require.NoError(t, err)
 	// when
 	k.ClearPipedValsetOperations(ctx)
 	// then
 	assert.Empty(t, FetchAllStoredOperations(t, ctx, k))
+}
+
+func TestSetAndGetScheduleSlashed(t *testing.T) {
+	ctx, keepers := CreateDefaultTestInput(t)
+	k := keepers.MeshKeeper
+
+	valAdrees := sdk.ValAddress(rand.Bytes(address.Len))
+	slashInfo := &cptypes.SlashInfo{
+		Validator:        valAdrees.String(),
+		Power:            12,
+		InfractionHeight: 123,
+		TotalSlashAmount: sdk.NewInt(1000).String(),
+		SlashFraction:    sdk.NewDec(1).String(),
+		TimeInfraction:   time.Now().Unix(),
+	}
+
+	packet := cptypes.ConsumerPacketData{
+		Type: cptypes.PipedValsetOperation_VALIDATOR_SLASHED,
+		Data: &cptypes.ConsumerPacketData_SlashPacketData{
+			SlashPacketData: slashInfo,
+		},
+	}
+	// set
+	err := k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_SLASHED, valAdrees, packet)
+	require.NoError(t, err)
+	// get
+	var getSlash cptypes.SlashInfo
+	err = k.iteratePipedValsetOperations(ctx, func(packet *cptypes.ConsumerPacketData) bool {
+		if packet.Type == cptypes.PipedValsetOperation_VALIDATOR_SLASHED {
+			getSlash = *packet.GetSlashPacketData()
+			return true
+		}
+		return false
+	})
+	require.NoError(t, err)
+	// check
+	require.Equal(t, slashInfo.TimeInfraction, getSlash.TimeInfraction)
+	require.Equal(t, slashInfo.Power, getSlash.Power)
+	require.Equal(t, slashInfo.InfractionHeight, getSlash.InfractionHeight)
+	require.Equal(t, slashInfo.TotalSlashAmount, getSlash.TotalSlashAmount)
+	require.Equal(t, valAdrees.String(), getSlash.Validator)
 }

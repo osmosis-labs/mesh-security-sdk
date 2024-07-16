@@ -165,8 +165,3 @@ func (am AppModule) OnTimeoutPacket(
 ) error {
 	return nil
 }
-
-func UnmarshalConsumerPacket(packetData []byte) (any, error) {
-	// TODO: type packet from provider
-	return nil, nil
-}

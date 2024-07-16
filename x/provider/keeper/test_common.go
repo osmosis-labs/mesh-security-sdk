@@ -59,8 +59,7 @@ import (
 	upgradekeeper "github.com/cosmos/cosmos-sdk/x/upgrade/keeper"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
-	cptypes "github.com/osmosis-labs/mesh-security-sdk/x/types"
+	"github.com/osmosis-labs/mesh-security-sdk/x/provider/types"
 )
 
 type encodingConfig struct {
@@ -104,15 +103,15 @@ func makeEncodingConfig(_ testing.TB) encodingConfig {
 }
 
 type TestKeepers struct {
-	StakingKeeper  *stakingkeeper.Keeper
-	SlashingKeeper slashingkeeper.Keeper
-	BankKeeper     bankkeeper.Keeper
-	StoreKey       *storetypes.KVStoreKey
-	EncodingConfig encodingConfig
-	MeshKeeper     *Keeper
-	AccountKeeper  authkeeper.AccountKeeper
-	WasmKeeper     *wasmkeeper.Keeper
-	Faucet         *wasmkeeper.TestFaucet
+	StakingKeeper      *stakingkeeper.Keeper
+	SlashingKeeper     slashingkeeper.Keeper
+	BankKeeper         bankkeeper.Keeper
+	StoreKey           *storetypes.KVStoreKey
+	EncodingConfig     encodingConfig
+	MeshKeeperProvider *Keeper
+	AccountKeeper      authkeeper.AccountKeeper
+	WasmKeeper         *wasmkeeper.Keeper
+	Faucet             *wasmkeeper.TestFaucet
 }
 
 func CreateDefaultTestInput(t testing.TB, opts ...Option) (sdk.Context, TestKeepers) {
@@ -270,7 +269,7 @@ func CreateDefaultTestInput(t testing.TB, opts ...Option) (sdk.Context, TestKeep
 	)
 	require.NoError(t, wasmKeeper.SetParams(ctx, wasmtypes.DefaultParams()))
 
-	msKeeper := NewKeeper(
+	meshKeeperProvider := NewKeeper(
 		appCodec,
 		keys[types.StoreKey],
 		memKeys[types.MemStoreKey],
@@ -282,45 +281,20 @@ func CreateDefaultTestInput(t testing.TB, opts ...Option) (sdk.Context, TestKeep
 		authority,
 		opts...,
 	)
-	require.NoError(t, msKeeper.SetParams(ctx, types.DefaultParams(sdk.DefaultBondDenom)))
+	require.NoError(t, meshKeeperProvider.SetParams(ctx, types.DefaultParams(sdk.DefaultBondDenom)))
 
 	faucet := wasmkeeper.NewTestFaucet(t, ctx, bankKeeper, minttypes.ModuleName, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1_000_000_000_000))
 	return ctx, TestKeepers{
-		AccountKeeper:  accountKeeper,
-		StakingKeeper:  stakingKeeper,
-		SlashingKeeper: slashingKeeper,
-		BankKeeper:     bankKeeper,
-		StoreKey:       keys[types.StoreKey],
-		EncodingConfig: encConfig,
-		MeshKeeper:     msKeeper,
-		WasmKeeper:     &wasmKeeper,
-		Faucet:         faucet,
+		AccountKeeper:      accountKeeper,
+		StakingKeeper:      stakingKeeper,
+		SlashingKeeper:     slashingKeeper,
+		BankKeeper:         bankKeeper,
+		StoreKey:           keys[types.StoreKey],
+		EncodingConfig:     encConfig,
+		MeshKeeperProvider: meshKeeperProvider,
+		WasmKeeper:         &wasmKeeper,
+		Faucet:             faucet,
 	}
-}
-
-// FetchAllStoredOperations load all ops from temp db
-func FetchAllStoredOperations(t *testing.T, ctx sdk.Context, msKeeper *Keeper) map[string][]cptypes.PipedValsetOperation {
-	index := make(map[string][]cptypes.PipedValsetOperation, 1)
-	err := msKeeper.iteratePipedValsetOperations(ctx, func(packet *cptypes.ConsumerPacketData) bool {
-		if packet.Type != cptypes.PipedValsetOperation_VALIDATOR_SLASHED {
-			data := packet.GetSchedulePacketData()
-			ops, ok := index[data.Validator]
-			if !ok {
-				ops = []cptypes.PipedValsetOperation{}
-			}
-			index[data.Validator] = append(ops, packet.Type)
-		} else {
-			data := packet.GetSlashPacketData()
-			ops, ok := index[data.Validator]
-			if !ok {
-				ops = []cptypes.PipedValsetOperation{}
-			}
-			index[data.Validator] = append(ops, packet.Type)
-		}
-		return false
-	})
-	require.NoError(t, err)
-	return index
 }
 
 // MinValidatorFixture creates minimal sdk validator object

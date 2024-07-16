@@ -2,6 +2,8 @@ package keeper
 
 import (
 	"fmt"
+	"strconv"
+
 	channeltypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 
 	errorsmod "cosmossdk.io/errors"
@@ -9,6 +11,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/provider/types"
+	cptypes "github.com/osmosis-labs/mesh-security-sdk/x/types"
 )
 
 func (k Keeper) OnTimeoutPacket(ctx sdk.Context, packet channeltypes.Packet) error {
@@ -56,5 +59,163 @@ func (k Keeper) OnAcknowledgementPacket(ctx sdk.Context, packet channeltypes.Pac
 		}
 		return errorsmod.Wrapf(types.ErrUnknownConsumerChannelId, "recv ErrorAcknowledgement on unknown channel %s", packet.SourceChannel)
 	}
+	return nil
+}
+
+func (k Keeper) OnRecvSlashPacket(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	data cptypes.SlashInfo,
+) (cptypes.PacketAckResult, error) {
+	chainID, found := k.GetChannelToChain(ctx, packet.DestinationChannel)
+	if !found {
+		ModuleLogger(ctx).Error("SlashPacket received on unknown channel",
+			"channelID", packet.DestinationChannel,
+		)
+		panic(fmt.Errorf("SlashPacket received on unknown channel %s", packet.DestinationChannel))
+	}
+	// validate packet data upon receiving
+	if err := data.Validate(); err != nil {
+		return nil, errorsmod.Wrapf(err, "error validating SlashPacket data")
+	}
+
+	if err := k.ValidateSlashPacket(ctx, chainID); err != nil {
+		ModuleLogger(ctx).Error("invalid slash packet",
+			"error", err.Error(),
+			"chainID", chainID,
+		)
+		return nil, err
+	}
+
+	k.HandleSlashPacket(ctx, chainID, data)
+
+	ModuleLogger(ctx).Info("slash packet received and handled",
+		"chainID", chainID,
+		"consumer val addr", data.Validator,
+	)
+	return cptypes.SlashPacketHandledResult, nil
+}
+
+func (k Keeper) OnRecvBondedPacket(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	data *cptypes.ScheduleInfo,
+) (cptypes.PacketAckResult, error) {
+
+	return cptypes.SlashPacketHandledResult, nil
+}
+
+func (k Keeper) OnRecvUnbondedPacket(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	data *cptypes.ScheduleInfo,
+) (cptypes.PacketAckResult, error) {
+
+	return cptypes.SlashPacketHandledResult, nil
+}
+
+func (k Keeper) OnRecvJailedPacket(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	data *cptypes.ScheduleInfo,
+) (cptypes.PacketAckResult, error) {
+
+	return cptypes.SlashPacketHandledResult, nil
+}
+
+func (k Keeper) OnRecvTombstonedPacket(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	data *cptypes.ScheduleInfo,
+) (cptypes.PacketAckResult, error) {
+
+	return cptypes.SlashPacketHandledResult, nil
+}
+func (k Keeper) OnRecvUnjailedPacket(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	data *cptypes.ScheduleInfo,
+) (cptypes.PacketAckResult, error) {
+
+	return cptypes.SlashPacketHandledResult, nil
+}
+func (k Keeper) OnRecvModifiedPacket(
+	ctx sdk.Context,
+	packet channeltypes.Packet,
+	data *cptypes.ScheduleInfo,
+) (cptypes.PacketAckResult, error) {
+
+	return cptypes.SlashPacketHandledResult, nil
+}
+
+func (k Keeper) HandleSlashPacket(ctx sdk.Context, chainID string, data cptypes.SlashInfo) {
+	totalSlashAmount, err := sdk.ParseCoinNormalized(data.TotalSlashAmount)
+	if err != nil {
+		ModuleLogger(ctx).Error("Handle slash packet fail: ParseCoinsNormalized fail")
+		return
+	}
+	denom := totalSlashAmount.Denom
+	intermediary, found := k.GetIntermediary(ctx, denom)
+	if !found {
+		ModuleLogger(ctx).Error("External Staker not found for validor",
+			data.Validator,
+		)
+		panic(fmt.Errorf("external Staker not found for validor %s", data.Validator))
+	}
+
+	if intermediary.IsUnboned() {
+		ModuleLogger(ctx).Error("validator is unbonded")
+		return
+	}
+
+	if intermediary.IsTombstoned() {
+		ModuleLogger(ctx).Info(
+			"slash packet dropped because validator is already tombstoned",
+		)
+		return
+	}
+	if intermediary.IsJailed() {
+		ModuleLogger(ctx).Info("validator jailed")
+		return
+	}
+
+	intermediary.Jailed = true
+	slashRatio := sdk.MustNewDecFromStr(data.SlashFraction)
+	amountSlash := slashRatio.MulInt(intermediary.Token.Amount).TruncateInt()
+	newAmount := sdk.NewCoin(denom, amountSlash)
+	intermediary.Token = &newAmount
+	k.SetIntermediary(ctx, intermediary)
+
+	k.iterateDepositors(ctx, func(depositors types.Depositors) bool {
+		amout := depositors.Tokens.AmountOf(denom)
+		if amout.GT(sdk.ZeroInt()) {
+			amountSlash = slashRatio.MulInt(amout).TruncateInt()
+			tokenSlash := sdk.NewCoin(denom, amountSlash)
+			newTokens := depositors.Tokens.Sub(tokenSlash)
+			depositors.Tokens = newTokens
+
+			k.SetDepositors(ctx, depositors)
+		}
+		return false
+	})
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeExecuteConsumerChainSlash,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+			sdk.NewAttribute(types.AttributeInfractionHeight, strconv.FormatInt(data.InfractionHeight, 10)),
+			sdk.NewAttribute(types.AttributeConsumerValidator, data.Validator),
+		),
+	)
+}
+
+func (k Keeper) ValidateSlashPacket(ctx sdk.Context, chainID string,
+) error {
+	_, found := k.GetInitChainHeight(ctx, chainID)
+	// return error if we cannot find infraction height matching the validator update id
+	if !found {
+		return fmt.Errorf("cannot find infraction height matching "+
+			"for chain %s", chainID)
+	}
+
 	return nil
 }

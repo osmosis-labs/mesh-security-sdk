@@ -29,6 +29,11 @@ func (h Hooks) AfterValidatorBeginUnbonding(ctx sdk.Context, _ sdk.ConsAddress, 
 }
 
 func (h Hooks) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) error {
+	if fraction.IsZero() {
+		return nil
+	}
+	h.k.HandleBeforeValidatorSlashed(ctx, valAddr, fraction)
+
 	return nil
 }
 

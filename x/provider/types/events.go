@@ -2,6 +2,7 @@ package types
 
 // Provider events
 const (
+	EventTypeDelegate                  = "delegate"
 	EventTypeConsumerClientCreated     = "consumer_client_created"
 	EventTypeAssignConsumerKey         = "assign_consumer_key"
 	EventTypeAddConsumerRewardDenom    = "add_consumer_reward_denom"
@@ -20,4 +21,6 @@ const (
 	AttributeConsumerRewardDenom       = "consumer_reward_denom"
 	AttributeConsumerCommissionRate    = "consumer_commission_rate"
 	AttributeConsumerChainID           = "consumer_chain_id"
+	AttributeConsumerValidator         = "consumer_validator"
+	AttributeKeyNewShares              = "new_shares"
 )

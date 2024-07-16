@@ -26,11 +26,18 @@ enum PipedValsetOperation {
 
 // SlashInfo defines info event from slashing
 message SlashInfo {
+  string validator = 1;
   int64 infraction_height = 2;
   int64 power = 3;
   string total_slash_amount = 4;
   string slash_fraction = 5;
   int64 time_infraction = 6;
+}
+
+// InfoSchedule
+message ScheduleInfo {
+  string validator = 1;
+  string actor = 2;
 }
 
 // ConsumerPacketData contains a consumer packet data and a type tag
@@ -39,6 +46,7 @@ message ConsumerPacketData {
 
   oneof data {
     SlashInfo slashPacketData = 2;
+    ScheduleInfo schedulePacketData = 3;
   }
 }
 

@@ -1,0 +1,45 @@
+syntax = "proto3";
+package osmosis.provider.v1beta1;
+
+import "cosmos/base/v1beta1/coin.proto";
+import "gogoproto/gogo.proto";
+import "amino/amino.proto";
+
+option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/provider/types";
+option (gogoproto.goproto_getters_all) = false;
+option (gogoproto.equal_all) = false;
+
+// Params defines the parameters for the x/meshsecurity module.
+message Depositors {
+	string address = 1;       
+	repeated cosmos.base.v1beta1.Coin tokens = 2 [
+    (gogoproto.nullable)     = false,
+    (amino.dont_omitempty)   = true,
+    (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.Coins"
+  ];
+}
+
+// vault-staker
+message Intermediary {
+	string consumer_validator = 1;
+	string chain_id = 2;
+	string contract_address = 3;
+	bool jailed = 4;
+	bool tombstoned = 5;
+	BondStatus status = 6;
+	cosmos.base.v1beta1.Coin token = 7;
+}
+
+// BondStatus is the status of a validator.
+enum BondStatus {
+	option (gogoproto.goproto_enum_prefix) = false;
+  
+	// UNSPECIFIED defines an invalid validator status.
+	BOND_STATUS_UNSPECIFIED = 0 [(gogoproto.enumvalue_customname) = "Unspecified"];
+	// UNBONDED defines a validator that is not bonded.
+	BOND_STATUS_UNBONDED = 1 [(gogoproto.enumvalue_customname) = "Unbonded"];
+	// UNBONDING defines a validator that is unbonding.
+	BOND_STATUS_UNBONDING = 2 [(gogoproto.enumvalue_customname) = "Unbonding"];
+	// BONDED defines a validator that is bonded.
+	BOND_STATUS_BONDED = 3 [(gogoproto.enumvalue_customname) = "Bonded"];
+  }

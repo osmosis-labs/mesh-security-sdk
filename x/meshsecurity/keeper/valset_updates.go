@@ -12,56 +12,120 @@ import (
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
-
-	outmessage "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
 )
 
 // ScheduleBonded store a validator update to bonded status for the valset update report
 func (k Keeper) ScheduleBonded(ctx sdk.Context, addr sdk.ValAddress) error {
-	return k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_BONDED, addr, nil)
+	packet := cptypes.ConsumerPacketData{
+		Type: cptypes.PipedValsetOperation_VALIDATOR_BONDED,
+		Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+			SchedulePacketData: &cptypes.ScheduleInfo{
+				Validator: addr.String(),
+			},
+		},
+	}
+	return k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_BONDED, addr, packet)
 }
 
 // ScheduleUnbonded store a validator update to unbonded status for the valset update report
 func (k Keeper) ScheduleUnbonded(ctx sdk.Context, addr sdk.ValAddress) error {
-	return k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_UNBONDED, addr, nil)
+	packet := cptypes.ConsumerPacketData{
+		Type: cptypes.PipedValsetOperation_VALIDATOR_UNBONDED,
+		Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+			SchedulePacketData: &cptypes.ScheduleInfo{
+				Validator: addr.String(),
+			},
+		},
+	}
+	return k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_UNBONDED, addr, packet)
 }
 
 // ScheduleSlashed store a validator slash event / data for the valset update report
-func (k Keeper) ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, power int64, height int64, totalSlashAmount math.Int, slashRatio sdk.Dec) error {
+func (k Keeper) ScheduleSlashed(ctx sdk.Context, valAddr sdk.ValAddress, slashRatio sdk.Dec) error {
+	power := k.Staking.GetLastValidatorPower(ctx, valAddr)
+	infractionHeight := ctx.BlockHeight() - sdk.ValidatorUpdateDelay - 1
+	validator, _ := k.Staking.GetValidator(ctx, valAddr)
+	totalSlashAmount := sdk.NewDecFromInt(validator.Tokens).MulTruncate(slashRatio).RoundInt()
+	// TODO: timeInfraction
+
 	var slashInfo = &cptypes.SlashInfo{
+		Validator:        validator.OperatorAddress,
 		Power:            power,
-		InfractionHeight: height,
+		InfractionHeight: infractionHeight,
 		TotalSlashAmount: totalSlashAmount.String(),
 		SlashFraction:    slashRatio.String(),
+		// TODO: timeInfraction
+		TimeInfraction: 0,
 	}
-	return k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_SLASHED, addr, slashInfo)
+
+	packet := cptypes.ConsumerPacketData{
+		Type: cptypes.PipedValsetOperation_VALIDATOR_SLASHED,
+		Data: &cptypes.ConsumerPacketData_SlashPacketData{
+			SlashPacketData: slashInfo,
+		},
+	}
+	return k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_SLASHED, valAddr, packet)
 }
 
 // ScheduleJailed store a validator update to jailed status for the valset update report
 func (k Keeper) ScheduleJailed(ctx sdk.Context, addr sdk.ValAddress) error {
-	return k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_JAILED, addr, nil)
+	packet := cptypes.ConsumerPacketData{
+		Type: cptypes.PipedValsetOperation_VALIDATOR_JAILED,
+		Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+			SchedulePacketData: &cptypes.ScheduleInfo{
+				Validator: addr.String(),
+			},
+		},
+	}
+	return k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_JAILED, addr, packet)
 }
 
 // ScheduleTombstoned store a validator update to tombstoned status for the valset update report
 func (k Keeper) ScheduleTombstoned(ctx sdk.Context, addr sdk.ValAddress) error {
-	return k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_TOMBSTONED, addr, nil)
+	packet := cptypes.ConsumerPacketData{
+		Type: cptypes.PipedValsetOperation_VALIDATOR_TOMBSTONED,
+		Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+			SchedulePacketData: &cptypes.ScheduleInfo{
+				Validator: addr.String(),
+			},
+		},
+	}
+	return k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_TOMBSTONED, addr, packet)
 }
 
 // ScheduleUnjailed store a validator update to unjailed status for the valset update report
 func (k Keeper) ScheduleUnjailed(ctx sdk.Context, addr sdk.ValAddress) error {
-	return k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_UNJAILED, addr, nil)
+	packet := cptypes.ConsumerPacketData{
+		Type: cptypes.PipedValsetOperation_VALIDATOR_UNJAILED,
+		Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+			SchedulePacketData: &cptypes.ScheduleInfo{
+				Validator: addr.String(),
+			},
+		},
+	}
+	return k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_UNJAILED, addr, packet)
 }
 
 // ScheduleModified store a validator metadata update for the valset update report
 func (k Keeper) ScheduleModified(ctx sdk.Context, addr sdk.ValAddress) error {
-	return k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, addr, nil)
+	packet := cptypes.ConsumerPacketData{
+		Type: cptypes.PipedValsetOperation_VALIDATOR_MODIFIED,
+		Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+			SchedulePacketData: &cptypes.ScheduleInfo{
+				Validator: addr.String(),
+			},
+		},
+	}
+	return k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_MODIFIED, addr, packet)
 }
 
 // instead of sync calls to the contracts for the different kind of valset changes in a block, we store them in the mem db
 // and async send to all registered contracts in the end blocker
-func (k Keeper) sendAsync(ctx sdk.Context, op cptypes.PipedValsetOperation, valAddr sdk.ValAddress, slashInfo *cptypes.SlashInfo) error {
+func (k Keeper) sendAsync(ctx sdk.Context, op cptypes.PipedValsetOperation, valAddr sdk.ValAddress, packet cptypes.ConsumerPacketData) error {
+	// if op
 	ModuleLogger(ctx).Debug("storing for async update", "operation", int(op), "val", valAddr.String())
-	ctx.KVStore(k.memKey).Set(types.BuildPipedValsetOpKey(op, valAddr, slashInfo), []byte{})
+	value := packet.GetBytes()
+	ctx.KVStore(k.memKey).Set(types.BuildPipedValsetOpKey(op, valAddr), value)
 	// and schedule an update callback for all registered contracts
 	var innerErr error
 	k.IterateMaxCapLimit(ctx, func(contractAddr sdk.AccAddress, m math.Int) bool {
@@ -90,9 +154,9 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		*set = append(*set, ConvertSdkValidatorToWasm(val))
 		return false
 	}
-	slashValidator := func(set *[]outmessage.ValidatorSlash, valAddr sdk.ValAddress, power int64, infractionHeight int64,
+	slashValidator := func(set *[]contract.ValidatorSlash, valAddr sdk.ValAddress, power int64, infractionHeight int64,
 		infractionTime int64, slashAmount string, slashRatio string) bool {
-		valSlash := outmessage.ValidatorSlash{
+		valSlash := contract.ValidatorSlash{
 			ValidatorAddr:    valAddr.String(),
 			Power:            power,
 			InfractionHeight: infractionHeight,
@@ -114,26 +178,32 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		Tombstoned: make([]contract.ValidatorAddr, 0),
 		Slashed:    make([]contract.ValidatorSlash, 0),
 	}
-	err := k.iteratePipedValsetOperations(ctx, func(valAddr sdk.ValAddress, op cptypes.PipedValsetOperation, slashInfo *cptypes.SlashInfo) bool {
-		switch op {
+	err := k.iteratePipedValsetOperations(ctx, func(packet *cptypes.ConsumerPacketData) bool {
+		switch packet.Type {
 		case cptypes.PipedValsetOperation_VALIDATOR_BONDED:
-			return appendValidator(&r.Additions, valAddr)
+			data := packet.GetSchedulePacketData()
+			return appendValidator(&r.Additions, sdk.ValAddress(data.Validator))
 		case cptypes.PipedValsetOperation_VALIDATOR_UNBONDED:
-			r.Removals = append(r.Removals, valAddr.String())
+			data := packet.GetSchedulePacketData()
+			r.Removals = append(r.Removals, data.Validator)
 		case cptypes.PipedValsetOperation_VALIDATOR_JAILED:
-			r.Jailed = append(r.Jailed, valAddr.String())
+			data := packet.GetSchedulePacketData()
+			r.Jailed = append(r.Jailed, data.Validator)
 		case cptypes.PipedValsetOperation_VALIDATOR_TOMBSTONED:
-			r.Tombstoned = append(r.Tombstoned, valAddr.String())
+			data := packet.GetSchedulePacketData()
+			r.Tombstoned = append(r.Tombstoned, data.Validator)
 		case cptypes.PipedValsetOperation_VALIDATOR_UNJAILED:
-			r.Unjailed = append(r.Unjailed, valAddr.String())
+			data := packet.GetSchedulePacketData()
+			r.Unjailed = append(r.Unjailed, data.Validator)
 		case cptypes.PipedValsetOperation_VALIDATOR_MODIFIED:
-			return appendValidator(&r.Updated, valAddr)
+			data := packet.GetSchedulePacketData()
+			return appendValidator(&r.Updated, sdk.ValAddress(data.Validator))
 		case cptypes.PipedValsetOperation_VALIDATOR_SLASHED:
-			// TODO: Add / send the infraction time
-			return slashValidator(&r.Slashed, valAddr, slashInfo.Power, slashInfo.InfractionHeight, 0,
-				slashInfo.TotalSlashAmount, slashInfo.SlashFraction)
+			data := packet.GetSlashPacketData()
+			return slashValidator(&r.Slashed, sdk.ValAddress(data.Validator), data.Power, data.InfractionHeight, data.TimeInfraction,
+				data.TotalSlashAmount, data.SlashFraction)
 		default:
-			innerErr = types.ErrInvalid.Wrapf("undefined operation type %X", op)
+			innerErr = types.ErrInvalid.Wrapf("undefined operation type %X", packet.Type)
 			return true
 		}
 		return false
@@ -159,27 +229,15 @@ func (k Keeper) ClearPipedValsetOperations(ctx sdk.Context) {
 }
 
 // iterate through all stored valset updates. Due to the storage key, there are no contract duplicates within an operation type.
-func (k Keeper) iteratePipedValsetOperations(ctx sdk.Context, cb func(valAddress sdk.ValAddress, op cptypes.PipedValsetOperation, slashInfo *cptypes.SlashInfo) bool) error {
+func (k Keeper) iteratePipedValsetOperations(ctx sdk.Context, cb func(packet *cptypes.ConsumerPacketData) bool) error {
 	pStore := prefix.NewStore(ctx.KVStore(k.memKey), types.PipedValsetPrefix)
 	iter := pStore.Iterator(nil, nil)
 	for ; iter.Valid(); iter.Next() {
-		key := iter.Key()
-		addrLen := key[0]
-		addr, op := key[1:addrLen+1], key[addrLen+1]
-		var slashInfo *cptypes.SlashInfo = nil
-		if cptypes.PipedValsetOperation(op) == cptypes.PipedValsetOperation_VALIDATOR_SLASHED {
-			if len(key) <= 1+int(addrLen)+1+8+8+1 {
-				return types.ErrInvalid.Wrapf("invalid slash key length %d", len(key))
-			}
-			totalSlashAmountLen := key[addrLen+2+8+8]
-			slashInfo = &cptypes.SlashInfo{
-				Power:            int64(sdk.BigEndianToUint64(key[addrLen+2 : addrLen+2+8])),
-				InfractionHeight: int64(sdk.BigEndianToUint64(key[addrLen+2+8 : addrLen+2+8+8])),
-				TotalSlashAmount: string(key[addrLen+2+8+8+1 : addrLen+2+8+8+1+totalSlashAmountLen]),
-				SlashFraction:    string(key[addrLen+2+8+8+1+totalSlashAmountLen:]),
-			}
+		consumerPacket, err := cptypes.UnmarshalConsumerPacketData(iter.Value())
+		if err != nil {
+			panic(err)
 		}
-		if cb(addr, cptypes.PipedValsetOperation(op), slashInfo) {
+		if cb(&consumerPacket) {
 			break
 		}
 	}

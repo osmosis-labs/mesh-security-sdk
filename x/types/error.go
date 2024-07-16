@@ -10,4 +10,5 @@ var (
 	ErrInvalidChannelFlow = errorsmod.Register(ModuleName, 3, "invalid message sent to channel end")
 	ErrDuplicateChannel   = errorsmod.Register(ModuleName, 5, "meshsecurity channel already exists")
 	ErrClientNotFound     = errorsmod.Register(ModuleName, 10, "client not found")
+	ErrInvalidPacketData  = errorsmod.Register(ModuleName, 1, "invalid CCV packet data")
 )

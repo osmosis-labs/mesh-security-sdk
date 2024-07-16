@@ -7,21 +7,17 @@ import (
 	"github.com/cometbft/cometbft/libs/log"
 
 	errorsmod "cosmossdk.io/errors"
-	// "cosmossdk.io/math"
+	"github.com/cosmos/cosmos-sdk/store/prefix"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	// "github.com/cosmos/cosmos-sdk/store/prefix"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	// sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
 	conntypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
 	channeltypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	// host "github.com/cosmos/ibc-go/v7/modules/core/24-host"
 	ibchost "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	ibctmtypes "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
 
@@ -181,6 +177,16 @@ func (k Keeper) SetInitChainHeight(ctx sdk.Context, chainID string, height uint6
 	store.Set(types.InitChainHeightKey(chainID), heightBytes)
 }
 
+func (k Keeper) GetInitChainHeight(ctx sdk.Context, chainID string) (uint64, bool) {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.InitChainHeightKey(chainID))
+	if bz == nil {
+		return 0, false
+	}
+
+	return binary.BigEndian.Uint64(bz), true
+}
+
 func (k Keeper) DeleteInitTimeoutTimestamp(ctx sdk.Context, chainID string) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.InitTimeoutTimestampKey(chainID))
@@ -248,4 +254,84 @@ func (k Keeper) SetConsumerCommissionRate(
 
 	store.Set(types.ConsumerCommissionRateKey(chainID, providerAddr), bz)
 	return nil
+}
+
+func (k Keeper) SetDepositors(ctx sdk.Context, del types.Depositors) error {
+	store := ctx.KVStore(k.storeKey)
+	bz, err := types.ModuleCdc.Marshal(&del)
+	if err != nil {
+		err = fmt.Errorf("external staker marshalling failed: %s", err)
+		ModuleLogger(ctx).Error(err.Error())
+		return err
+	}
+	store.Set(types.DepositorsKey(del.Address), bz)
+
+	return nil
+}
+
+func (k Keeper) GetDepositors(ctx sdk.Context, del string) (types.Depositors, bool) {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.DepositorsKey(del))
+	if bz == nil {
+		return types.Depositors{}, false
+	}
+	var r types.Depositors
+	if err := r.Unmarshal(bz); err != nil {
+		panic(err)
+	}
+	return r, true
+}
+
+func (k Keeper) iterateDepositors(ctx sdk.Context, cb func(depositors types.Depositors) bool) error {
+	pStore := prefix.NewStore(ctx.KVStore(k.memKey), types.DepositorsKeyPrefix)
+	iter := pStore.Iterator(nil, nil)
+	for ; iter.Valid(); iter.Next() {
+		var r types.Depositors
+		if err := r.Unmarshal(iter.Value()); err != nil {
+			panic(err)
+		}
+		if cb(r) {
+			break
+		}
+	}
+	return iter.Close()
+}
+
+func (k Keeper) SetIntermediary(ctx sdk.Context, inter types.Intermediary) error {
+	store := ctx.KVStore(k.storeKey)
+	bz, err := types.ModuleCdc.Marshal(&inter)
+	if err != nil {
+		err = fmt.Errorf("external staker marshalling failed: %s", err)
+		ModuleLogger(ctx).Error(err.Error())
+		return err
+	}
+	store.Set(types.IntermediaryKey(inter.Token.Denom), bz)
+
+	return nil
+}
+
+func (k Keeper) GetIntermediary(ctx sdk.Context, denom string) (types.Intermediary, bool) {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(types.IntermediaryKey(denom))
+	if bz == nil {
+		return types.Intermediary{}, false
+	}
+	var r types.Intermediary
+	if err := r.Unmarshal(bz); err != nil {
+		panic(err)
+	}
+	return r, true
+}
+
+func (k Keeper) GetContractWithNativeDenom(ctx sdk.Context, denom string) sdk.AccAddress {
+	var contractAddr sdk.AccAddress
+
+	store := ctx.KVStore(k.storeKey)
+	contractAddr = store.Get(types.ContractWithNativeDenomKey(denom))
+	return contractAddr
+}
+
+func (k Keeper) SetContractWithNativeDenom(ctx sdk.Context, denom string, contractAddr sdk.AccAddress) {
+	store := ctx.KVStore(k.storeKey)
+	store.Set(types.ContractWithNativeDenomKey(denom), contractAddr)
 }

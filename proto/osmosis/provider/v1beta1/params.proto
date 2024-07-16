@@ -14,9 +14,9 @@ message Params {
   option (amino.name) = "provider/Params";
   option (gogoproto.equal) = true;
 
-  uint64 infraction_time = 1;
-
   // TimeoutPeriod has the unit time.Millisecond 
-  uint64 timeout_period = 2; 
+  uint64 timeout_period = 1; 
+
+  string vault_contract_address = 2;
 }
 

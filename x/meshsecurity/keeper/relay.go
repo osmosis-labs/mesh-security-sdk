@@ -21,15 +21,8 @@ func (k Keeper) SendPackets(ctx sdk.Context) {
 
 	// pending := k.GetAllPendingPacketsWithIdx(ctx)
 	ConsumerPackets := []types.ConsumerPacketData{}
-	k.iteratePipedValsetOperations(ctx, func(valAddress sdk.ValAddress, op types.PipedValsetOperation, slashInfo *types.SlashInfo) bool {
-		newPacket := types.ConsumerPacketData{
-			Type: op,
-			Data: &types.ConsumerPacketData_SlashPacketData{
-				SlashPacketData: slashInfo,
-			},
-		}
-		ConsumerPackets = append(ConsumerPackets, newPacket)
-
+	k.iteratePipedValsetOperations(ctx, func(packet *types.ConsumerPacketData) bool {
+		ConsumerPackets = append(ConsumerPackets, *packet)
 		return false
 	})
 

@@ -14,6 +14,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
+
 	// transfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/provider/keeper"
@@ -129,7 +130,7 @@ func (am AppModule) OnRecvPacket(
 	ack := channeltypes.NewResultAcknowledgement([]byte{byte(1)})
 
 	var ackErr error
-	_, err := UnmarshalConsumerPacket(packet)
+	consumerPacket, err := UnmarshalConsumerPacket(packet)
 	if err != nil {
 		ackErr = errorsmod.Wrapf(sdkerrors.ErrInvalidType, "cannot unmarshal ConsumerPacket data")
 		logger.Error(fmt.Sprintf("%s sequence %d", ackErr.Error(), packet.Sequence))
@@ -140,9 +141,69 @@ func (am AppModule) OnRecvPacket(
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 	}
 
-	// only attempt the application logic if the packet data
-	// was successfully decoded
 	if ack.Success() {
+		var err error
+
+		switch consumerPacket.Type {
+		case cptypes.PipedValsetOperation_VALIDATOR_BONDED:
+			var ackResult cptypes.PacketAckResult
+			data := consumerPacket.GetSchedulePacketData()
+			ackResult, err = am.k.OnRecvBondedPacket(ctx, packet, data)
+			if err == nil {
+				ack = channeltypes.NewResultAcknowledgement(ackResult)
+			}
+
+		case cptypes.PipedValsetOperation_VALIDATOR_UNBONDED:
+			var ackResult cptypes.PacketAckResult
+			data := consumerPacket.GetSchedulePacketData()
+			ackResult, err = am.k.OnRecvUnbondedPacket(ctx, packet, data)
+			if err == nil {
+				ack = channeltypes.NewResultAcknowledgement(ackResult)
+			}
+		case cptypes.PipedValsetOperation_VALIDATOR_JAILED:
+			var ackResult cptypes.PacketAckResult
+			data := consumerPacket.GetSchedulePacketData()
+			ackResult, err = am.k.OnRecvJailedPacket(ctx, packet, data)
+			if err == nil {
+				ack = channeltypes.NewResultAcknowledgement(ackResult)
+			}
+		case cptypes.PipedValsetOperation_VALIDATOR_TOMBSTONED:
+			var ackResult cptypes.PacketAckResult
+			data := consumerPacket.GetSchedulePacketData()
+			ackResult, err = am.k.OnRecvTombstonedPacket(ctx, packet, data)
+			if err == nil {
+				ack = channeltypes.NewResultAcknowledgement(ackResult)
+			}
+		case cptypes.PipedValsetOperation_VALIDATOR_UNJAILED:
+			var ackResult cptypes.PacketAckResult
+			data := consumerPacket.GetSchedulePacketData()
+			ackResult, err = am.k.OnRecvUnjailedPacket(ctx, packet, data)
+			if err == nil {
+				ack = channeltypes.NewResultAcknowledgement(ackResult)
+			}
+		case cptypes.PipedValsetOperation_VALIDATOR_MODIFIED:
+			var ackResult cptypes.PacketAckResult
+			data := consumerPacket.GetSchedulePacketData()
+			ackResult, err = am.k.OnRecvModifiedPacket(ctx, packet, data)
+			if err == nil {
+				ack = channeltypes.NewResultAcknowledgement(ackResult)
+			}
+		case cptypes.PipedValsetOperation_VALIDATOR_SLASHED:
+			var ackResult cptypes.PacketAckResult
+			data := consumerPacket.GetSlashPacketData()
+			ackResult, err = am.k.OnRecvSlashPacket(ctx, packet, *data)
+			if err == nil {
+				ack = channeltypes.NewResultAcknowledgement(ackResult)
+			}
+		default:
+			err = fmt.Errorf("invalid consumer packet type: %q", consumerPacket.Type)
+		}
+
+		if err != nil {
+			ack = channeltypes.NewErrorAcknowledgement(err)
+			ackErr = err
+			logger.Error(fmt.Sprintf("%s sequence %d", ackErr.Error(), packet.Sequence))
+		}
 	}
 
 	eventAttributes = append(eventAttributes, sdk.NewAttribute(cptypes.AttributeKeyAckSuccess, fmt.Sprintf("%t", ack.Success())))

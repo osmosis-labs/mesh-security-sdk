@@ -14,6 +14,7 @@ func DefaultParams(denom string) Params {
 		TotalContractsMaxCap: sdk.NewCoin(denom, math.NewInt(10_000_000_000)),
 		EpochLength:          1_000,
 		MaxGasEndBlocker:     500_000,
+		InfractionTime:       0,
 	}
 }
 
