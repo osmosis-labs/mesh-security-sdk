@@ -182,7 +182,12 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		switch packet.Type {
 		case cptypes.PipedValsetOperation_VALIDATOR_BONDED:
 			data := packet.GetSchedulePacketData()
-			return appendValidator(&r.Additions, sdk.ValAddress(data.Validator))
+			valAddr, err := sdk.ValAddressFromBech32(data.Validator)
+			if err != nil {
+				innerErr = types.ErrInvalid.Wrapf("validator does not exist  %X", packet.Type)
+				return true
+			}
+			return appendValidator(&r.Additions, valAddr)
 		case cptypes.PipedValsetOperation_VALIDATOR_UNBONDED:
 			data := packet.GetSchedulePacketData()
 			r.Removals = append(r.Removals, data.Validator)
@@ -197,10 +202,20 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 			r.Unjailed = append(r.Unjailed, data.Validator)
 		case cptypes.PipedValsetOperation_VALIDATOR_MODIFIED:
 			data := packet.GetSchedulePacketData()
-			return appendValidator(&r.Updated, sdk.ValAddress(data.Validator))
+			valAddr, err := sdk.ValAddressFromBech32(data.Validator)
+			if err != nil {
+				innerErr = types.ErrInvalid.Wrapf("validator does not exist  %X", packet.Type)
+				return true
+			}
+			return appendValidator(&r.Updated, valAddr)
 		case cptypes.PipedValsetOperation_VALIDATOR_SLASHED:
 			data := packet.GetSlashPacketData()
-			return slashValidator(&r.Slashed, sdk.ValAddress(data.Validator), data.Power, data.InfractionHeight, data.TimeInfraction,
+			valAddr, err := sdk.ValAddressFromBech32(data.Validator)
+			if err != nil {
+				innerErr = types.ErrInvalid.Wrapf("validator does not exist  %X", packet.Type)
+				return true
+			}
+			return slashValidator(&r.Slashed, valAddr, data.Power, data.InfractionHeight, data.TimeInfraction,
 				data.TotalSlashAmount, data.SlashFraction)
 		default:
 			innerErr = types.ErrInvalid.Wrapf("undefined operation type %X", packet.Type)

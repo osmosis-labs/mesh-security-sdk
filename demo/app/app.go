@@ -359,6 +359,8 @@ func NewMeshApp(
 	scopedICAControllerKeeper := app.CapabilityKeeper.ScopeToModule(icacontrollertypes.SubModuleName)
 	scopedTransferKeeper := app.CapabilityKeeper.ScopeToModule(ibctransfertypes.ModuleName)
 	scopedWasmKeeper := app.CapabilityKeeper.ScopeToModule(wasmtypes.ModuleName)
+	scopedMeshKeeper := app.CapabilityKeeper.ScopeToModule(meshsectypes.ModuleName)
+
 	app.CapabilityKeeper.Seal()
 
 	// add keepers
@@ -404,28 +406,6 @@ func NewMeshApp(
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
-	// setup mesh-security keeper with vanilla Cosmos-SDK
-	// see also NewKeeperX constructor for integration with Osmosis SDK fork
-	// should be initialized before wasm keeper for custom query/msg handlers
-	app.MeshSecKeeper = meshseckeeper.NewKeeper(
-		app.appCodec,
-		keys[meshsectypes.StoreKey],
-		memKeys[meshsectypes.MemStoreKey],
-		app.BankKeeper,
-		app.StakingKeeper,
-		&app.WasmKeeper, // ensure this is a pointer as we instantiate the keeper a bit later
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
-	)
-
-	app.SlashingKeeper = slashingkeeper.NewKeeper(
-		appCodec,
-		legacyAmino,
-		keys[slashingtypes.StoreKey],
-		// decorate the sdk keeper to capture all jail/ unjail events for MS
-		meshseckeeper.NewStakingDecorator(app.StakingKeeper, app.MeshSecKeeper),
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
-	)
-
 	invCheckPeriod := cast.ToUint(appOpts.Get(server.FlagInvCheckPeriod))
 	app.CrisisKeeper = crisiskeeper.NewKeeper(
 		appCodec,
@@ -437,17 +417,6 @@ func NewMeshApp(
 	)
 
 	app.FeeGrantKeeper = feegrantkeeper.NewKeeper(appCodec, keys[feegrant.StoreKey], app.AccountKeeper)
-
-	// register the staking hooks
-	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
-	app.StakingKeeper.SetHooks(
-		stakingtypes.NewMultiStakingHooks(
-			app.DistrKeeper.Hooks(),
-			app.SlashingKeeper.Hooks(),
-			// register hook to capture valset updates
-			app.MeshSecKeeper.Hooks(),
-		),
-	)
 
 	app.AuthzKeeper = authzkeeper.NewKeeper(keys[authzkeeper.StoreKey], appCodec, app.MsgServiceRouter(), app.AccountKeeper)
 
@@ -483,6 +452,40 @@ func NewMeshApp(
 		scopedIBCKeeper,
 	)
 
+	// setup mesh-security keeper with vanilla Cosmos-SDK
+	// see also NewKeeperX constructor for integration with Osmosis SDK fork
+	// should be initialized before wasm keeper for custom query/msg handlers
+	app.MeshSecKeeper = meshseckeeper.NewKeeper(
+		app.appCodec,
+		keys[meshsectypes.StoreKey],
+		memKeys[meshsectypes.MemStoreKey],
+		app.BankKeeper,
+		app.StakingKeeper,
+		&app.WasmKeeper, // ensure this is a pointer as we instantiate the keeper a bit later
+		scopedMeshKeeper,
+		app.IBCKeeper.ChannelKeeper,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
+
+	app.SlashingKeeper = slashingkeeper.NewKeeper(
+		appCodec,
+		legacyAmino,
+		keys[slashingtypes.StoreKey],
+		// decorate the sdk keeper to capture all jail/ unjail events for MS
+		meshseckeeper.NewStakingDecorator(app.StakingKeeper, app.MeshSecKeeper),
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
+
+	// register the staking hooks
+	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
+	app.StakingKeeper.SetHooks(
+		stakingtypes.NewMultiStakingHooks(
+			app.DistrKeeper.Hooks(),
+			app.SlashingKeeper.Hooks(),
+			// register hook to capture valset updates
+			app.MeshSecKeeper.Hooks(),
+		),
+	)
 	// Register the proposal types
 	// Deprecated: Avoid adding new handlers, instead use the new proposal flow
 	// by granting the governance module the right to execute the message.
