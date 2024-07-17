@@ -174,7 +174,9 @@ func jailValidator(t *testing.T, consAddr sdk.ConsAddress, coordinator *wasmibct
 	ctx = chain.GetContext()
 	signInfo.MissedBlocksCounter = app.SlashingKeeper.MinSignedPerWindow(ctx)
 	app.SlashingKeeper.SetValidatorSigningInfo(ctx, consAddr, signInfo)
-	power := app.StakingKeeper.GetLastValidatorPower(ctx, sdk.ValAddress(consAddr))
+
+	v, _ := app.StakingKeeper.GetValidatorByConsAddr(ctx, consAddr)
+	power := app.StakingKeeper.GetLastValidatorPower(ctx, v.GetOperator())
 	app.SlashingKeeper.HandleValidatorSignature(ctx, cryptotypes.Address(consAddr), power, false)
 	// when updates trigger
 	chain.NextBlock()
