@@ -5,7 +5,7 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	// "github.com/cosmos/cosmos-sdk/types/msgservice"
+	"github.com/cosmos/cosmos-sdk/types/msgservice"
 )
 
 // RegisterLegacyAminoCodec register types with legacy amino
@@ -20,9 +20,16 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
 		(*sdk.Msg)(nil),
 		&MsgDelegate{},
+	)
+	registry.RegisterImplementations(
+		(*sdk.Msg)(nil),
 		&MsgUndelegate{},
+	)
+	registry.RegisterImplementations(
+		(*sdk.Msg)(nil),
 		&MsgSetConsumerCommissionRate{},
 	)
+	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }
 
 var (
