@@ -284,6 +284,12 @@ func CreateDefaultTestInput(t testing.TB, opts ...Option) (sdk.Context, TestKeep
 	)
 	require.NoError(t, msKeeper.SetParams(ctx, types.DefaultParams(sdk.DefaultBondDenom)))
 
+	stakingKeeper.SetHooks(
+		stakingtypes.NewMultiStakingHooks(
+			slashingKeeper.Hooks(),
+			msKeeper.Hooks(),
+		),
+	)
 	faucet := wasmkeeper.NewTestFaucet(t, ctx, bankKeeper, minttypes.ModuleName, sdk.NewInt64Coin(sdk.DefaultBondDenom, 1_000_000_000_000))
 	return ctx, TestKeepers{
 		AccountKeeper:  accountKeeper,

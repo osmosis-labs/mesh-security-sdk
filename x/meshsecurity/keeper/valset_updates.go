@@ -184,7 +184,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 			data := packet.GetSchedulePacketData()
 			valAddr, err := sdk.ValAddressFromBech32(data.Validator)
 			if err != nil {
-				innerErr = types.ErrInvalid.Wrapf("validator does not exist  %X", packet.Type)
+				innerErr = types.ErrUnknown.Wrapf("validator does not exist  %v", err)
 				return true
 			}
 			return appendValidator(&r.Additions, valAddr)
@@ -204,7 +204,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 			data := packet.GetSchedulePacketData()
 			valAddr, err := sdk.ValAddressFromBech32(data.Validator)
 			if err != nil {
-				innerErr = types.ErrInvalid.Wrapf("validator does not exist  %X", packet.Type)
+				innerErr = types.ErrUnknown.Wrapf("validator does not exist  %v", err)
 				return true
 			}
 			return appendValidator(&r.Updated, valAddr)
@@ -212,7 +212,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 			data := packet.GetSlashPacketData()
 			valAddr, err := sdk.ValAddressFromBech32(data.Validator)
 			if err != nil {
-				innerErr = types.ErrInvalid.Wrapf("validator does not exist  %X", packet.Type)
+				innerErr = types.ErrUnknown.Wrapf("validator does not exist  %v", err)
 				return true
 			}
 			return slashValidator(&r.Slashed, valAddr, data.Power, data.InfractionHeight, data.TimeInfraction,

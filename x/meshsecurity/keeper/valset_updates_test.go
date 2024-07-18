@@ -230,7 +230,8 @@ func TestBuildValsetUpdateReport(t *testing.T) {
 }
 
 func TestValsetUpdateReportErrors(t *testing.T) {
-	nonValAddr := sdk.ValAddress(bytes.Repeat([]byte{1}, address.Len))
+	nonVal := MinValidatorFixture(t)
+	nonValAddr := nonVal.GetOperator()
 	pCtx, keepers := CreateDefaultTestInput(t)
 	k := keepers.MeshKeeper
 
@@ -255,7 +256,7 @@ func TestValsetUpdateReportErrors(t *testing.T) {
 		"unsupported val operation": {
 			setup: func(t *testing.T, ctx sdk.Context) {
 				packet := cptypes.ConsumerPacketData{
-					Type: cptypes.PipedValsetOperation_VALIDATOR_BONDED,
+					Type: 0xff,
 					Data: &cptypes.ConsumerPacketData_SchedulePacketData{
 						SchedulePacketData: &cptypes.ScheduleInfo{
 							Validator: nonValAddr.String(),
@@ -266,6 +267,21 @@ func TestValsetUpdateReportErrors(t *testing.T) {
 			},
 			expErr: types.ErrInvalid,
 		},
+		"success": {
+			setup: func(t *testing.T, ctx sdk.Context) {
+				packet := cptypes.ConsumerPacketData{
+					Type: cptypes.PipedValsetOperation_VALIDATOR_BONDED,
+					Data: &cptypes.ConsumerPacketData_SchedulePacketData{
+						SchedulePacketData: &cptypes.ScheduleInfo{
+							Validator: nonValAddr.String(),
+						},
+					},
+				}
+				keepers.StakingKeeper.SetValidator(pCtx, nonVal)
+				require.NoError(t, k.sendAsync(ctx, cptypes.PipedValsetOperation_VALIDATOR_BONDED, nonValAddr, packet))
+			},
+			expErr: nil,
+		},
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
@@ -273,8 +289,11 @@ func TestValsetUpdateReportErrors(t *testing.T) {
 			spec.setup(t, ctx)
 			// when
 			_, gotErr := k.ValsetUpdateReport(ctx)
-			require.Error(t, gotErr)
-			assert.ErrorIs(t, spec.expErr, gotErr)
+			if spec.expErr != nil {
+				assert.ErrorIs(t, spec.expErr, gotErr)
+			} else {
+				assert.NoError(t, gotErr)
+			}
 		})
 	}
 }

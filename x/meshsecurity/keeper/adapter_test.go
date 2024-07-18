@@ -10,6 +10,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/address"
 	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	"github.com/cosmos/cosmos-sdk/x/staking/types"
 	cptypes "github.com/osmosis-labs/mesh-security-sdk/x/types"
 )
 
@@ -57,10 +59,18 @@ func TestCaptureTombstone(t *testing.T) {
 
 func TestCaptureStakingEvents(t *testing.T) {
 	pCtx, keepers := CreateDefaultTestInput(t)
+	denom := keepers.StakingKeeper.BondDenom(pCtx)
+	coin := sdk.NewCoin(denom, sdk.NewIntFromUint64(1000000))
 
 	val := MinValidatorFixture(t)
+	val.Status = types.Bonded
+	val.Tokens = sdk.NewIntFromUint64(1000000)
 	myConsAddress, err := val.GetConsAddr()
 	require.NoError(t, err)
+	acc := sdk.AccAddress(rand.Bytes(32))
+	keepers.BankKeeper.MintCoins(pCtx, minttypes.ModuleName, sdk.NewCoins([]sdk.Coin{coin}...))
+	keepers.BankKeeper.SendCoinsFromModuleToAccount(pCtx, minttypes.ModuleName, acc, sdk.NewCoins([]sdk.Coin{coin}...))
+	keepers.BankKeeper.DelegateCoinsFromAccountToModule(pCtx, acc, types.BondedPoolName, sdk.NewCoins([]sdk.Coin{coin}...))
 	keepers.StakingKeeper.SetValidatorByConsAddr(pCtx, val)
 	keepers.StakingKeeper.SetValidator(pCtx, val)
 
@@ -78,10 +88,17 @@ func TestCaptureStakingEvents(t *testing.T) {
 		expStored []cptypes.PipedValsetOperation
 		expJailed bool
 	}{
-		"jail": {
-			consAddr:  myConsAddress,
-			op:        decorator.Jail,
-			expStored: []cptypes.PipedValsetOperation{cptypes.PipedValsetOperation_VALIDATOR_JAILED},
+		"slash and jail": {
+			consAddr: myConsAddress,
+			op: func(ctx sdk.Context, ca sdk.ConsAddress) {
+				decorator.Slash(ctx, ca, ctx.BlockHeight(), 1, sdk.MustNewDecFromStr("0.1"))
+				decorator.Jail(ctx, ca)
+			},
+			expStored: []cptypes.PipedValsetOperation{
+				cptypes.PipedValsetOperation_VALIDATOR_JAILED,
+				cptypes.PipedValsetOperation_VALIDATOR_MODIFIED,
+				cptypes.PipedValsetOperation_VALIDATOR_SLASHED,
+			},
 			expJailed: true,
 		},
 		"unjail": {
@@ -98,7 +115,8 @@ func TestCaptureStakingEvents(t *testing.T) {
 			spec.op(ctx, spec.consAddr)
 
 			// then
-			loadedVal := keepers.StakingKeeper.ValidatorByConsAddr(ctx, spec.consAddr)
+			loadedVal, found := keepers.StakingKeeper.GetValidatorByConsAddr(ctx, spec.consAddr)
+			assert.True(t, found)
 			assert.Equal(t, spec.expJailed, loadedVal.IsJailed())
 			// and stored for async propagation
 			allStoredOps := FetchAllStoredOperations(t, ctx, keepers.MeshKeeper)
