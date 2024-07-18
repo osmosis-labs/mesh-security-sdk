@@ -10,13 +10,18 @@ import (
 
 // RegisterLegacyAminoCodec register types with legacy amino
 func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
-
+	cdc.RegisterConcrete(&MsgDelegate{}, "provider/MsgDelegate", nil)
+	cdc.RegisterConcrete(&MsgUndelegate{}, "provider/MsgUndelegate", nil)
+	cdc.RegisterConcrete(&MsgSetConsumerCommissionRate{}, "provider/MsgSetConsumerCommissionRate", nil)
 }
 
 // RegisterInterfaces register types with interface registry
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
 		(*sdk.Msg)(nil),
+		&MsgDelegate{},
+		&MsgUndelegate{},
+		&MsgSetConsumerCommissionRate{},
 	)
 }
 
