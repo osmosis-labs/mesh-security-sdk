@@ -32,8 +32,8 @@ func (k Keeper) SendPackets(ctx sdk.Context) {
 			ctx,
 			k.scopedKeeper,
 			k.channelKeeper,
-			channelID,             // source channel id
-			ctypes.ConsumerPortID, // source port id
+			channelID,            // source channel id
+			types.ConsumerPortID, // source port id
 			s.GetBytes(),
 			k.GetParams(ctx).GetTimeoutPeriod(),
 		)

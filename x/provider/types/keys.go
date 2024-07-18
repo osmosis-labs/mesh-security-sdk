@@ -5,10 +5,14 @@ import (
 )
 
 const (
-	ModuleName  = "meshsecurityprovider"
-	RouterKey   = ModuleName
-	StoreKey    = ModuleName
-	MemStoreKey = "memory:meshsecurityprovider"
+	// ModuleName defines the module name.
+	ModuleName = "meshsecurity-provider"
+	// RouterKey is the message route
+	RouterKey = ModuleName
+	// StoreKey defines the primary module store key.
+	StoreKey = ModuleName
+	// MemStoreKey defines the in-memory store key
+	MemStoreKey = "memory:meshsecurity-provider"
 )
 
 var (

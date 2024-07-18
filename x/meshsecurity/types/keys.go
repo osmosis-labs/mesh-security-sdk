@@ -8,16 +8,13 @@ import (
 
 const (
 	// ModuleName defines the module name.
-	ModuleName = "meshsecurityconsummer"
-
-	// ConsumerPortID is the default port id the consumer module binds to
-	ConsumerPortID = "consumer"
+	ModuleName = "meshsecurity-consummer"
 
 	// StoreKey defines the primary module store key.
 	StoreKey = ModuleName
 
 	// MemStoreKey defines the in-memory store key
-	MemStoreKey = "memory:meshsecurity"
+	MemStoreKey = "memory:meshsecurity-consummer"
 
 	// RouterKey is the message route
 	RouterKey = ModuleName
