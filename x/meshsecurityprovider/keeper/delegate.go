@@ -5,8 +5,8 @@ import (
 
 	// stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
-	"github.com/osmosis-labs/mesh-security-sdk/x/provider/contract"
-	"github.com/osmosis-labs/mesh-security-sdk/x/provider/types"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/contract"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 )
 
 func (k Keeper) LocalStake(ctx sdk.Context, token sdk.Coin, valAddr string) error {

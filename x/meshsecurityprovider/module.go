@@ -16,9 +16,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	porttypes "github.com/cosmos/ibc-go/v7/modules/core/05-port/types"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/provider/client/cli"
-	"github.com/osmosis-labs/mesh-security-sdk/x/provider/keeper"
-	"github.com/osmosis-labs/mesh-security-sdk/x/provider/types"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/client/cli"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/keeper"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 )
 
 var (

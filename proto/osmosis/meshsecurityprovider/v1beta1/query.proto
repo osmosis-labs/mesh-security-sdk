@@ -1,13 +1,13 @@
 syntax = "proto3";
-package osmosis.provider.v1beta1;
+package osmosis.meshsecurityprovider.v1beta1;
 
 import "cosmos/base/v1beta1/coin.proto";
-import "osmosis/provider/v1beta1/params.proto";
+import "osmosis/meshsecurityprovider/v1beta1/params.proto";
 import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
 import "amino/amino.proto";
 
-option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/provider/types";
+option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types";
 option (gogoproto.goproto_getters_all) = false;
 option (gogoproto.equal_all) = false;
 
@@ -15,7 +15,7 @@ option (gogoproto.equal_all) = false;
 service Query {
   // Params queries the parameters of x/meshsecurity module.
   rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
-    option (google.api.http).get = "/osmosis/provider/v1beta1/params";
+    option (google.api.http).get = "/osmosis/meshsecurityprovider/v1beta1/params";
   }
 }
 // QueryParamsRequest is the request type for the

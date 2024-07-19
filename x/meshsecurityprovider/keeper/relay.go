@@ -10,7 +10,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/provider/types"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 	cptypes "github.com/osmosis-labs/mesh-security-sdk/x/types"
 )
 

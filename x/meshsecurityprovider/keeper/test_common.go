@@ -59,7 +59,7 @@ import (
 	upgradekeeper "github.com/cosmos/cosmos-sdk/x/upgrade/keeper"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/provider/types"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 )
 
 type encodingConfig struct {

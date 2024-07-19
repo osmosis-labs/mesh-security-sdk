@@ -17,8 +17,8 @@ import (
 
 	// transfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/provider/keeper"
-	types "github.com/osmosis-labs/mesh-security-sdk/x/provider/types"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/keeper"
+	types "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 	cptypes "github.com/osmosis-labs/mesh-security-sdk/x/types"
 )
 

@@ -1,5 +1,5 @@
 syntax = "proto3";
-package osmosis.provider.v1beta1;
+package osmosis.meshsecurityprovider.v1beta1;
 
 import "cosmos_proto/cosmos.proto";
 import "cosmos/msg/v1/msg.proto";
@@ -7,7 +7,7 @@ import "gogoproto/gogo.proto";
 import "amino/amino.proto";
 import "cosmos/base/v1beta1/coin.proto";
 
-option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/provider/types";
+option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types";
 option (gogoproto.goproto_getters_all) = false;
 
 service Msg {

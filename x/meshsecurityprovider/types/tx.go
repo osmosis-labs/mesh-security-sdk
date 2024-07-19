@@ -59,6 +59,15 @@ func (msg MsgUndelegate) ValidateBasic() error {
 	return nil
 }
 
+// NewMsgSetConsumerCommissionRate creates a new MsgSetConsumerCommissionRate msg instance.
+func NewMsgSetConsumerCommissionRate(chainID string, commission sdk.Dec, providerValidatorAddress sdk.ValAddress) *MsgSetConsumerCommissionRate {
+	return &MsgSetConsumerCommissionRate{
+		ChainId:      chainID,
+		Rate:         commission,
+		ProviderAddr: providerValidatorAddress.String(),
+	}
+}
+
 // GetSignBytes implements the LegacyMsg interface.
 func (msg MsgSetConsumerCommissionRate) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))

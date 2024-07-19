@@ -7,7 +7,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/provider/contract"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/contract"
 )
 
 func (k Keeper) SendVaultStake(ctx sdk.Context, v contract.StakeMsg) error {

@@ -21,8 +21,7 @@ import (
 	ibchost "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	ibctmtypes "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
 
-	ctypes "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
-	"github.com/osmosis-labs/mesh-security-sdk/x/provider/types"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 	cptypes "github.com/osmosis-labs/mesh-security-sdk/x/types"
 )
 
@@ -117,7 +116,7 @@ func (k Keeper) SetConsumerChain(ctx sdk.Context, channelID string) error {
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			cptypes.EventTypeChannelEstablished,
-			sdk.NewAttribute(sdk.AttributeKeyModule, ctypes.ModuleName),
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 			sdk.NewAttribute(cptypes.AttributeChainID, chainID),
 			sdk.NewAttribute(conntypes.AttributeKeyClientID, clientID),
 			sdk.NewAttribute(channeltypes.AttributeKeyChannelID, channelID),

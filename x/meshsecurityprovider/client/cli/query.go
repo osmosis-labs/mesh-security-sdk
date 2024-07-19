@@ -10,13 +10,13 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/version"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 )
 
 func GetQueryCmd() *cobra.Command {
 	queryCmd := &cobra.Command{
 		Use:                        types.ModuleName,
-		Short:                      "Querying commands for the mesh security module",
+		Short:                      "Querying commands for the mesh security provider module",
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
 		RunE:                       client.ValidateCmd,
@@ -38,7 +38,7 @@ func GetCmdQueryParams() *cobra.Command {
 			fmt.Sprintf(`Query values set as mesh-security parameters.
 
 Example:
-$ %s query meshsecurity params
+$ %s query meshsecurity-provider params
 `,
 				version.AppName,
 			),
