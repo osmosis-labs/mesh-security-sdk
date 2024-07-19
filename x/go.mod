@@ -144,6 +144,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/osmosis-labs/mesh-security-sdk/wasmbinding v0.0.0-00010101000000-000000000000
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/petermattis/goid v0.0.0-20230317030725-371a4b8eda08 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -183,7 +184,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	nhooyr.io/websocket v1.8.6 // indirect
 	pgregory.net/rapid v0.5.5 // indirect
-	sigs.k8s.io/yaml v1.3.0 // indirect
+	sigs.k8s.io/yaml v1.3.0
 )
 
 replace (
@@ -194,6 +195,7 @@ replace (
 	// Fix upstream GHSA-h395-qcrw-5vmq vulnerability.
 	// See: https://github.com/cosmos/cosmos-sdk/issues/10409
 	github.com/gin-gonic/gin => github.com/gin-gonic/gin v1.8.1
+	github.com/osmosis-labs/mesh-security-sdk/wasmbinding => ../wasmbinding
 
 	// pin version! 126854af5e6d has issues with the store so that queries fail
 	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7

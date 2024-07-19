@@ -5,6 +5,8 @@ import (
 
 	"github.com/cometbft/cometbft/libs/log"
 
+	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
+
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
 
@@ -14,6 +16,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
+	"github.com/osmosis-labs/mesh-security-sdk/wasmbinding/bindings"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
@@ -184,4 +187,50 @@ func (k Keeper) IterateMaxCapLimit(ctx sdk.Context, cb func(sdk.AccAddress, math
 // ModuleLogger returns logger with module attribute
 func ModuleLogger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
+}
+
+func (k Keeper) HandleBondMsg(ctx sdk.Context, actor sdk.AccAddress, bondMsg *bindings.BondMsg) ([]sdk.Event, [][]byte, error) {
+	coin, err := wasmkeeper.ConvertWasmCoinToSdkCoin(bondMsg.Amount)
+	if err != nil {
+		return nil, nil, err
+	}
+	valAddr, err := sdk.ValAddressFromBech32(bondMsg.Validator)
+	if err != nil {
+		return nil, nil, err
+	}
+	_, err = k.Delegate(ctx, actor, valAddr, coin)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []sdk.Event{sdk.NewEvent(
+		types.EventTypeDelegate,
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		sdk.NewAttribute(types.AttributeKeyValidator, valAddr.String()),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
+		sdk.NewAttribute(types.AttributeKeyDelegator, actor.String()),
+	)}, nil, nil
+}
+
+func (k Keeper) HandleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress, bondMsg *bindings.UnbondMsg) ([]sdk.Event, [][]byte, error) {
+	coin, err := wasmkeeper.ConvertWasmCoinToSdkCoin(bondMsg.Amount)
+	if err != nil {
+		return nil, nil, err
+	}
+	valAddr, err := sdk.ValAddressFromBech32(bondMsg.Validator)
+	if err != nil {
+		return nil, nil, err
+	}
+	err = k.Undelegate(ctx, actor, valAddr, coin)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []sdk.Event{sdk.NewEvent(
+		types.EventTypeUnbond,
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		sdk.NewAttribute(types.AttributeKeyValidator, valAddr.String()),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
+		sdk.NewAttribute(sdk.AttributeKeySender, actor.String()),
+	)}, nil, nil
 }
