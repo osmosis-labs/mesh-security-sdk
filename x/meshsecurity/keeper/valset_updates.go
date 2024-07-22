@@ -21,6 +21,7 @@ func (k Keeper) ScheduleBonded(ctx sdk.Context, addr sdk.ValAddress) error {
 		Data: &cptypes.ConsumerPacketData_SchedulePacketData{
 			SchedulePacketData: &cptypes.ScheduleInfo{
 				Validator: addr.String(),
+				Denom:     k.Staking.BondDenom(ctx),
 			},
 		},
 	}
@@ -34,6 +35,7 @@ func (k Keeper) ScheduleUnbonded(ctx sdk.Context, addr sdk.ValAddress) error {
 		Data: &cptypes.ConsumerPacketData_SchedulePacketData{
 			SchedulePacketData: &cptypes.ScheduleInfo{
 				Validator: addr.String(),
+				Denom:     k.Staking.BondDenom(ctx),
 			},
 		},
 	}
@@ -74,6 +76,7 @@ func (k Keeper) ScheduleJailed(ctx sdk.Context, addr sdk.ValAddress) error {
 		Data: &cptypes.ConsumerPacketData_SchedulePacketData{
 			SchedulePacketData: &cptypes.ScheduleInfo{
 				Validator: addr.String(),
+				Denom:     k.Staking.BondDenom(ctx),
 			},
 		},
 	}
@@ -87,6 +90,7 @@ func (k Keeper) ScheduleTombstoned(ctx sdk.Context, addr sdk.ValAddress) error {
 		Data: &cptypes.ConsumerPacketData_SchedulePacketData{
 			SchedulePacketData: &cptypes.ScheduleInfo{
 				Validator: addr.String(),
+				Denom:     k.Staking.BondDenom(ctx),
 			},
 		},
 	}
@@ -100,6 +104,7 @@ func (k Keeper) ScheduleUnjailed(ctx sdk.Context, addr sdk.ValAddress) error {
 		Data: &cptypes.ConsumerPacketData_SchedulePacketData{
 			SchedulePacketData: &cptypes.ScheduleInfo{
 				Validator: addr.String(),
+				Denom:     k.Staking.BondDenom(ctx),
 			},
 		},
 	}
@@ -113,6 +118,7 @@ func (k Keeper) ScheduleModified(ctx sdk.Context, addr sdk.ValAddress) error {
 		Data: &cptypes.ConsumerPacketData_SchedulePacketData{
 			SchedulePacketData: &cptypes.ScheduleInfo{
 				Validator: addr.String(),
+				Denom:     k.Staking.BondDenom(ctx),
 			},
 		},
 	}

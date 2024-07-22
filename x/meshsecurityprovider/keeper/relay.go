@@ -101,7 +101,18 @@ func (k Keeper) OnRecvBondedPacket(
 	packet channeltypes.Packet,
 	data *cptypes.ScheduleInfo,
 ) (cptypes.PacketAckResult, error) {
+	intermediary, found := k.GetIntermediary(ctx, data.Denom)
+	if !found {
+		ModuleLogger(ctx).Error("External Staker not found for validor",
+			data.Validator,
+		)
+		panic(fmt.Errorf("external Staker not found for validor %s", data.Validator))
+	}
 
+	if intermediary.Status != types.Bonded {
+		intermediary.Status = types.Bonded
+	}
+	k.SetIntermediary(ctx, intermediary)
 	return cptypes.SlashPacketHandledResult, nil
 }
 
@@ -110,7 +121,18 @@ func (k Keeper) OnRecvUnbondedPacket(
 	packet channeltypes.Packet,
 	data *cptypes.ScheduleInfo,
 ) (cptypes.PacketAckResult, error) {
+	intermediary, found := k.GetIntermediary(ctx, data.Denom)
+	if !found {
+		ModuleLogger(ctx).Error("External Staker not found for validor",
+			data.Validator,
+		)
+		panic(fmt.Errorf("external Staker not found for validor %s", data.Validator))
+	}
 
+	if intermediary.Status != types.Unbonded {
+		intermediary.Status = types.Unbonded
+	}
+	k.SetIntermediary(ctx, intermediary)
 	return cptypes.SlashPacketHandledResult, nil
 }
 
@@ -119,6 +141,31 @@ func (k Keeper) OnRecvJailedPacket(
 	packet channeltypes.Packet,
 	data *cptypes.ScheduleInfo,
 ) (cptypes.PacketAckResult, error) {
+	intermediary, found := k.GetIntermediary(ctx, data.Denom)
+	if !found {
+		ModuleLogger(ctx).Error("External Staker not found for validor",
+			data.Validator,
+		)
+		panic(fmt.Errorf("external Staker not found for validor %s", data.Validator))
+	}
+
+	if intermediary.IsUnboned() {
+		ModuleLogger(ctx).Error("validator %s is unbonded", data.Validator)
+		return cptypes.SlashPacketHandledResult, nil
+	}
+
+	if intermediary.IsTombstoned() {
+		ModuleLogger(ctx).Info(
+			"slash packet dropped because validator %s is already tombstoned", data.Validator,
+		)
+		return cptypes.SlashPacketHandledResult, nil
+	}
+	if intermediary.IsJailed() {
+		ModuleLogger(ctx).Info("validator %s jailed", data.Validator)
+		return cptypes.SlashPacketHandledResult, nil
+	}
+	intermediary.Jailed = true
+	k.SetIntermediary(ctx, intermediary)
 
 	return cptypes.SlashPacketHandledResult, nil
 }
@@ -128,6 +175,20 @@ func (k Keeper) OnRecvTombstonedPacket(
 	packet channeltypes.Packet,
 	data *cptypes.ScheduleInfo,
 ) (cptypes.PacketAckResult, error) {
+	intermediary, found := k.GetIntermediary(ctx, data.Denom)
+	if !found {
+		ModuleLogger(ctx).Error("External Staker not found for validor",
+			data.Validator,
+		)
+		panic(fmt.Errorf("external Staker not found for validor %s", data.Validator))
+	}
+
+	if intermediary.IsUnboned() {
+		ModuleLogger(ctx).Error("validator %s is unbonded", data.Validator)
+		return cptypes.SlashPacketHandledResult, nil
+	}
+	intermediary.Tombstoned = true
+	k.SetIntermediary(ctx, intermediary)
 
 	return cptypes.SlashPacketHandledResult, nil
 }
@@ -136,6 +197,25 @@ func (k Keeper) OnRecvUnjailedPacket(
 	packet channeltypes.Packet,
 	data *cptypes.ScheduleInfo,
 ) (cptypes.PacketAckResult, error) {
+	intermediary, found := k.GetIntermediary(ctx, data.Denom)
+	if !found {
+		ModuleLogger(ctx).Error("External Staker not found for validor",
+			data.Validator,
+		)
+		panic(fmt.Errorf("external Staker not found for validor %s", data.Validator))
+	}
+
+	if intermediary.IsUnboned() {
+		ModuleLogger(ctx).Error("validator %s is unbonded", data.Validator)
+		return cptypes.SlashPacketHandledResult, nil
+	}
+	if !intermediary.Jailed {
+		ModuleLogger(ctx).Error("validator %s is not jailed", data.Validator)
+		return cptypes.SlashPacketHandledResult, nil
+	}
+
+	intermediary.Jailed = false
+	k.SetIntermediary(ctx, intermediary)
 
 	return cptypes.SlashPacketHandledResult, nil
 }

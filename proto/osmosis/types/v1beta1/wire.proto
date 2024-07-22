@@ -38,6 +38,7 @@ message SlashInfo {
 message ScheduleInfo {
   string validator = 1;
   string actor = 2;
+  string denom = 3;
 }
 
 // ConsumerPacketData contains a consumer packet data and a type tag
