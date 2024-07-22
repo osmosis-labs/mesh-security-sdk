@@ -61,7 +61,7 @@ func (h CustomMessenger) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddres
 			return h.provKeeper.HandleWithdrawMsg(ctx, contractAddr, contractMsg.Withdraw)
 		}
 		if contractMsg.Unstake != nil {
-			return h.privKeeper.HandleUnstakeMsg(ctx, contractAddr, contractMsg.Unstake)
+			return h.provKeeper.HandleUnstakeMsg(ctx, contractAddr, contractMsg.Unstake)
 		}
 	}
 	return nil, nil, wasmtypes.ErrUnknownMsg
