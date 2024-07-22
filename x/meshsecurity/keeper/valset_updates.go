@@ -124,7 +124,7 @@ func (k Keeper) ScheduleModified(ctx sdk.Context, addr sdk.ValAddress) error {
 func (k Keeper) sendAsync(ctx sdk.Context, op cptypes.PipedValsetOperation, valAddr sdk.ValAddress, packet cptypes.ConsumerPacketData) error {
 	// if op
 	ModuleLogger(ctx).Debug("storing for async update", "operation", int(op), "val", valAddr.String())
-	value := packet.GetBytes()
+	value := packet.MarshalConsumerPacketData()
 	ctx.KVStore(k.memKey).Set(types.BuildPipedValsetOpKey(op, valAddr), value)
 	// and schedule an update callback for all registered contracts
 	var innerErr error

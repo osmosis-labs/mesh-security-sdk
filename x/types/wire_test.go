@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetBytesAndGetData(t *testing.T) {
+func TestGetBytesAndUnmarshalConsumerPacketData(t *testing.T) {
 	c1 := ConsumerPacketData{
 		Type: PipedValsetOperation_VALIDATOR_SLASHED,
 		Data: &ConsumerPacketData_SlashPacketData{
@@ -20,7 +20,7 @@ func TestGetBytesAndGetData(t *testing.T) {
 		},
 	}
 
-	data := c1.GetBytes()
+	data := c1.MarshalConsumerPacketData()
 	c2, err := UnmarshalConsumerPacketData(data)
 	require.NoError(t, err)
 	require.Equal(t, c1, c2)
@@ -40,7 +40,7 @@ func TestGetBytesAndGetData(t *testing.T) {
 			},
 		},
 	}
-	data = s1.GetBytes()
+	data = s1.MarshalConsumerPacketData()
 	s2, err := UnmarshalConsumerPacketData(data)
 	require.NoError(t, err)
 	require.Equal(t, s1, s2)

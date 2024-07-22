@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 )
 
-func (c ConsumerPacketData) GetBytes() []byte {
+func (c ConsumerPacketData) MarshalConsumerPacketData() []byte {
 	var bytes []byte
 	bytes = append(bytes, Int32ToBytes(int32(c.Type))...)
 	if c.Type != PipedValsetOperation_VALIDATOR_SLASHED {

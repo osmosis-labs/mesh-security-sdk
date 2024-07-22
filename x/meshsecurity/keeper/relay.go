@@ -34,7 +34,7 @@ func (k Keeper) SendPackets(ctx sdk.Context) {
 			k.channelKeeper,
 			channelID,            // source channel id
 			types.ConsumerPortID, // source port id
-			s.GetBytes(),
+			s.MarshalConsumerPacketData(),
 			k.GetParams(ctx).GetTimeoutPeriod(),
 		)
 		if err != nil {
