@@ -1,4 +1,4 @@
-package keeper
+package wasmbinding
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
+	"github.com/osmosis-labs/mesh-security-sdk/wasmbinding/bindings"
 )
 
 type (
@@ -58,7 +58,7 @@ func ChainedCustomQuerier(k viewKeeper, sk slashingKeeper, next wasmkeeper.WasmV
 		if request.Custom == nil {
 			return next.HandleQuery(ctx, caller, request)
 		}
-		var contractQuery contract.CustomQuery
+		var contractQuery bindings.CustomQuery
 		if err := json.Unmarshal(request.Custom, &contractQuery); err != nil {
 			return nil, errorsmod.Wrap(err, "mesh-security query")
 		}
@@ -74,12 +74,12 @@ func ChainedCustomQuerier(k viewKeeper, sk slashingKeeper, next wasmkeeper.WasmV
 			if err != nil {
 				return nil, sdkerrors.ErrInvalidAddress.Wrap(query.BondStatus.Contract)
 			}
-			res = contract.BondStatusResponse{
+			res = bindings.BondStatusResponse{
 				MaxCap:    wasmkeeper.ConvertSdkCoinToWasmCoin(k.GetMaxCapLimit(ctx, contractAddr)),
 				Delegated: wasmkeeper.ConvertSdkCoinToWasmCoin(k.GetTotalDelegated(ctx, contractAddr)),
 			}
 		case query.SlashRatio != nil:
-			res = contract.SlashRatioResponse{
+			res = bindings.SlashRatioResponse{
 				SlashFractionDowntime:   sk.SlashFractionDowntime(ctx).String(),
 				SlashFractionDoubleSign: sk.SlashFractionDoubleSign(ctx).String(),
 			}

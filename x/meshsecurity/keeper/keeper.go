@@ -190,6 +190,9 @@ func ModuleLogger(ctx sdk.Context) log.Logger {
 }
 
 func (k Keeper) HandleBondMsg(ctx sdk.Context, actor sdk.AccAddress, bondMsg *bindings.BondMsg) ([]sdk.Event, [][]byte, error) {
+	if !k.HasMaxCapLimit(ctx, actor) {
+		return nil, nil, sdkerrors.ErrUnauthorized
+	}
 	coin, err := wasmkeeper.ConvertWasmCoinToSdkCoin(bondMsg.Amount)
 	if err != nil {
 		return nil, nil, err
@@ -213,6 +216,9 @@ func (k Keeper) HandleBondMsg(ctx sdk.Context, actor sdk.AccAddress, bondMsg *bi
 }
 
 func (k Keeper) HandleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress, bondMsg *bindings.UnbondMsg) ([]sdk.Event, [][]byte, error) {
+	if !k.HasMaxCapLimit(ctx, actor) {
+		return nil, nil, sdkerrors.ErrUnauthorized
+	}
 	coin, err := wasmkeeper.ConvertWasmCoinToSdkCoin(bondMsg.Amount)
 	if err != nil {
 		return nil, nil, err

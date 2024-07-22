@@ -1,7 +1,31 @@
-package contract
+package bindings
 
-import (
-	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+import wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+
+type (
+	CustomMsg struct {
+		Bond   *BondMsg   `json:"bond,omitempty"`
+		Unbond *UnbondMsg `json:"unbond,omitempty"`
+		Deposit *DepositMsg `json:"deposit,,omitempty"`
+		Withdraw *WithdrawMsg `json:"withdraw,,omitempty"`
+	}
+
+	BondMsg struct {
+		Amount    wasmvmtypes.Coin `json:"amount"`
+		Validator string           `json:"validator"`
+	}
+	UnbondMsg struct {
+		Amount    wasmvmtypes.Coin `json:"amount"`
+		Validator string           `json:"validator"`
+	}
+	DepositMsg struct {
+		Amount    wasmvmtypes.Coin `json:"amount"`
+		Delegator string           `json:"delegator"`
+	}
+	WithdrawMsg struct {
+		Amount    wasmvmtypes.Coin `json:"amount"`
+		Delegator string           `json:"delegator"`
+	}
 )
 
 type (

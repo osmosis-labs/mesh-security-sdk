@@ -127,6 +127,8 @@ import (
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity"
+
+	"github.com/osmosis-labs/mesh-security-sdk/wasmbinding"
 	meshseckeeper "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/keeper"
 	meshsectypes "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 	meshsecprov "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider"
@@ -598,18 +600,14 @@ func NewMeshApp(
 	meshMessageHandler := wasmkeeper.WithMessageHandlerDecorator(func(nested wasmkeeper.Messenger) wasmkeeper.Messenger {
 		return wasmkeeper.NewMessageHandlerChain(
 			// security layer for system integrity, should always be first in chain
-			meshseckeeper.NewIntegrityHandler(app.MeshSecKeeper),
+			wasmbinding.NewIntegrityHandler(app.MeshSecKeeper),
 			nested,
 			// append our custom message handler for mesh-security
-			meshseckeeper.NewDefaultCustomMsgHandler(app.MeshSecKeeper),
+			wasmbinding.CustomMessageDecorator(app.MeshSecKeeper, app.MeshSecProvKeeper),
 		)
 	})
-	meshProvMessageHandler := wasmkeeper.WithMessageHandlerDecorator(func(nested wasmkeeper.Messenger) wasmkeeper.Messenger {
-		return wasmkeeper.NewMessageHandlerChain(
-			meshsecprovkeeper.NewCustomMsgHandler(app.MeshSecProvKeeper),
-		)
-	})
-	wasmOpts = append(wasmOpts, meshMessageHandler, meshProvMessageHandler,
+
+	wasmOpts = append(wasmOpts, meshMessageHandler,
 		// add support for the mesh-security queries
 		wasmkeeper.WithQueryHandlerDecorator(meshseckeeper.NewQueryDecorator(app.MeshSecKeeper, app.SlashingKeeper)),
 	)

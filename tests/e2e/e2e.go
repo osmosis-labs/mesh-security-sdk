@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -75,6 +76,7 @@ func voteAndPassGovProposal(t *testing.T, chain *ibctesting.TestChain, proposalI
 }
 
 func InstantiateContract(t *testing.T, chain *ibctesting.TestChain, codeID uint64, initMsg []byte, funds ...sdk.Coin) sdk.AccAddress {
+	fmt.Println(codeID, string(initMsg))
 	instantiateMsg := &wasmtypes.MsgInstantiateContract{
 		Sender: chain.SenderAccount.GetAddress().String(),
 		Admin:  chain.SenderAccount.GetAddress().String(),

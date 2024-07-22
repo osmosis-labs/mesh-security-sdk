@@ -8,10 +8,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 
-	outmessage "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
+	"github.com/osmosis-labs/mesh-security-sdk/wasmbinding/bindings"
 )
 
 // ScheduleBonded store a validator update to bonded status for the valset update report
@@ -77,7 +76,7 @@ func (k Keeper) sendAsync(ctx sdk.Context, op types.PipedValsetOperation, valAdd
 // ValsetUpdateReport aggregate all stored changes of the current block. Should be called by an end-blocker.
 // The events reported are categorized by type and not time. Conflicting events as Bonded/ Unbonded
 // are not supposed to happen within the same block
-func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, error) {
+func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (bindings.ValsetUpdate, error) {
 	var innerErr error
 	appendValidator := func(set *[]wasmvmtypes.Validator, valAddr sdk.ValAddress) bool {
 		val, ok := k.Staking.GetValidator(ctx, valAddr)
@@ -88,9 +87,9 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		*set = append(*set, ConvertSdkValidatorToWasm(val))
 		return false
 	}
-	slashValidator := func(set *[]outmessage.ValidatorSlash, valAddr sdk.ValAddress, power int64, infractionHeight int64,
+	slashValidator := func(set *[]bindings.ValidatorSlash, valAddr sdk.ValAddress, power int64, infractionHeight int64,
 		infractionTime int64, slashAmount string, slashRatio string) bool {
-		valSlash := outmessage.ValidatorSlash{
+		valSlash := bindings.ValidatorSlash{
 			ValidatorAddr:    valAddr.String(),
 			Power:            power,
 			InfractionHeight: infractionHeight,
@@ -103,14 +102,14 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		*set = append(*set, valSlash)
 		return false
 	}
-	r := contract.ValsetUpdate{ // init with empty slices for contract that does not handle null or omitted fields
-		Additions:  make([]contract.Validator, 0),
-		Removals:   make([]contract.ValidatorAddr, 0),
-		Updated:    make([]contract.Validator, 0),
-		Jailed:     make([]contract.ValidatorAddr, 0),
-		Unjailed:   make([]contract.ValidatorAddr, 0),
-		Tombstoned: make([]contract.ValidatorAddr, 0),
-		Slashed:    make([]contract.ValidatorSlash, 0),
+	r := bindings.ValsetUpdate{ // init with empty slices for contract that does not handle null or omitted fields
+		Additions:  make([]bindings.Validator, 0),
+		Removals:   make([]bindings.ValidatorAddr, 0),
+		Updated:    make([]bindings.Validator, 0),
+		Jailed:     make([]bindings.ValidatorAddr, 0),
+		Unjailed:   make([]bindings.ValidatorAddr, 0),
+		Tombstoned: make([]bindings.ValidatorAddr, 0),
+		Slashed:    make([]bindings.ValidatorSlash, 0),
 	}
 	err := k.iteratePipedValsetOperations(ctx, func(valAddr sdk.ValAddress, op types.PipedValsetOperation, slashInfo *types.SlashInfo) bool {
 		switch op {
