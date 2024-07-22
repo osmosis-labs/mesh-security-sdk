@@ -4,10 +4,11 @@ import wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 
 type (
 	CustomMsg struct {
-		Bond   *BondMsg   `json:"bond,omitempty"`
-		Unbond *UnbondMsg `json:"unbond,omitempty"`
-		Deposit *DepositMsg `json:"deposit,,omitempty"`
+		Bond     *BondMsg     `json:"bond,omitempty"`
+		Unbond   *UnbondMsg   `json:"unbond,omitempty"`
+		Deposit  *DepositMsg  `json:"deposit,,omitempty"`
 		Withdraw *WithdrawMsg `json:"withdraw,,omitempty"`
+		Unstake  *UnstakeMsg  `json:"unstake,,omitempty"`
 	}
 
 	BondMsg struct {
@@ -25,6 +26,10 @@ type (
 	WithdrawMsg struct {
 		Amount    wasmvmtypes.Coin `json:"amount"`
 		Delegator string           `json:"delegator"`
+	}
+	UnstakeMsg struct {
+		Amount    wasmvmtypes.Coin `json:"amount"`
+		Validator string           `json:"validator"`
 	}
 )
 

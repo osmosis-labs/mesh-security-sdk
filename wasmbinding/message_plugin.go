@@ -21,6 +21,7 @@ type ConsumerKeeper interface {
 type ProviderKeeper interface {
 	HandleDepositMsg(ctx sdk.Context, actor sdk.AccAddress, depositMsg *bindings.DepositMsg) ([]sdk.Event, [][]byte, error)
 	HandleWithdrawMsg(ctx sdk.Context, actor sdk.AccAddress, withdrawMsg *bindings.WithdrawMsg) ([]sdk.Event, [][]byte, error)
+	HandleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, withdrawMsg *bindings.UnstakeMsg) ([]sdk.Event, [][]byte, error)
 }
 
 // CustomMessageDecorator returns decorator for custom CosmWasm bindings messages
@@ -58,6 +59,9 @@ func (h CustomMessenger) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddres
 		}
 		if contractMsg.Withdraw != nil {
 			return h.privKeeper.HandleWithdrawMsg(ctx, contractAddr, contractMsg.Withdraw)
+		}
+		if contractMsg.Unstake != nil {
+			return h.privKeeper.HandleUnstakeMsg(ctx, contractAddr, contractMsg.Unstake)
 		}
 	}
 	return nil, nil, wasmtypes.ErrUnknownMsg

@@ -1,6 +1,9 @@
 package keeper
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cosmos/cosmos-sdk/types/errors"
 
@@ -9,11 +12,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 	"github.com/osmosis-labs/mesh-security-sdk/wasmbinding/bindings"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 )
 
 type Keeper struct {
@@ -151,7 +154,48 @@ func (k Keeper) HandleWithdrawMsg(ctx sdk.Context, actor sdk.AccAddress, withdra
 	)}, nil, nil
 }
 
-func (k Keeper) Unstake(ctx sdk.Context, actor sdk.AccAddress, validator sdk.ValAddress, coin sdk.Coin) error {
+func (k Keeper) HandleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, unstakeMsg *bindings.UnstakeMsg) ([]sdk.Event, [][]byte, error) {
+	nativeContractAddr := k.NativeStakingAddress(ctx)
+	var proxyRes types.ProxyByOwnerResponse
+
+	resBytes, err := k.wasmKeeper.QuerySmart(ctx, 
+		sdk.AccAddress(nativeContractAddr),
+		[]byte(fmt.Sprintf(`{"proxy_by_owner": {"owner": "%s"}}`, actor.String())),
+	)
+	if err != nil {
+		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
+	}
+	if err = json.Unmarshal(resBytes, &proxyRes); err != nil {
+		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
+	}
+	if proxyRes.Proxy == "" {
+		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
+	}
+
+	coin, err := wasmkeeper.ConvertWasmCoinToSdkCoin(unstakeMsg.Amount)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	valAddr, err := sdk.ValAddressFromBech32(unstakeMsg.Validator)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = k.unstake(ctx, actor, valAddr, coin)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []sdk.Event{sdk.NewEvent(
+		types.EventTypeUnstake,
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
+		sdk.NewAttribute(types.AttributeKeyValidator, valAddr.String()),
+	)}, nil, nil
+}
+
+func (k Keeper) unstake(ctx sdk.Context, actor sdk.AccAddress, validator sdk.ValAddress, coin sdk.Coin) error {
 	if coin.Amount.IsNil() || coin.Amount.IsZero() || coin.Amount.IsNegative() {
 		return errors.ErrInvalidRequest.Wrap("amount")
 	}
