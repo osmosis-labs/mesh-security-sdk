@@ -3,6 +3,7 @@ package keeper
 import (
 	"testing"
 
+	"github.com/cometbft/cometbft/libs/rand"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 	"github.com/stretchr/testify/require"
@@ -13,7 +14,7 @@ func TestStoreDelegator(t *testing.T) {
 	k := keepers.MeshKeeperProvider
 
 	d1 := types.Depositors{
-		Address: "delegate",
+		Address: sdk.AccAddress(rand.Bytes(32)).String(),
 		Tokens:  sdk.NewCoins([]sdk.Coin{sdk.NewCoin("osmo", sdk.NewInt(123))}...),
 	}
 	err := k.SetDepositors(pCtx, d1)
@@ -39,9 +40,9 @@ func TestStoreIntermediary(t *testing.T) {
 
 	coin := sdk.NewCoin("osmo", sdk.NewInt(123))
 	e1 := types.Intermediary{
-		ConsumerValidator: "validator",
+		ConsumerValidator: sdk.ValAddress(rand.Bytes(32)).String(),
 		ChainId:           "osmo-1",
-		ContractAddress:   "address",
+		ContractAddress:   sdk.AccAddress(rand.Bytes(32)).String(),
 		Jailed:            false,
 		Tombstoned:        false,
 		Status:            types.Bonded,
