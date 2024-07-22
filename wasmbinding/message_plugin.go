@@ -25,16 +25,16 @@ type ProviderKeeper interface {
 }
 
 // CustomMessageDecorator returns decorator for custom CosmWasm bindings messages
-func CustomMessageDecorator(consKeeper ConsumerKeeper, privKeeper ProviderKeeper) *CustomMessenger {
+func CustomMessageDecorator(consKeeper ConsumerKeeper, provKeeper ProviderKeeper) *CustomMessenger {
 	return &CustomMessenger{
 		consKeeper: consKeeper,
-		privKeeper: privKeeper,
+		provKeeper: provKeeper,
 	}
 }
 
 type CustomMessenger struct {
 	consKeeper ConsumerKeeper
-	privKeeper ProviderKeeper
+	provKeeper ProviderKeeper
 }
 
 var _ wasmkeeper.Messenger = (*CustomMessenger)(nil)
@@ -55,10 +55,10 @@ func (h CustomMessenger) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddres
 		}
 
 		if contractMsg.Deposit != nil {
-			return h.privKeeper.HandleDepositMsg(ctx, contractAddr, contractMsg.Deposit)
+			return h.provKeeper.HandleDepositMsg(ctx, contractAddr, contractMsg.Deposit)
 		}
 		if contractMsg.Withdraw != nil {
-			return h.privKeeper.HandleWithdrawMsg(ctx, contractAddr, contractMsg.Withdraw)
+			return h.provKeeper.HandleWithdrawMsg(ctx, contractAddr, contractMsg.Withdraw)
 		}
 		if contractMsg.Unstake != nil {
 			return h.privKeeper.HandleUnstakeMsg(ctx, contractAddr, contractMsg.Unstake)
