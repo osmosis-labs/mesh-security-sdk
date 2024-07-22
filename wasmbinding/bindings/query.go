@@ -1,4 +1,4 @@
-package contract
+package bindings
 
 import wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 

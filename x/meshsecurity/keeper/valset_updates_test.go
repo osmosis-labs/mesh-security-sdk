@@ -15,7 +15,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/address"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
+	"github.com/osmosis-labs/mesh-security-sdk/wasmbinding/bindings"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
@@ -148,8 +148,8 @@ func TestBuildValsetUpdateReport(t *testing.T) {
 	got, err := k.ValsetUpdateReport(ctx)
 	// then
 	require.NoError(t, err)
-	exp := contract.ValsetUpdate{
-		Additions: []contract.Validator{
+	exp := bindings.ValsetUpdate{
+		Additions: []bindings.Validator{
 			{
 				Address:       val4.String(),
 				Commission:    "4.000000000000000000",
@@ -157,8 +157,8 @@ func TestBuildValsetUpdateReport(t *testing.T) {
 				MaxChangeRate: "0.000000000000000000",
 			},
 		},
-		Removals: []contract.ValidatorAddr{val3.String()},
-		Updated: []contract.Validator{
+		Removals: []bindings.ValidatorAddr{val3.String()},
+		Updated: []bindings.Validator{
 			{
 				Address:       val2.String(),
 				Commission:    "2.000000000000000000",
@@ -178,10 +178,10 @@ func TestBuildValsetUpdateReport(t *testing.T) {
 				MaxChangeRate: "0.000000000000000000",
 			},
 		},
-		Jailed:     []contract.ValidatorAddr{val1.String(), val3.String()},
-		Unjailed:   []contract.ValidatorAddr{val2.String()},
-		Slashed:    []contract.ValidatorSlash{},
-		Tombstoned: []contract.ValidatorAddr{val3.String()},
+		Jailed:     []bindings.ValidatorAddr{val1.String(), val3.String()},
+		Unjailed:   []bindings.ValidatorAddr{val2.String()},
+		Slashed:    []bindings.ValidatorSlash{},
+		Tombstoned: []bindings.ValidatorAddr{val3.String()},
 	}
 	assert.Equal(t, exp, got)
 }

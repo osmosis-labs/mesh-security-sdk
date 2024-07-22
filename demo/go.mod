@@ -38,7 +38,8 @@ require (
 	cosmossdk.io/tools/rosetta v0.2.1
 	github.com/cometbft/cometbft v0.37.2
 	github.com/cometbft/cometbft-db v0.8.0
-	github.com/osmosis-labs/mesh-security-sdk/x v0.0.0-00010101000000-000000000000
+	github.com/osmosis-labs/mesh-security-sdk/wasmbinding v0.0.0-00010101000000-000000000000
+	github.com/osmosis-labs/mesh-security-sdk/x v0.0.0-20231230023625-3cdce6e349eb
 	github.com/spf13/viper v1.16.0
 )
 
@@ -192,6 +193,8 @@ replace (
 	// Fix upstream GHSA-h395-qcrw-5vmq vulnerability.
 	// See: https://github.com/cosmos/cosmos-sdk/issues/10409
 	github.com/gin-gonic/gin => github.com/gin-gonic/gin v1.8.1
+
+	github.com/osmosis-labs/mesh-security-sdk/wasmbinding => ../wasmbinding
 
 	// local work dir
 	github.com/osmosis-labs/mesh-security-sdk/x => ../x
