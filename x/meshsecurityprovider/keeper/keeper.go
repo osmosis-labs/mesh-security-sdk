@@ -34,11 +34,11 @@ func NewKeeper(cdc codec.BinaryCodec, storeKey storetypes.StoreKey,
 	stakingKeeper types.StakingKeeper,
 ) *Keeper {
 	return &Keeper{
-		storeKey:   storeKey,
-		cdc:        cdc,
-		authority:  authority,
-		bankKeeper: bankKeeper,
-		wasmKeeper: wasmKeeper,
+		storeKey:      storeKey,
+		cdc:           cdc,
+		authority:     authority,
+		bankKeeper:    bankKeeper,
+		wasmKeeper:    wasmKeeper,
 		stakingKeeper: stakingKeeper,
 	}
 }
@@ -158,7 +158,7 @@ func (k Keeper) HandleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, unstakeM
 	nativeContractAddr := k.NativeStakingAddress(ctx)
 	var proxyRes types.ProxyByOwnerResponse
 
-	resBytes, err := k.wasmKeeper.QuerySmart(ctx, 
+	resBytes, err := k.wasmKeeper.QuerySmart(ctx,
 		sdk.AccAddress(nativeContractAddr),
 		[]byte(fmt.Sprintf(`{"proxy_by_owner": {"owner": "%s"}}`, actor.String())),
 	)
@@ -213,7 +213,16 @@ func (k Keeper) unstake(ctx sdk.Context, actor sdk.AccAddress, validator sdk.Val
 		return err
 	}
 
-	err = k.InstantUndelegate(ctx, actor, validator, shares)
+	validatorInfo, found := k.stakingKeeper.GetValidator(ctx, validator)
+	if !found {
+		return errors.ErrNotFound.Wrapf("can not found validator with address: %s", validator.String())
+	}
+	if validatorInfo.Status == stakingtypes.Bonded {
+		_, err = k.stakingKeeper.Undelegate(ctx, actor, validator, shares)
+	} else {
+		err = k.InstantUndelegate(ctx, actor, validator, shares)
+	}
+
 	if err != nil {
 		return err
 	}
