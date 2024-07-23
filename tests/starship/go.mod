@@ -37,7 +37,7 @@ require (
 	github.com/cosmology-tech/starship/registry v0.0.0-20231216113645-d0facbadb180
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/osmosis-labs/mesh-security-sdk/demo v0.0.0-00010101000000-000000000000
-	github.com/osmosis-labs/mesh-security-sdk/x v0.0.0-00010101000000-000000000000
+	github.com/osmosis-labs/mesh-security-sdk/x v0.0.0-20231230023625-3cdce6e349eb
 	github.com/strangelove-ventures/lens v0.0.0-00010101000000-000000000000
 	go.uber.org/zap v1.26.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -147,6 +147,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/osmosis-labs/mesh-security-sdk/wasmbinding v0.0.0-00010101000000-000000000000 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/petermattis/goid v0.0.0-20230317030725-371a4b8eda08 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -201,6 +202,7 @@ replace (
 
 	// local work dirs
 	github.com/osmosis-labs/mesh-security-sdk/demo => ../../demo
+	github.com/osmosis-labs/mesh-security-sdk/wasmbinding => ../../wasmbinding
 	github.com/osmosis-labs/mesh-security-sdk/x => ../../x
 
 	github.com/strangelove-ventures/lens => github.com/Anmol1696/lens v0.1.1-0.20230705212610-c00628a886a0

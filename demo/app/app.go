@@ -269,7 +269,7 @@ type MeshApp struct {
 	TransferKeeper      ibctransferkeeper.Keeper
 	WasmKeeper          wasmkeeper.Keeper
 	MeshSecKeeper       *meshseckeeper.Keeper
-	MeshSecProvKeeper   meshsecprovkeeper.Keeper
+	MeshSecProvKeeper   *meshsecprovkeeper.Keeper
 
 	ScopedIBCKeeper           capabilitykeeper.ScopedKeeper
 	ScopedICAHostKeeper       capabilitykeeper.ScopedKeeper
@@ -425,7 +425,7 @@ func NewMeshApp(
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
-	app.MeshSecProvKeeper = *meshsecprovkeeper.NewKeeper(
+	app.MeshSecProvKeeper = meshsecprovkeeper.NewKeeper(
 		appCodec,
 		keys[meshsecprovtypes.StoreKey],
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),

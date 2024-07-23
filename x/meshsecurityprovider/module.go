@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -12,7 +13,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
-	abci "github.com/cometbft/cometbft/abci/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/client/cli"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/keeper"
@@ -69,7 +69,7 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 type AppModule struct {
 	AppModuleBasic
 
-	k keeper.Keeper
+	k *keeper.Keeper
 }
 
 func (am AppModule) RegisterServices(cfg module.Configurator) {
@@ -77,8 +77,7 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 	// queryproto.RegisterQueryServer(cfg.QueryServer(), grpc.Querier{Q: module.NewQuerier(am.k)})
 }
 
-
-func NewAppModule(moduleKeeper keeper.Keeper) AppModule {
+func NewAppModule(moduleKeeper *keeper.Keeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		k:              moduleKeeper,
