@@ -36,7 +36,7 @@ type (
 type (
 	SudoMsg struct {
 		HandleEpoch  *struct{}     `json:"handle_epoch,omitempty"`
-		ValsetUpdate *ValsetUpdate `json:"valset_update,omitempty"`
+		ValsetUpdate *ValsetUpdate `json:"handle_valset_update,omitempty"`
 	}
 
 	// Validator alias to wasmVM type

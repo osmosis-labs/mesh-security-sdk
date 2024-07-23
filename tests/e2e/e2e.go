@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -76,7 +75,6 @@ func voteAndPassGovProposal(t *testing.T, chain *ibctesting.TestChain, proposalI
 }
 
 func InstantiateContract(t *testing.T, chain *ibctesting.TestChain, codeID uint64, initMsg []byte, funds ...sdk.Coin) sdk.AccAddress {
-	fmt.Println(codeID, string(initMsg))
 	instantiateMsg := &wasmtypes.MsgInstantiateContract{
 		Sender: chain.SenderAccount.GetAddress().String(),
 		Admin:  chain.SenderAccount.GetAddress().String(),
@@ -101,6 +99,7 @@ type example struct {
 	ConsumerChain    *ibctesting.TestChain
 	ProviderChain    *ibctesting.TestChain
 	ConsumerApp      *app.MeshApp
+	ProviderApp      *app.MeshApp
 	IbcPath          *ibctesting.Path
 	ProviderDenom    string
 	ConsumerDenom    string
@@ -116,6 +115,7 @@ func setupExampleChains(t *testing.T) example {
 		ConsumerChain:    consChain,
 		ProviderChain:    provChain,
 		ConsumerApp:      consChain.App.(*app.MeshApp),
+		ProviderApp:      provChain.App.(*app.MeshApp),
 		IbcPath:          ibctesting.NewPath(consChain, provChain),
 		ProviderDenom:    sdk.DefaultBondDenom,
 		ConsumerDenom:    sdk.DefaultBondDenom,
@@ -134,7 +134,7 @@ func setupMeshSecurity(t *testing.T, x example) (*TestConsumerClient, ConsumerCo
 	x.ConsumerChain.DefaultMsgFees = sdk.NewCoins(sdk.NewCoin(x.ConsumerDenom, math.NewInt(1_000_000)))
 
 	providerCli := NewProviderClient(t, x.ProviderChain)
-	providerContracts := providerCli.BootstrapContracts(x.IbcPath.EndpointA.ConnectionID, converterPortID)
+	providerContracts := providerCli.BootstrapContracts(x.ProviderApp, x.IbcPath.EndpointA.ConnectionID, converterPortID)
 
 	// setup ibc control path: consumer -> provider (direction matters)
 	x.IbcPath.EndpointB.ChannelConfig = &ibctesting2.ChannelConfig{
