@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cosmos/cosmos-sdk/types/errors"
 
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 
@@ -197,13 +196,13 @@ func (k Keeper) HandleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, unstakeM
 
 func (k Keeper) unstake(ctx sdk.Context, actor sdk.AccAddress, validator sdk.ValAddress, coin sdk.Coin) error {
 	if coin.Amount.IsNil() || coin.Amount.IsZero() || coin.Amount.IsNegative() {
-		return errors.ErrInvalidRequest.Wrap("amount")
+		return sdkerrors.ErrInvalidRequest.Wrap("amount")
 	}
 
 	// Ensure staking constraints
 	bondDenom := k.stakingKeeper.BondDenom(ctx)
 	if coin.Denom != bondDenom {
-		return errors.ErrInvalidRequest.Wrapf("invalid coin denomination: got %s, expected %s", coin.Denom, bondDenom)
+		return sdkerrors.ErrInvalidRequest.Wrapf("invalid coin denomination: got %s, expected %s", coin.Denom, bondDenom)
 	}
 
 	shares, err := k.stakingKeeper.ValidateUnbondAmount(ctx, actor, validator, coin.Amount)
@@ -215,12 +214,12 @@ func (k Keeper) unstake(ctx sdk.Context, actor sdk.AccAddress, validator sdk.Val
 
 	validatorInfo, found := k.stakingKeeper.GetValidator(ctx, validator)
 	if !found {
-		return errors.ErrNotFound.Wrapf("can not found validator with address: %s", validator.String())
+		return sdkerrors.ErrNotFound.Wrapf("can not found validator with address: %s", validator.String())
 	}
-	if validatorInfo.Status == stakingtypes.Bonded {
+	if validatorInfo.IsBonded() {
 		_, err = k.stakingKeeper.Undelegate(ctx, actor, validator, shares)
 	} else {
-		err = k.InstantUndelegate(ctx, actor, validator, shares)
+		_, err = k.InstantUndelegate(ctx, actor, validatorInfo, shares)
 	}
 
 	if err != nil {
@@ -230,15 +229,10 @@ func (k Keeper) unstake(ctx sdk.Context, actor sdk.AccAddress, validator sdk.Val
 	return nil
 }
 
-func (k Keeper) InstantUndelegate(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec) error {
-	validator, found := k.stakingKeeper.GetValidator(ctx, valAddr)
-	if !found {
-		return stakingtypes.ErrNoDelegatorForAddress
-	}
-
-	returnAmount, err := k.stakingKeeper.Unbond(ctx, delAddr, valAddr, sharesAmount)
+func (k Keeper) InstantUndelegate(ctx sdk.Context, delAddr sdk.AccAddress, validator stakingtypes.Validator, sharesAmount sdk.Dec) (sdk.Coin, error) {
+	returnAmount, err := k.stakingKeeper.Unbond(ctx, delAddr, sdk.ValAddress(validator.OperatorAddress), sharesAmount)
 	if err != nil {
-		return err
+		return sdk.Coin{}, err
 	}
 
 	bondDenom := k.stakingKeeper.BondDenom(ctx)
@@ -252,7 +246,7 @@ func (k Keeper) InstantUndelegate(ctx sdk.Context, delAddr sdk.AccAddress, valAd
 	}
 	err = k.bankKeeper.UndelegateCoinsFromModuleToAccount(ctx, moduleName, delAddr, res)
 	if err != nil {
-		return err
+		return sdk.Coin{}, err
 	}
-	return nil
+	return amt, nil
 }
