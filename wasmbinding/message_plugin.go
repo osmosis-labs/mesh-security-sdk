@@ -21,7 +21,7 @@ type ConsumerKeeper interface {
 type ProviderKeeper interface {
 	HandleDepositMsg(ctx sdk.Context, actor sdk.AccAddress, depositMsg *bindings.DepositMsg) ([]sdk.Event, [][]byte, error)
 	HandleWithdrawMsg(ctx sdk.Context, actor sdk.AccAddress, withdrawMsg *bindings.WithdrawMsg) ([]sdk.Event, [][]byte, error)
-	HandleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, withdrawMsg *bindings.UnstakeMsg) ([]sdk.Event, [][]byte, error)
+	HandleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, unstakeMsg *bindings.UnstakeMsg) ([]sdk.Event, [][]byte, error)
 }
 
 // CustomMessageDecorator returns decorator for custom CosmWasm bindings messages
