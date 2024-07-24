@@ -9,6 +9,7 @@ type (
 		Deposit  *DepositMsg  `json:"deposit,,omitempty"`
 		Withdraw *WithdrawMsg `json:"withdraw,,omitempty"`
 		Unstake  *UnstakeMsg  `json:"unstake,,omitempty"`
+		Restake  *RestakeMsg  `json:"restake,,omitempty"`
 	}
 
 	BondMsg struct {
@@ -29,6 +30,11 @@ type (
 	}
 	UnstakeMsg struct {
 		Amount    wasmvmtypes.Coin `json:"amount"`
+		Validator string           `json:"validator"`
+	}
+	RestakeMsg struct {
+		Amount    wasmvmtypes.Coin `json:"amount"`
+		Delegator string           `json:"delegator"`
 		Validator string           `json:"validator"`
 	}
 )
