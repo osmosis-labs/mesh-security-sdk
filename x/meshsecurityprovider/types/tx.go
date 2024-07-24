@@ -9,6 +9,14 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
+func NewMsgDelegate(delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount sdk.Coin) *MsgDelegate {
+	return &MsgDelegate{
+		DelegatorAddress: delAddr.String(),
+		ValidatorAddress: valAddr.String(),
+		Amount:           amount,
+	}
+}
+
 // GetSignBytes implements the LegacyMsg interface.
 func (msg MsgDelegate) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
@@ -32,6 +40,14 @@ func (msg MsgDelegate) ValidateBasic() error {
 		return errorsmod.Wrap(err, "max cap")
 	}
 	return nil
+}
+
+func NewMsgUndelegate(delAddr sdk.AccAddress, valAddr sdk.ValAddress, amount sdk.Coin) *MsgUndelegate {
+	return &MsgUndelegate{
+		DelegatorAddress: delAddr.String(),
+		ValidatorAddress: valAddr.String(),
+		Amount:           amount,
+	}
 }
 
 // GetSignBytes implements the LegacyMsg interface.

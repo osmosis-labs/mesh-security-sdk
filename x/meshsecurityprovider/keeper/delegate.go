@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	// stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -58,6 +60,33 @@ func (k Keeper) RemoteStake(ctx sdk.Context, denomDelegate string, token sdk.Coi
 		newAmout := inter.Token.Add(token)
 		inter.Token = &newAmout
 	}
+	k.SetIntermediary(ctx, inter)
+	return nil
+}
+
+func (k Keeper) Undelegate(ctx sdk.Context, msg types.MsgUndelegate) error {
+	amount := wasmkeeper.ConvertSdkCoinToWasmCoin(msg.Amount)
+	unbondMsg := contract.VaultCustomMsg{
+		Unbond: &contract.UnbondMsg{
+			Amount: amount,
+		},
+	}
+	err := k.SendCustomUnbond(ctx, unbondMsg)
+	if err != nil {
+		return err
+	}
+
+	inter, found := k.GetIntermediary(ctx, msg.Amount.Denom)
+	if !found {
+		return fmt.Errorf("can not found Intermediary by denom %s", msg.Amount.Denom)
+	}
+	if inter.Token.IsLT(msg.Amount) {
+		return fmt.Errorf("failed to undelegate; total inter token %s is smaller than %s", inter.Token, msg.Amount)
+	}
+
+	newAmount := inter.Token.Sub(msg.Amount)
+	inter.Token = &newAmount
+
 	k.SetIntermediary(ctx, inter)
 	return nil
 }

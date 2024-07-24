@@ -93,5 +93,43 @@ func (k msgServer) Delegate(goCtx context.Context, msg *types.MsgDelegate) (*typ
 }
 
 func (k msgServer) Undelegate(goCtx context.Context, msg *types.MsgUndelegate) (*types.MsgUndelegateResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	err := msg.Amount.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("failed to undelegate; Validate fail")
+	}
+	denomUndelegate := msg.Amount.Denom
+
+	vaultAdress := sdk.AccAddress(k.Keeper.GetParams(ctx).GetVaultContractAddress())
+	delegatorAddress, err := sdk.AccAddressFromBech32(msg.DelegatorAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	depositors, found := k.GetDepositors(ctx, msg.DelegatorAddress)
+	if !found {
+		return nil, fmt.Errorf("failed to undelegate; not found Depositors")
+	}
+
+	found, totalDelegate := depositors.Tokens.Find(denomUndelegate)
+	if !found {
+		return nil, fmt.Errorf("failed to undelegate; not found token %s in Depositors", denomUndelegate)
+	}
+
+	if totalDelegate.IsLT(msg.Amount) {
+		return nil, fmt.Errorf("failed to delegate; %s is smaller than %s", totalDelegate, msg.Amount)
+	}
+
+	// call back contract and consumerchain
+	err = k.Keeper.Undelegate(ctx, *msg)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := k.bank.SendCoins(ctx, vaultAdress, delegatorAddress, sdk.NewCoins([]sdk.Coin{msg.Amount}...)); err != nil {
+		return nil, err
+	}
+
 	return &types.MsgUndelegateResponse{}, nil
 }

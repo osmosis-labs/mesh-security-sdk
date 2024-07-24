@@ -20,3 +20,20 @@ type (
 		Amount wasmvmtypes.Coin `json:"amount"`
 	}
 )
+
+type (
+	CustomMsg struct {
+		VaultCustomMsg *VaultCustomMsg `json:"vault,omitempty"`
+	}
+	VaultCustomMsg struct {
+		Bond   *BondMsg   `json:"bond,omitempty"`
+		Unbond *UnbondMsg `json:"unbond,omitempty"`
+	}
+	BondMsg struct {
+		Amount    wasmvmtypes.Coin `json:"amount"`
+		Validator string           `json:"validator"`
+	}
+	UnbondMsg struct {
+		Amount wasmvmtypes.Coin `json:"amount"`
+	}
+)

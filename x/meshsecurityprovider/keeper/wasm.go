@@ -26,3 +26,19 @@ func (k Keeper) doSudoCall(ctx sdk.Context, contractAddr sdk.AccAddress, msg con
 	_, err = k.wasm.Sudo(ctx, contractAddr, bz)
 	return err
 }
+
+func (k Keeper) SendCustomUnbond(ctx sdk.Context, v contract.VaultCustomMsg) error {
+	msg := contract.CustomMsg{
+		VaultCustomMsg: &v,
+	}
+	return k.doExcCall(ctx, k.GetParams(ctx).GetVaultContractAddress(), msg)
+}
+
+func (k Keeper) doExcCall(ctx sdk.Context, contractAddr sdk.AccAddress, msg contract.CustomMsg) error {
+	bz, err := json.Marshal(msg)
+	if err != nil {
+		return errorsmod.Wrap(err, "marshal sudo msg")
+	}
+	_, err = k.wasm.Sudo(ctx, contractAddr, bz)
+	return err
+}

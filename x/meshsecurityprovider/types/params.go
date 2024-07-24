@@ -5,7 +5,8 @@ import sdk "github.com/cosmos/cosmos-sdk/types"
 // DefaultParams returns default mesh-security parameters
 func DefaultParams(denom string) Params {
 	return Params{ // todo: revisit and set proper defaults
-		TimeoutPeriod: 60,
+		TimeoutPeriod:        60,
+		VaultContractAddress: "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr",
 	}
 }
 
