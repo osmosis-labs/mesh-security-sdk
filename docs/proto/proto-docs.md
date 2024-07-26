@@ -22,11 +22,14 @@
     - [Query](#osmosis.meshsecurity.v1beta1.Query)
   
 - [osmosis/meshsecurity/v1beta1/scheduler.proto](#osmosis/meshsecurity/v1beta1/scheduler.proto)
+    - [ScheduledWork](#osmosis.meshsecurity.v1beta1.ScheduledWork)
     - [ValidatorAddress](#osmosis.meshsecurity.v1beta1.ValidatorAddress)
   
 - [osmosis/meshsecurity/v1beta1/tx.proto](#osmosis/meshsecurity/v1beta1/tx.proto)
     - [MsgSetVirtualStakingMaxCap](#osmosis.meshsecurity.v1beta1.MsgSetVirtualStakingMaxCap)
     - [MsgSetVirtualStakingMaxCapResponse](#osmosis.meshsecurity.v1beta1.MsgSetVirtualStakingMaxCapResponse)
+    - [MsgUpdateParams](#osmosis.meshsecurity.v1beta1.MsgUpdateParams)
+    - [MsgUpdateParamsResponse](#osmosis.meshsecurity.v1beta1.MsgUpdateParamsResponse)
   
     - [Msg](#osmosis.meshsecurity.v1beta1.Msg)
   
@@ -238,6 +241,21 @@ Query provides defines the gRPC querier service
 
 
 
+<a name="osmosis.meshsecurity.v1beta1.ScheduledWork"></a>
+
+### ScheduledWork
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `repeat` | [bool](#bool) |  |  |
+
+
+
+
+
+
 <a name="osmosis.meshsecurity.v1beta1.ValidatorAddress"></a>
 
 ### ValidatorAddress
@@ -296,6 +314,33 @@ MsgSetVirtualStakingMaxCap returns result data.
 
 
 
+
+<a name="osmosis.meshsecurity.v1beta1.MsgUpdateParams"></a>
+
+### MsgUpdateParams
+MsgUpdateParams defines a Msg for updating the x/inflation module parameters.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `authority` | [string](#string) |  | authority is the address of the governance account. |
+| `params` | [Params](#osmosis.meshsecurity.v1beta1.Params) |  | params defines the x/inflation parameters to update. NOTE: All parameters must be supplied. |
+
+
+
+
+
+
+<a name="osmosis.meshsecurity.v1beta1.MsgUpdateParamsResponse"></a>
+
+### MsgUpdateParamsResponse
+MsgUpdateParamsResponse defines the response structure for executing a
+MsgUpdateParams message.
+
+
+
+
+
  <!-- end messages -->
 
  <!-- end enums -->
@@ -311,6 +356,7 @@ Msg defines the wasm Msg service.
 | Method Name | Request Type | Response Type | Description | HTTP Verb | Endpoint |
 | ----------- | ------------ | ------------- | ------------| ------- | -------- |
 | `SetVirtualStakingMaxCap` | [MsgSetVirtualStakingMaxCap](#osmosis.meshsecurity.v1beta1.MsgSetVirtualStakingMaxCap) | [MsgSetVirtualStakingMaxCapResponse](#osmosis.meshsecurity.v1beta1.MsgSetVirtualStakingMaxCapResponse) | SetVirtualStakingMaxCap creates or updates a maximum cap limit for virtual staking coins | |
+| `UpdateParams` | [MsgUpdateParams](#osmosis.meshsecurity.v1beta1.MsgUpdateParams) | [MsgUpdateParamsResponse](#osmosis.meshsecurity.v1beta1.MsgUpdateParamsResponse) |  | |
 
  <!-- end services -->
 

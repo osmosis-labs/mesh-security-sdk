@@ -60,3 +60,17 @@ func (m msgServer) SetVirtualStakingMaxCap(goCtx context.Context, req *types.Msg
 	}
 	return &types.MsgSetVirtualStakingMaxCapResponse{}, nil
 }
+
+// UpdateParams defines a method for updating inflation params
+func (m msgServer) UpdateParams(goCtx context.Context, req *types.MsgUpdateParams) (*types.MsgUpdateParamsResponse, error) {
+	if m.k.authority != req.Authority {
+		return nil, errorsmod.Wrapf(govtypes.ErrInvalidSigner, "invalid authority; expected %s, got %s", m.k.authority, req.Authority)
+	}
+
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	if err := m.k.SetParams(ctx, req.Params); err != nil {
+		return nil, errorsmod.Wrapf(err, "error setting params")
+	}
+
+	return &types.MsgUpdateParamsResponse{}, nil
+}
