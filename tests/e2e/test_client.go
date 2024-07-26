@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"strconv"
@@ -111,23 +112,23 @@ func (p *TestProviderClient) BootstrapContracts(connId, portID string) ProviderC
 	return r
 }
 
-func (p TestProviderClient) MustExecVault(payload string, funds ...sdk.Coin) *sdk.Result {
-	return p.mustExec(p.contracts.vault, payload, funds)
+func (p TestProviderClient) MustExecVault(sender sdk.AccAddress, payload string, funds ...sdk.Coin) *sdk.Result {
+	return p.mustExec(sender, p.contracts.vault, payload, funds)
 }
 
-func (p TestProviderClient) MustExecExtStaking(payload string, funds ...sdk.Coin) *sdk.Result {
-	return p.mustExec(p.contracts.externalStaking, payload, funds)
+func (p TestProviderClient) MustExecExtStaking(sender sdk.AccAddress, payload string, funds ...sdk.Coin) *sdk.Result {
+	return p.mustExec(sender, p.contracts.externalStaking, payload, funds)
 }
 
-func (p TestProviderClient) mustExec(contract sdk.AccAddress, payload string, funds []sdk.Coin) *sdk.Result {
-	rsp, err := p.Exec(contract, payload, funds...)
+func (p TestProviderClient) mustExec(sender, contract sdk.AccAddress, payload string, funds []sdk.Coin) *sdk.Result {
+	rsp, err := p.Exec(sender, contract, payload, funds...)
 	require.NoError(p.t, err)
 	return rsp
 }
 
-func (p TestProviderClient) Exec(contract sdk.AccAddress, payload string, funds ...sdk.Coin) (*sdk.Result, error) {
+func (p TestProviderClient) Exec(sender, contract sdk.AccAddress, payload string, funds ...sdk.Coin) (*sdk.Result, error) {
 	rsp, err := p.chain.SendMsgs(&wasmtypes.MsgExecuteContract{
-		Sender:   p.chain.SenderAccount.GetAddress().String(),
+		Sender:   sender.String(),
 		Contract: contract.String(),
 		Msg:      []byte(payload),
 		Funds:    funds,
@@ -135,22 +136,22 @@ func (p TestProviderClient) Exec(contract sdk.AccAddress, payload string, funds 
 	return rsp, err
 }
 
-func (p TestProviderClient) MustFailExecVault(payload string, funds ...sdk.Coin) error {
-	rsp, err := p.Exec(p.contracts.vault, payload, funds...)
+func (p TestProviderClient) MustFailExecVault(sender sdk.AccAddress, payload string, funds ...sdk.Coin) error {
+	rsp, err := p.Exec(sender, p.contracts.vault, payload, funds...)
 	require.Error(p.t, err, "Response: %v", rsp)
 	return err
 }
 
-func (p TestProviderClient) MustExecStakeRemote(val string, amt sdk.Coin) {
-	require.NoError(p.t, p.ExecStakeRemote(val, amt))
+func (p TestProviderClient) MustExecStakeRemote(sender sdk.AccAddress, val string, amt sdk.Coin) {
+	require.NoError(p.t, p.ExecStakeRemote(sender, val, amt))
 }
 
-func (p TestProviderClient) ExecStakeRemote(val string, amt sdk.Coin) error {
+func (p TestProviderClient) ExecStakeRemote(sender sdk.AccAddress, val string, amt sdk.Coin) error {
 	payload := fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%s"}, "msg":%q}}`,
 		p.contracts.externalStaking.String(),
 		amt.Denom, amt.Amount.String(),
 		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, val))))
-	_, err := p.Exec(p.contracts.vault, payload)
+	_, err := p.Exec(sender, p.contracts.vault, payload)
 	return err
 }
 
@@ -241,7 +242,7 @@ type ConsumerContract struct {
 	converter sdk.AccAddress
 }
 
-func (p *TestConsumerClient) BootstrapContracts() ConsumerContract {
+func (p *TestConsumerClient) BootstrapContracts(x example) ConsumerContract {
 	// modify end-blocker to fail fast in tests
 	msModule := p.app.ModuleManager.Modules[types.ModuleName].(*meshsecurity.AppModule)
 	msModule.SetAsyncTaskRspHandler(meshsecurity.PanicOnErrorExecutionResponseHandler())
@@ -258,8 +259,8 @@ func (p *TestConsumerClient) BootstrapContracts() ConsumerContract {
 	virtStakeCodeID := p.chain.StoreCodeFile(buildPathToWasm("mesh_virtual_staking.wasm")).CodeID
 	// instantiate converter
 	codeID = p.chain.StoreCodeFile(buildPathToWasm("mesh_converter.wasm")).CodeID
-	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d}`,
-		priceFeedContract.String(), discount, remoteDenom, virtStakeCodeID))
+	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d, "max_retrieve": %d}`,
+		priceFeedContract.String(), discount, remoteDenom, virtStakeCodeID, x.MaxRetrieve))
 	converterContract := InstantiateContract(p.t, p.chain, codeID, initMsg)
 
 	staking := Querier(p.t, p.chain)(converterContract.String(), Query{"config": {}})["virtual_staking"]
@@ -311,7 +312,7 @@ func (p *TestConsumerClient) MustExecGovProposal(msg *types.MsgSetVirtualStaking
 func (p *TestConsumerClient) QueryMaxCap() types.QueryVirtualStakingMaxCapLimitResponse {
 	q := baseapp.QueryServiceTestHelper{GRPCQueryRouter: p.app.GRPCQueryRouter(), Ctx: p.chain.GetContext()}
 	var rsp types.QueryVirtualStakingMaxCapLimitResponse
-	err := q.Invoke(nil, "/osmosis.meshsecurity.v1beta1.Query/VirtualStakingMaxCapLimit", &types.QueryVirtualStakingMaxCapLimitRequest{Address: p.contracts.staking.String()}, &rsp)
+	err := q.Invoke(context.TODO(), "/osmosis.meshsecurity.v1beta1.Query/VirtualStakingMaxCapLimit", &types.QueryVirtualStakingMaxCapLimitRequest{Address: p.contracts.staking.String()}, &rsp)
 	require.NoError(p.t, err)
 	return rsp
 }

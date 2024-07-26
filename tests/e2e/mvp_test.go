@@ -36,7 +36,7 @@ func TestMVP(t *testing.T) {
 	// ...
 	x := setupExampleChains(t)
 	consumerCli, consumerContracts, providerCli := setupMeshSecurity(t, x)
-
+	sender := x.ProviderChain.SenderAccount.GetAddress()
 	// then the active set should be stored in the ext staking contract
 	// and contain all active validator addresses
 	qRsp := providerCli.QueryExtStaking(Query{"list_active_validators": {}})
@@ -60,7 +60,7 @@ func TestMVP(t *testing.T) {
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
 	execMsg := `{"bond":{}}`
-	providerCli.MustExecVault(execMsg, sdk.NewInt64Coin(x.ProviderDenom, 100_000_000))
+	providerCli.MustExecVault(sender, execMsg, sdk.NewInt64Coin(x.ProviderDenom, 100_000_000))
 
 	// then query contract state
 	assert.Equal(t, 100_000_000, providerCli.QueryVaultFreeBalance())
@@ -70,18 +70,18 @@ func TestMVP(t *testing.T) {
 	execLocalStakingMsg := fmt.Sprintf(`{"stake_local":{"amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
 		x.ProviderDenom, 30_000_000,
 		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myLocalValidatorAddr))))
-	providerCli.MustExecVault(execLocalStakingMsg)
+	providerCli.MustExecVault(sender, execLocalStakingMsg)
 
 	assert.Equal(t, 70_000_000, providerCli.QueryVaultFreeBalance())
 
 	// Failure mode of cross-stake... trying to stake to an unknown validator
-	err := providerCli.ExecStakeRemote("BAD-VALIDATOR", sdk.NewInt64Coin(x.ProviderDenom, 80_000_000))
+	err := providerCli.ExecStakeRemote(sender, "BAD-VALIDATOR", sdk.NewInt64Coin(x.ProviderDenom, 80_000_000))
 	require.Error(t, err)
 	// no change to free balance
 	assert.Equal(t, 70_000_000, providerCli.QueryVaultFreeBalance())
 
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
-	err = providerCli.ExecStakeRemote(myExtValidatorAddr, sdk.NewInt64Coin(x.ProviderDenom, 80_000_000))
+	err = providerCli.ExecStakeRemote(sender, myExtValidatorAddr, sdk.NewInt64Coin(x.ProviderDenom, 80_000_000))
 	require.NoError(t, err)
 
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
@@ -117,7 +117,7 @@ func TestMVP(t *testing.T) {
 	//
 	// Cross Stake - A user undelegates
 	execMsg = fmt.Sprintf(`{"unstake":{"validator":"%s", "amount":{"denom":"%s", "amount":"30000000"}}}`, myExtValidator.String(), x.ProviderDenom)
-	providerCli.MustExecExtStaking(execMsg)
+	providerCli.MustExecExtStaking(sender, execMsg)
 
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
 
@@ -163,7 +163,7 @@ func TestMVP(t *testing.T) {
 		require.NoError(t, x.IbcPath.EndpointB.UpdateClient())
 	}
 
-	providerCli.MustExecExtStaking(`{"withdraw_unbonded":{}}`)
+	providerCli.MustExecExtStaking(sender, `{"withdraw_unbonded":{}}`)
 	assert.Equal(t, 50_000_000, providerCli.QueryVaultFreeBalance())
 
 	// provider chain
@@ -171,7 +171,7 @@ func TestMVP(t *testing.T) {
 	//
 	// A user unstakes some free amount from the vault
 	balanceBefore := x.ProviderChain.Balance(x.ProviderChain.SenderAccount.GetAddress(), "stake")
-	providerCli.MustExecVault(fmt.Sprintf(`{"unbond":{"amount":{"denom":"%s", "amount": "30000000"}}}`, x.ProviderDenom))
+	providerCli.MustExecVault(sender, fmt.Sprintf(`{"unbond":{"amount":{"denom":"%s", "amount": "30000000"}}}`, x.ProviderDenom))
 	// then
 	assert.Equal(t, 20_000_000, providerCli.QueryVaultFreeBalance())
 	balanceAfter := x.ProviderChain.Balance(x.ProviderChain.SenderAccount.GetAddress(), x.ProviderDenom)
@@ -204,7 +204,7 @@ func TestMVP(t *testing.T) {
 	targetAddr := sdk.AccAddress(rand.Bytes(address.Len))
 	gotBalance := x.ConsumerChain.Balance(targetAddr, x.ConsumerDenom).Amount
 	require.Equal(t, math.ZeroInt(), gotBalance)
-	providerCli.MustExecExtStaking(fmt.Sprintf(`{"withdraw_rewards":{"validator": %q, "remote_recipient": %q}}`, myExtValidatorAddr, targetAddr.String()))
+	providerCli.MustExecExtStaking(sender, fmt.Sprintf(`{"withdraw_rewards":{"validator": %q, "remote_recipient": %q}}`, myExtValidatorAddr, targetAddr.String()))
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
 
 	// then should be on destination account

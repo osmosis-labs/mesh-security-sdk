@@ -19,9 +19,9 @@ func (k Keeper) SendHandleEpoch(ctx sdk.Context, contractAddr sdk.AccAddress) er
 }
 
 // SendValsetUpdate submit the valset update report to the virtual staking contract via sudo
-func (k Keeper) SendValsetUpdate(ctx sdk.Context, contractAddr sdk.AccAddress, v contract.ValsetUpdate) error {
+func (k Keeper) SendValsetUpdate(ctx sdk.Context, contractAddr sdk.AccAddress, v contract.HandleValsetUpdate) error {
 	msg := contract.SudoMsg{
-		ValsetUpdate: &v,
+		HandleValsetUpdate: &v,
 	}
 	return k.doSudoCall(ctx, contractAddr, msg)
 }

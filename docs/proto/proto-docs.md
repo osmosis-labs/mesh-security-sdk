@@ -5,6 +5,7 @@
 ## Table of Contents
 
 - [osmosis/meshsecurity/v1beta1/meshsecurity.proto](#osmosis/meshsecurity/v1beta1/meshsecurity.proto)
+    - [Delegation](#osmosis.meshsecurity.v1beta1.Delegation)
     - [Params](#osmosis.meshsecurity.v1beta1.Params)
     - [VirtualStakingMaxCapInfo](#osmosis.meshsecurity.v1beta1.VirtualStakingMaxCapInfo)
   
@@ -22,6 +23,7 @@
     - [Query](#osmosis.meshsecurity.v1beta1.Query)
   
 - [osmosis/meshsecurity/v1beta1/scheduler.proto](#osmosis/meshsecurity/v1beta1/scheduler.proto)
+    - [ScheduledWork](#osmosis.meshsecurity.v1beta1.ScheduledWork)
     - [ValidatorAddress](#osmosis.meshsecurity.v1beta1.ValidatorAddress)
   
 - [osmosis/meshsecurity/v1beta1/tx.proto](#osmosis/meshsecurity/v1beta1/tx.proto)
@@ -38,6 +40,23 @@
 <p align="right"><a href="#top">Top</a></p>
 
 ## osmosis/meshsecurity/v1beta1/meshsecurity.proto
+
+
+
+<a name="osmosis.meshsecurity.v1beta1.Delegation"></a>
+
+### Delegation
+Delegation represents the bond with tokens held by an account.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `delegator_address` | [string](#string) |  | delegator_address is the bech32-encoded address of the delegator. |
+| `validator_address` | [string](#string) |  | validator_address is the bech32-encoded address of the validator. |
+| `amount` | [string](#string) |  | amount define the delegation amount. |
+
+
+
 
 
 
@@ -235,6 +254,21 @@ Query provides defines the gRPC querier service
 <p align="right"><a href="#top">Top</a></p>
 
 ## osmosis/meshsecurity/v1beta1/scheduler.proto
+
+
+
+<a name="osmosis.meshsecurity.v1beta1.ScheduledWork"></a>
+
+### ScheduledWork
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `repeat` | [bool](#bool) |  |  |
+
+
+
 
 
 

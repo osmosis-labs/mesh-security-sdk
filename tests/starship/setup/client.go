@@ -194,10 +194,7 @@ func (c *Client) WaitForHeight(t *testing.T, height int64) {
 		func() bool {
 			curHeight, err := c.GetHeight()
 			assert.NoError(t, err)
-			if curHeight >= height {
-				return true
-			}
-			return false
+			return curHeight >= height
 		},
 		300*time.Second,
 		2*time.Second,
