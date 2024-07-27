@@ -193,6 +193,60 @@ func (k Keeper) HandleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, unstakeM
 	)}, nil, nil
 }
 
+func (k Keeper) HandleRestakeMsg(ctx sdk.Context, actor sdk.AccAddress, restakeMsg *contract.RestakeMsg) ([]sdk.Event, [][]byte, error) {
+	if actor.String() != k.VaultAddress(ctx) {
+		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
+	}
+
+	coin, err := wasmkeeper.ConvertWasmCoinToSdkCoin(restakeMsg.Amount)
+	if err != nil {
+		return nil, nil, err
+	}
+	bondDenom := k.stakingKeeper.BondDenom(ctx)
+	if coin.Denom != bondDenom {
+		return nil, nil, sdkerrors.ErrInvalidRequest.Wrapf("invalid coin denomination: got %s, expected %s", coin.Denom, bondDenom)
+	}
+
+	delAddr, err := sdk.AccAddressFromBech32(restakeMsg.Delegator)
+	if err != nil {
+		return nil, nil, err
+	}
+	valAddr, err := sdk.ValAddressFromBech32(restakeMsg.Validator)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	validatorInfo, found := k.stakingKeeper.GetValidator(ctx, valAddr)
+	if !found {
+		return nil, nil, sdkerrors.ErrNotFound.Wrapf("can not found validator with address: %s", restakeMsg.Validator)
+	}
+
+	shares, err := k.stakingKeeper.ValidateUnbondAmount(ctx, actor, valAddr, coin.Amount)
+	if err == stakingtypes.ErrNoDelegation {
+		return nil, nil, sdkerrors.ErrNotFound.Wrapf("can not found delegation with address: %s", restakeMsg.Delegator)
+	} else if err != nil {
+		return nil, nil, err
+	}
+	unbondAmt, err := k.InstantUndelegate(ctx, delAddr, validatorInfo, shares)
+	if err != nil {
+		return nil, nil, err
+	}
+	if !unbondAmt.Equal(coin) {
+		return nil, nil, sdkerrors.ErrInvalidRequest.Wrapf("Delegation has been slashed")
+	}
+	err = k.bankKeeper.DelegateCoins(ctx, delAddr, actor, sdk.NewCoins(unbondAmt))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []sdk.Event{sdk.NewEvent(
+		types.EventTypeUnbond,
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
+		sdk.NewAttribute(types.AttributeKeyDelegator, delAddr.String()),
+	)}, nil, nil
+}
+
 func (k Keeper) unstake(ctx sdk.Context, actor sdk.AccAddress, validator sdk.ValAddress, coin sdk.Coin) error {
 	if coin.Amount.IsNil() || coin.Amount.IsZero() || coin.Amount.IsNegative() {
 		return sdkerrors.ErrInvalidRequest.Wrap("amount")
