@@ -52,8 +52,8 @@ func Test2WayContract(t *testing.T) {
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
 	fmt.Println("provider chain: deposit vault denom to provide some collateral to account")
-	execMsg := `{"bond":{}}`
-	vault, err := providerClient1.MustExecVault(execMsg, sdk.NewInt64Coin(providerClient1.Chain.Denom, 100_000_000))
+	execMsg := fmt.Sprintf(`{"bond":{"amount":{"denom":"%s", "amount":"100000000"}}}`, providerClient1.Chain.Denom)
+	vault, err := providerClient1.MustExecVault(execMsg)
 	require.NoError(t, err)
 	require.NotEmpty(t, vault)
 
@@ -130,8 +130,8 @@ func Test2WayContract(t *testing.T) {
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
 	fmt.Println("provider chain: deposit vault denom to provide some collateral to account")
-	execMsg = `{"bond":{}}`
-	vault, err = providerClient2.MustExecVault(execMsg, sdk.NewInt64Coin(providerClient2.Chain.Denom, 100_000_000))
+	execMsg = fmt.Sprintf(`{"bond":{"amount":{"denom":"%s", "amount":"100000000"}}}`, providerClient2.Chain.Denom)
+	vault, err = providerClient2.MustExecVault(execMsg)
 	require.NoError(t, err)
 	require.NotEmpty(t, vault)
 
