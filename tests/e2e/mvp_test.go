@@ -59,8 +59,8 @@ func TestMVP(t *testing.T) {
 	// provider chain
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
-	execMsg := `{"bond":{}}`
-	providerCli.MustExecVault(execMsg, sdk.NewInt64Coin(x.ProviderDenom, 100_000_000))
+	execMsg := fmt.Sprintf(`{"bond":{"amount":{"denom":"%s", "amount":"100000000"}}}`, x.ProviderDenom)
+	providerCli.MustExecVault(execMsg)
 
 	// then query contract state
 	assert.Equal(t, 100_000_000, providerCli.QueryVaultFreeBalance())

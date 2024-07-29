@@ -79,7 +79,7 @@ func TestEndBlocker(t *testing.T) {
 			assert: func(t *testing.T, ctx sdk.Context) {
 				require.Len(t, capturedCalls, 2)
 				assert.Equal(t, myContractAddr, capturedCalls[0].contractAddress)
-				exp := fmt.Sprintf(`{"valset_update":{"additions":[{"address":"%s","commission":"0.000000000000000000","max_commission":"0.000000000000000000","max_change_rate":"0.000000000000000000"}],"removals":[],"updated":[],"jailed":[],"unjailed":[],"slashed":[],"tombstoned":[]}}`, val1.GetOperator())
+				exp := fmt.Sprintf(`{"handle_valset_update":{"additions":[{"address":"%s","commission":"0.000000000000000000","max_commission":"0.000000000000000000","max_change_rate":"0.000000000000000000"}],"removals":[],"updated":[],"jailed":[],"unjailed":[],"slashed":[],"tombstoned":[]}}`, val1.GetOperator())
 				assert.JSONEq(t, exp, string(capturedCalls[0].msg))
 
 				assert.Equal(t, myOtherContractAddr, capturedCalls[1].contractAddress)
