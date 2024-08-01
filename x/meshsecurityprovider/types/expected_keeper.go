@@ -17,6 +17,8 @@ type BankKeeper interface {
 }
 
 type WasmKeeper interface {
+	Sudo(ctx sdk.Context, contractAddress sdk.AccAddress, msg []byte) ([]byte, error)
+	HasContractInfo(ctx sdk.Context, contractAddress sdk.AccAddress) bool
 	QuerySmart(ctx sdk.Context, contractAddress sdk.AccAddress, queryMsg []byte) ([]byte, error)
 }
 
