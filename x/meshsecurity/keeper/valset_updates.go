@@ -25,12 +25,13 @@ func (k Keeper) ScheduleUnbonded(ctx sdk.Context, addr sdk.ValAddress) error {
 }
 
 // ScheduleSlashed store a validator slash event / data for the valset update report
-func (k Keeper) ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, power int64, height int64, totalSlashAmount math.Int, slashRatio sdk.Dec) error {
+func (k Keeper) ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, power int64, height int64, totalSlashAmount math.Int, slashRatio sdk.Dec, infraction stakingtypes.Infraction) error {
 	var slashInfo = &types.SlashInfo{
 		Power:            power,
 		InfractionHeight: height,
 		TotalSlashAmount: totalSlashAmount.String(),
 		SlashFraction:    slashRatio.String(),
+		Infraction:       int32(infraction),
 	}
 	return k.sendAsync(ctx, types.ValidatorSlashed, addr, slashInfo)
 }
@@ -89,7 +90,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		return false
 	}
 	slashValidator := func(set *[]outmessage.ValidatorSlash, valAddr sdk.ValAddress, power int64, infractionHeight int64,
-		infractionTime int64, slashAmount string, slashRatio string) bool {
+		infractionTime int64, slashAmount string, slashRatio string, infraction int32) bool {
 		valSlash := outmessage.ValidatorSlash{
 			ValidatorAddr:    valAddr.String(),
 			Power:            power,
@@ -99,6 +100,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 			Time:             ctx.BlockTime().Unix(),
 			SlashAmount:      slashAmount,
 			SlashRatio:       slashRatio,
+			IsTomestoned:     infraction == int32(stakingtypes.Infraction_INFRACTION_DOUBLE_SIGN),
 		}
 		*set = append(*set, valSlash)
 		return false
@@ -129,7 +131,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		case types.ValidatorSlashed:
 			// TODO: Add / send the infraction time
 			return slashValidator(&r.Slashed, valAddr, slashInfo.Power, slashInfo.InfractionHeight, 0,
-				slashInfo.TotalSlashAmount, slashInfo.SlashFraction)
+				slashInfo.TotalSlashAmount, slashInfo.SlashFraction, slashInfo.Infraction)
 		default:
 			innerErr = types.ErrInvalid.Wrapf("undefined operation type %X", op)
 			return true

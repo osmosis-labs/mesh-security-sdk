@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/binary"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/address"
 )
@@ -51,6 +52,7 @@ type SlashInfo struct {
 	Power            int64
 	TotalSlashAmount string
 	SlashFraction    string
+	Infraction       int32
 }
 
 // BuildMaxCapLimitKey build max cap limit store key
@@ -107,15 +109,20 @@ func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress, slashInf
 	copy(r[pn:], address.MustLengthPrefix(val))
 	r[pn+an+1] = byte(op)
 	if op == ValidatorSlashed {
-		b := make([]byte, 8)
-		binary.BigEndian.PutUint64(b, uint64(slashInfo.InfractionHeight))
-		copy(r[pn+an+1+1:], b)
-		binary.BigEndian.PutUint64(b, uint64(slashInfo.Power))
-		copy(r[pn+an+1+1+8:], b)
+		b1 := make([]byte, 8)
+		binary.BigEndian.PutUint64(b1, uint64(slashInfo.InfractionHeight))
+		copy(r[pn+an+1+1:], b1)
+		binary.BigEndian.PutUint64(b1, uint64(slashInfo.Power))
+		copy(r[pn+an+1+1+8:], b1)
 		tn := len(slashInfo.TotalSlashAmount)
 		r[pn+an+1+1+8+8] = byte(tn)
 		copy(r[pn+an+1+1+8+8+1:], slashInfo.TotalSlashAmount)
-		copy(r[pn+an+1+1+8+8+1+tn:], slashInfo.SlashFraction)
+		sn := len(slashInfo.SlashFraction)
+		r[pn+an+1+1+8+8+1+tn] = byte(sn)
+		copy(r[pn+an+1+1+8+8+1+tn+1:], slashInfo.SlashFraction)
+		b2 := make([]byte, 4)
+		binary.BigEndian.PutUint32(b2, uint32(slashInfo.Infraction))
+		copy(r[pn+an+1+1+8+8+1+tn+1+sn:], b2)
 	}
 	return r
 }
