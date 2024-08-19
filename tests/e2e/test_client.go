@@ -260,7 +260,7 @@ func (p *TestConsumerClient) BootstrapContracts() ConsumerContract {
 	virtStakeCodeID := p.chain.StoreCodeFile(buildPathToWasm("mesh_virtual_staking.wasm")).CodeID
 	// instantiate converter
 	codeID = p.chain.StoreCodeFile(buildPathToWasm("mesh_converter.wasm")).CodeID
-	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d}`,
+	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d, "tombstoned_unbond_enable": true}`,
 		priceFeedContract.String(), discount, remoteDenom, virtStakeCodeID))
 	converterContract := InstantiateContract(p.t, p.chain, codeID, initMsg)
 

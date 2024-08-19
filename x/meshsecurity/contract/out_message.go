@@ -24,7 +24,7 @@ type (
 		Power            int64  `json:"power"`
 		SlashAmount      string `json:"slash_amount"`
 		SlashRatio       string `json:"slash_ratio"`
-		IsTomestoned     bool   `json:"is_tomestoned"`
+		IsTombstoned     bool   `json:"is_tombstoned"`
 	}
 
 	// ValsetUpdate updates to the active validator set

@@ -1,13 +1,14 @@
 package e2e
 
 import (
-	"cosmossdk.io/math"
 	"encoding/base64"
 	"fmt"
+	"testing"
+
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestSlashingScenario1(t *testing.T) {
@@ -22,7 +23,7 @@ func TestSlashingScenario1(t *testing.T) {
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
 	execMsg := fmt.Sprintf(`{"bond":{"amount":{"denom":"%s", "amount":"200000000"}}}`, x.ProviderDenom)
-	providerCli.MustExecVault(execMsg)
+	providerCli.MustExecVault(execMsg, sdk.NewCoin(x.ProviderDenom, sdk.NewInt(200000000)))
 
 	// Stake Locally - A user triggers a local staking action to a chosen validator.
 	myLocalValidatorAddr := sdk.ValAddress(x.ProviderChain.Vals.Validators[0].Address).String()

@@ -100,7 +100,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 			Time:             ctx.BlockTime().Unix(),
 			SlashAmount:      slashAmount,
 			SlashRatio:       slashRatio,
-			IsTomestoned:     infraction == int32(stakingtypes.Infraction_INFRACTION_DOUBLE_SIGN),
+			IsTombstoned:     infraction == int32(stakingtypes.Infraction_INFRACTION_DOUBLE_SIGN),
 		}
 		*set = append(*set, valSlash)
 		return false

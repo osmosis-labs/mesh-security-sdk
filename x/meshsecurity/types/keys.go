@@ -102,7 +102,7 @@ func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress, slashInf
 		if slashInfo == nil {
 			panic("slash info is nil")
 		}
-		sn = 8 + 8 + 1 + len(slashInfo.TotalSlashAmount) + len(slashInfo.SlashFraction) // 8 for height, 8 for power, +1 for total amount length
+		sn = 8 + 8 + 4 + 1 + len(slashInfo.TotalSlashAmount) + len(slashInfo.SlashFraction) // 8 for height, 8 for power, 4 for infraction, +1 for total amount length
 	}
 	r := make([]byte, pn+an+sn+1+1) // +1 for address prefix, +1 for op
 	copy(r, PipedValsetPrefix)
