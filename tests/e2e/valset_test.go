@@ -165,12 +165,12 @@ func undelegate(t *testing.T, operatorKeys *secp256k1.PrivKey, amount sdkmath.In
 	x.ConsumerChain.NextBlock()
 }
 
-func jailValidator(t *testing.T, consAddr sdk.ConsAddress, coordinator *wasmibctesting.Coordinator, chain *wasmibctesting.TestChain, app *app.MeshApp) {
+func jailValidator(t *testing.T, consAddr sdk.ConsAddress, coordinator *wasmibctesting.Coordinator, chain *TestChain, app *app.MeshApp) {
 	ctx := chain.GetContext()
 	signInfo, found := app.SlashingKeeper.GetValidatorSigningInfo(ctx, consAddr)
 	require.True(t, found)
 	// bump height to be > block window
-	coordinator.CommitNBlocks(chain, 100)
+	coordinator.CommitNBlocks(chain.IBCTestChain(), 100)
 	ctx = chain.GetContext()
 	signInfo.MissedBlocksCounter = app.SlashingKeeper.MinSignedPerWindow(ctx)
 	app.SlashingKeeper.SetValidatorSigningInfo(ctx, consAddr, signInfo)
@@ -180,7 +180,7 @@ func jailValidator(t *testing.T, consAddr sdk.ConsAddress, coordinator *wasmibct
 	chain.NextBlock()
 }
 
-func unjailValidator(t *testing.T, consAddr sdk.ConsAddress, operatorKeys *secp256k1.PrivKey, coordinator *wasmibctesting.Coordinator, chain *wasmibctesting.TestChain, app *app.MeshApp) {
+func unjailValidator(t *testing.T, consAddr sdk.ConsAddress, operatorKeys *secp256k1.PrivKey, coordinator *wasmibctesting.Coordinator, chain *TestChain, app *app.MeshApp) {
 	// move clock
 	aa, ok := app.SlashingKeeper.GetValidatorSigningInfo(chain.GetContext(), consAddr)
 	require.True(t, ok)
@@ -193,7 +193,7 @@ func unjailValidator(t *testing.T, consAddr sdk.ConsAddress, operatorKeys *secp2
 	chain.NextBlock()
 }
 
-func CreateNewValidator(t *testing.T, operatorKeys *secp256k1.PrivKey, chain *wasmibctesting.TestChain, power int64) mock.PV {
+func CreateNewValidator(t *testing.T, operatorKeys *secp256k1.PrivKey, chain *TestChain, power int64) mock.PV {
 	privVal := mock.NewPV()
 	bondCoin := sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(power, sdk.DefaultPowerReduction))
 	description := stakingtypes.NewDescription("my new val", "", "", "", "")
