@@ -59,8 +59,8 @@ func TestMVP(t *testing.T) {
 	// provider chain
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
-	execMsg := `{"bond":{}}`
-	providerCli.MustExecVault(sender, execMsg, sdk.NewInt64Coin(x.ProviderDenom, 100_000_000))
+	execMsg := fmt.Sprintf(`{"bond":{"amount":{"denom":"%s", "amount":"100000000"}}}`, x.ProviderDenom)
+	providerCli.MustExecVault(execMsg)
 
 	// then query contract state
 	assert.Equal(t, 100_000_000, providerCli.QueryVaultFreeBalance())
@@ -70,7 +70,7 @@ func TestMVP(t *testing.T) {
 	execLocalStakingMsg := fmt.Sprintf(`{"stake_local":{"amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
 		x.ProviderDenom, 30_000_000,
 		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myLocalValidatorAddr))))
-	providerCli.MustExecVault(sender, execLocalStakingMsg)
+	providerCli.MustExecVault(execLocalStakingMsg)
 
 	assert.Equal(t, 70_000_000, providerCli.QueryVaultFreeBalance())
 
@@ -117,7 +117,7 @@ func TestMVP(t *testing.T) {
 	//
 	// Cross Stake - A user undelegates
 	execMsg = fmt.Sprintf(`{"unstake":{"validator":"%s", "amount":{"denom":"%s", "amount":"30000000"}}}`, myExtValidator.String(), x.ProviderDenom)
-	providerCli.MustExecExtStaking(sender, execMsg)
+	providerCli.MustExecExtStaking(execMsg)
 
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
 
@@ -163,7 +163,7 @@ func TestMVP(t *testing.T) {
 		require.NoError(t, x.IbcPath.EndpointB.UpdateClient())
 	}
 
-	providerCli.MustExecExtStaking(sender, `{"withdraw_unbonded":{}}`)
+	providerCli.MustExecExtStaking(`{"withdraw_unbonded":{}}`)
 	assert.Equal(t, 50_000_000, providerCli.QueryVaultFreeBalance())
 
 	// provider chain
@@ -171,7 +171,7 @@ func TestMVP(t *testing.T) {
 	//
 	// A user unstakes some free amount from the vault
 	balanceBefore := x.ProviderChain.Balance(x.ProviderChain.SenderAccount.GetAddress(), "stake")
-	providerCli.MustExecVault(sender, fmt.Sprintf(`{"unbond":{"amount":{"denom":"%s", "amount": "30000000"}}}`, x.ProviderDenom))
+	providerCli.MustExecVault(fmt.Sprintf(`{"unbond":{"amount":{"denom":"%s", "amount": "30000000"}}}`, x.ProviderDenom))
 	// then
 	assert.Equal(t, 20_000_000, providerCli.QueryVaultFreeBalance())
 	balanceAfter := x.ProviderChain.Balance(x.ProviderChain.SenderAccount.GetAddress(), x.ProviderDenom)
@@ -204,7 +204,7 @@ func TestMVP(t *testing.T) {
 	targetAddr := sdk.AccAddress(rand.Bytes(address.Len))
 	gotBalance := x.ConsumerChain.Balance(targetAddr, x.ConsumerDenom).Amount
 	require.Equal(t, math.ZeroInt(), gotBalance)
-	providerCli.MustExecExtStaking(sender, fmt.Sprintf(`{"withdraw_rewards":{"validator": %q, "remote_recipient": %q}}`, myExtValidatorAddr, targetAddr.String()))
+	providerCli.MustExecExtStaking(fmt.Sprintf(`{"withdraw_rewards":{"validator": %q, "remote_recipient": %q}}`, myExtValidatorAddr, targetAddr.String()))
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
 
 	// then should be on destination account

@@ -22,15 +22,15 @@ func TestSlashingScenario1(t *testing.T) {
 	// Provider chain
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
-	execMsg := `{"bond":{}}`
-	providerCli.MustExecVault(sender, execMsg, sdk.NewInt64Coin(x.ProviderDenom, 200_000_000))
+	execMsg := fmt.Sprintf(`{"bond":{"amount":{"denom":"%s", "amount":"200000000"}}}`, x.ProviderDenom)
+	providerCli.MustExecVault(execMsg)
 
 	// Stake Locally - A user triggers a local staking action to a chosen validator.
 	myLocalValidatorAddr := sdk.ValAddress(x.ProviderChain.Vals.Validators[0].Address).String()
 	execLocalStakingMsg := fmt.Sprintf(`{"stake_local":{"amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
 		x.ProviderDenom, 190_000_000,
 		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myLocalValidatorAddr))))
-	providerCli.MustExecVault(sender, execLocalStakingMsg)
+	providerCli.MustExecVault(execLocalStakingMsg)
 
 	assert.Equal(t, 10_000_000, providerCli.QueryVaultFreeBalance())
 
@@ -123,15 +123,15 @@ func TestSlashingScenario2(t *testing.T) {
 	// Provider chain
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
-	execMsg := `{"bond":{}}`
-	providerCli.MustExecVault(sender, execMsg, sdk.NewInt64Coin(x.ProviderDenom, 200_000_000))
+	execMsg := fmt.Sprintf(`{"bond":{"amount":{"denom":"%s", "amount":"200000000"}}}`, x.ProviderDenom)
+	providerCli.MustExecVault(execMsg)
 
 	// Stake Locally - A user triggers a local staking action to a chosen validator.
 	myLocalValidatorAddr := sdk.ValAddress(x.ProviderChain.Vals.Validators[0].Address).String()
 	execLocalStakingMsg := fmt.Sprintf(`{"stake_local":{"amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
 		x.ProviderDenom, 200_000_000,
 		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myLocalValidatorAddr))))
-	providerCli.MustExecVault(sender, execLocalStakingMsg)
+	providerCli.MustExecVault(execLocalStakingMsg)
 
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
 	myExtValidator1 := sdk.ValAddress(x.ConsumerChain.Vals.Validators[1].Address)
@@ -211,15 +211,15 @@ func TestSlashingScenario3(t *testing.T) {
 	// Provider chain
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
-	execMsg := `{"bond":{}}`
-	providerCli.MustExecVault(sender, execMsg, sdk.NewInt64Coin(x.ProviderDenom, 200_000_000))
+	execMsg := fmt.Sprintf(`{"bond":{"amount":{"denom":"%s", "amount":"200000000"}}}`, x.ProviderDenom)
+	providerCli.MustExecVault(execMsg)
 
 	// Stake Locally - A user triggers a local staking action to a chosen validator.
 	myLocalValidatorAddr := sdk.ValAddress(x.ProviderChain.Vals.Validators[0].Address).String()
 	execLocalStakingMsg := fmt.Sprintf(`{"stake_local":{"amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
 		x.ProviderDenom, 190_000_000,
 		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myLocalValidatorAddr))))
-	providerCli.MustExecVault(sender, execLocalStakingMsg)
+	providerCli.MustExecVault(execLocalStakingMsg)
 
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
 	myExtValidator1 := sdk.ValAddress(x.ConsumerChain.Vals.Validators[1].Address)
