@@ -1,8 +1,6 @@
 package keeper
 
 import (
-	"fmt"
-
 	"github.com/cometbft/cometbft/libs/log"
 
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
@@ -98,7 +96,6 @@ func (k Keeper) HandleBondMsg(ctx sdk.Context, actor sdk.AccAddress, bondMsg *co
 	if actor.String() != k.VaultAddress(ctx) {
 		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
 	}
-	fmt.Println("bond  msg: ", bondMsg)
 
 	coin, err := wasmkeeper.ConvertWasmCoinToSdkCoin(bondMsg.Amount)
 	if err != nil {
@@ -115,7 +112,6 @@ func (k Keeper) HandleBondMsg(ctx sdk.Context, actor sdk.AccAddress, bondMsg *co
 		return nil, nil, err
 	}
 
-	fmt.Println("passssssssssssssssssssssssssssssssssssss")
 	return []sdk.Event{sdk.NewEvent(
 		types.EventTypeBond,
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
