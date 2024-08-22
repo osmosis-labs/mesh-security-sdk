@@ -19,7 +19,7 @@ func (k Keeper) doSudoCall(ctx sdk.Context, contractAddr sdk.AccAddress, msg con
 	return err
 }
 
-// SendJail send jail handling message to  contract via sudo
+// SendJailHandlingMsg send jail handling message to  contract via sudo
 func (k Keeper) SendJailHandlingMsg(ctx sdk.Context, contractAddr sdk.AccAddress, jailed []contract.ValidatorAddr, tombstoned []contract.ValidatorAddr) error {
 	msg := contract.SudoMsg{
 		Jailing: &contract.ValidatorSlash{
