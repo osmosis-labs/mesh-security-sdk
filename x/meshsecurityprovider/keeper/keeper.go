@@ -18,6 +18,7 @@ type Keeper struct {
 	bankKeeper    types.BankKeeper
 	wasmKeeper    types.WasmKeeper
 	stakingKeeper types.StakingKeeper
+	meshConsumer  types.MeshSecurityConsumer
 }
 
 func NewKeeper(cdc codec.BinaryCodec, storeKey storetypes.StoreKey,

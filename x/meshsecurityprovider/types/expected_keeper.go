@@ -29,3 +29,11 @@ type StakingKeeper interface {
 	Unbond(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, shares sdk.Dec) (amount math.Int, err error)
 	Undelegate(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress, sharesAmount sdk.Dec) (time.Time, error)
 }
+
+type MeshSecurityConsumer interface {
+	ScheduleUnjailed(ctx sdk.Context, addr sdk.ValAddress) error
+	ScheduleJailed(ctx sdk.Context, addr sdk.ValAddress) error
+	ScheduleTombstoned(ctx sdk.Context, addr sdk.ValAddress) error
+	ScheduleModified(ctx sdk.Context, addr sdk.ValAddress) error
+	ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, power int64, height int64, totalSlashAmount math.Int, slashRatio sdk.Dec) error
+}
