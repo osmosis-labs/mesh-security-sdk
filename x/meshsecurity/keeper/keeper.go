@@ -195,7 +195,7 @@ func (k Keeper) setDelegation(ctx sdk.Context, actor, delAddr sdk.AccAddress, va
 
 	newDelegation := k.GetDelegation(ctx, actor, delAddr, valAddr)
 	newDelegation.Amount = newDelegation.Amount.Add(changeAmount)
-	if !newDelegation.Amount.IsPositive() {
+	if newDelegation.Amount.IsZero() {
 		store.Delete(types.BuildDelegationKey(actor, delAddr, valAddr))
 		return
 	}
