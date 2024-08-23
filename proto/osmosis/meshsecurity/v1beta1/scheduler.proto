@@ -10,12 +10,6 @@ option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/ty
 option (gogoproto.goproto_getters_all) = false;
 option (gogoproto.equal_all) = false;
 
-//
-message ScheduledWork {
-  bool repeat = 1;
-}
-
-
 // ValidatorAddress payload data to be used with the scheduler
 message ValidatorAddress {
   // Address is the ValAddress bech32 string

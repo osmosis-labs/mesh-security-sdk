@@ -23,7 +23,6 @@
     - [Query](#osmosis.meshsecurity.v1beta1.Query)
   
 - [osmosis/meshsecurity/v1beta1/scheduler.proto](#osmosis/meshsecurity/v1beta1/scheduler.proto)
-    - [ScheduledWork](#osmosis.meshsecurity.v1beta1.ScheduledWork)
     - [ValidatorAddress](#osmosis.meshsecurity.v1beta1.ValidatorAddress)
   
 - [osmosis/meshsecurity/v1beta1/tx.proto](#osmosis/meshsecurity/v1beta1/tx.proto)
@@ -254,21 +253,6 @@ Query provides defines the gRPC querier service
 <p align="right"><a href="#top">Top</a></p>
 
 ## osmosis/meshsecurity/v1beta1/scheduler.proto
-
-
-
-<a name="osmosis.meshsecurity.v1beta1.ScheduledWork"></a>
-
-### ScheduledWork
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| `repeat` | [bool](#bool) |  |  |
-
-
-
 
 
 
