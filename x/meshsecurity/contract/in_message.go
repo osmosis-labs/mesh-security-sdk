@@ -21,8 +21,8 @@ type (
 	}
 	UpdateDelegationMsg struct {
 		Amount    wasmvmtypes.Coin `json:"amount"`
+		IsDeduct  bool             `json:"is_deduct"`
 		Delegator string           `json:"delegator"`
 		Validator string           `json:"validator"`
-		IsDeduct  bool             `json:"is_deduct"`
 	}
 )

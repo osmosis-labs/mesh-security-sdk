@@ -5,6 +5,7 @@ import (
 
 	errorsmod "cosmossdk.io/errors"
 
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
@@ -15,6 +16,7 @@ func (k Keeper) SendHandleEpoch(ctx sdk.Context, contractAddr sdk.AccAddress) er
 	msg := contract.SudoMsg{
 		HandleEpoch: &struct{}{},
 	}
+	ctx = ctx.WithGasMeter(storetypes.NewInfiniteGasMeter())
 	return k.doSudoCall(ctx, contractAddr, msg)
 }
 

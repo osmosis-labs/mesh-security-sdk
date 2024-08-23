@@ -18,7 +18,6 @@ func TestSlashingScenario1(t *testing.T) {
 	// - We use millions instead of unit tokens.
 	x := setupExampleChains(t)
 	consumerCli, _, providerCli := setupMeshSecurity(t, x)
-	sender := x.ProviderChain.SenderAccount.GetAddress()
 	// Provider chain
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
@@ -37,11 +36,11 @@ func TestSlashingScenario1(t *testing.T) {
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
 	myExtValidator1 := sdk.ValAddress(x.ConsumerChain.Vals.Validators[1].Address)
 	myExtValidator1Addr := myExtValidator1.String()
-	err := providerCli.ExecStakeRemote(sender, myExtValidator1Addr, sdk.NewInt64Coin(x.ProviderDenom, 100_000_000))
+	err := providerCli.ExecStakeRemote(myExtValidator1Addr, sdk.NewInt64Coin(x.ProviderDenom, 100_000_000))
 	require.NoError(t, err)
 	myExtValidator2 := sdk.ValAddress(x.ConsumerChain.Vals.Validators[2].Address)
 	myExtValidator2Addr := myExtValidator2.String()
-	err = providerCli.ExecStakeRemote(sender, myExtValidator2Addr, sdk.NewInt64Coin(x.ProviderDenom, 50_000_000))
+	err = providerCli.ExecStakeRemote(myExtValidator2Addr, sdk.NewInt64Coin(x.ProviderDenom, 50_000_000))
 	require.NoError(t, err)
 
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
@@ -119,7 +118,6 @@ func TestSlashingScenario2(t *testing.T) {
 	// - We use millions instead of unit tokens.
 	x := setupExampleChains(t)
 	consumerCli, _, providerCli := setupMeshSecurity(t, x)
-	sender := x.ProviderChain.SenderAccount.GetAddress()
 	// Provider chain
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
@@ -136,7 +134,7 @@ func TestSlashingScenario2(t *testing.T) {
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
 	myExtValidator1 := sdk.ValAddress(x.ConsumerChain.Vals.Validators[1].Address)
 	myExtValidator1Addr := myExtValidator1.String()
-	err := providerCli.ExecStakeRemote(sender, myExtValidator1Addr, sdk.NewInt64Coin(x.ProviderDenom, 200_000_000))
+	err := providerCli.ExecStakeRemote(myExtValidator1Addr, sdk.NewInt64Coin(x.ProviderDenom, 200_000_000))
 	require.NoError(t, err)
 
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
@@ -207,7 +205,6 @@ func TestSlashingScenario3(t *testing.T) {
 	// - We use millions instead of unit tokens.
 	x := setupExampleChains(t)
 	consumerCli, _, providerCli := setupMeshSecurity(t, x)
-	sender := x.ProviderChain.SenderAccount.GetAddress()
 	// Provider chain
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
@@ -224,7 +221,7 @@ func TestSlashingScenario3(t *testing.T) {
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
 	myExtValidator1 := sdk.ValAddress(x.ConsumerChain.Vals.Validators[1].Address)
 	myExtValidator1Addr := myExtValidator1.String()
-	err := providerCli.ExecStakeRemote(sender, myExtValidator1Addr, sdk.NewInt64Coin(x.ProviderDenom, 150_000_000))
+	err := providerCli.ExecStakeRemote(myExtValidator1Addr, sdk.NewInt64Coin(x.ProviderDenom, 150_000_000))
 	require.NoError(t, err)
 
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))

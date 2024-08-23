@@ -122,6 +122,6 @@ func (k Keeper) UpdateDelegation(pCtx sdk.Context, actor, delAddr sdk.AccAddress
 	if isDeduct {
 		amt.Amount = amt.Amount.Neg()
 	}
-	k.setDelegation(cacheCtx, actor, delAddr, valAddr, amt.Amount.Neg())
+	k.setDelegation(cacheCtx, actor, delAddr, valAddr, amt.Amount)
 	done()
 }

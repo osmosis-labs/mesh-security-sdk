@@ -21,9 +21,11 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/keeper"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
@@ -244,11 +246,11 @@ func (p TestProviderClient) MustFailExecVault(payload string, funds ...sdk.Coin)
 	return err
 }
 
-func (p TestProviderClient) MustExecStakeRemote(sender sdk.AccAddress, val string, amt sdk.Coin) {
-	require.NoError(p.t, p.ExecStakeRemote(sender, val, amt))
+func (p TestProviderClient) MustExecStakeRemote(val string, amt sdk.Coin) {
+	require.NoError(p.t, p.ExecStakeRemote(val, amt))
 }
 
-func (p TestProviderClient) ExecStakeRemote(sender sdk.AccAddress, val string, amt sdk.Coin) error {
+func (p TestProviderClient) ExecStakeRemote(val string, amt sdk.Coin) error {
 	payload := fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%s"}, "msg":%q}}`,
 		p.Contracts.ExternalStaking.String(),
 		amt.Denom, amt.Amount.String(),
@@ -403,6 +405,15 @@ func (p *TestConsumerClient) ExecNewEpoch() {
 			}
 		}
 	}
+}
+
+func (p *TestConsumerClient) ExecSetMaxCap(cap sdk.Coin) {
+	msgServer := keeper.NewMsgServer(p.app.MeshSecKeeper)
+	msgServer.SetVirtualStakingMaxCap(p.chain.GetContext(), &types.MsgSetVirtualStakingMaxCap{
+		Authority: authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		Contract:  p.contracts.staking.String(),
+		MaxCap:    cap,
+	})
 }
 
 // MustEnableVirtualStaking add authority to mint/burn virtual tokens gov proposal

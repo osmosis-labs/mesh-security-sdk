@@ -148,8 +148,8 @@ func (k Keeper) setTotalDelegated(ctx sdk.Context, actor sdk.AccAddress, newAmou
 }
 
 // GetDelegation returns contract delegation for a specified delegator bond with validator.
-func (k Keeper) GetDelegation(ctx sdk.Context, storeKey storetypes.StoreKey, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress) types.Delegation {
-	store := ctx.KVStore(storeKey)
+func (k Keeper) GetDelegation(ctx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress) types.Delegation {
+	store := ctx.KVStore(k.storeKey)
 	key := types.BuildDelegationKey(actor, delAddr, valAddr)
 	bz := store.Get(key)
 	if bz == nil {
@@ -193,7 +193,7 @@ func (k Keeper) GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetr
 func (k Keeper) setDelegation(ctx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, changeAmount math.Int) {
 	store := ctx.KVStore(k.storeKey)
 
-	newDelegation := k.GetDelegation(ctx, k.storeKey, actor, delAddr, valAddr)
+	newDelegation := k.GetDelegation(ctx, actor, delAddr, valAddr)
 	newDelegation.Amount = newDelegation.Amount.Add(changeAmount)
 	if !newDelegation.Amount.IsPositive() {
 		store.Delete(types.BuildDelegationKey(actor, delAddr, valAddr))

@@ -36,7 +36,6 @@ func TestMVP(t *testing.T) {
 	// ...
 	x := setupExampleChains(t)
 	consumerCli, consumerContracts, providerCli := setupMeshSecurity(t, x)
-	sender := x.ProviderChain.SenderAccount.GetAddress()
 	// then the active set should be stored in the ext staking contract
 	// and contain all active validator addresses
 	qRsp := providerCli.QueryExtStaking(Query{"list_active_validators": {}})
@@ -75,13 +74,13 @@ func TestMVP(t *testing.T) {
 	assert.Equal(t, 70_000_000, providerCli.QueryVaultFreeBalance())
 
 	// Failure mode of cross-stake... trying to stake to an unknown validator
-	err := providerCli.ExecStakeRemote(sender, "BAD-VALIDATOR", sdk.NewInt64Coin(x.ProviderDenom, 80_000_000))
+	err := providerCli.ExecStakeRemote("BAD-VALIDATOR", sdk.NewInt64Coin(x.ProviderDenom, 80_000_000))
 	require.Error(t, err)
 	// no change to free balance
 	assert.Equal(t, 70_000_000, providerCli.QueryVaultFreeBalance())
 
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
-	err = providerCli.ExecStakeRemote(sender, myExtValidatorAddr, sdk.NewInt64Coin(x.ProviderDenom, 80_000_000))
+	err = providerCli.ExecStakeRemote(myExtValidatorAddr, sdk.NewInt64Coin(x.ProviderDenom, 80_000_000))
 	require.NoError(t, err)
 
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
