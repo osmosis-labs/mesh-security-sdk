@@ -5,6 +5,8 @@ import "cosmos/base/v1beta1/coin.proto";
 import "cosmos/msg/v1/msg.proto";
 import "gogoproto/gogo.proto";
 import "amino/amino.proto";
+import "osmosis/meshsecurity/v1beta1/meshsecurity.proto";
+import "cosmos_proto/cosmos.proto";
 
 option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types";
 option (gogoproto.goproto_getters_all) = false;
@@ -15,6 +17,8 @@ service Msg {
   // staking coins
   rpc SetVirtualStakingMaxCap(MsgSetVirtualStakingMaxCap)
       returns (MsgSetVirtualStakingMaxCapResponse);
+
+  rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
 }
 
 // MsgSetVirtualStakingMaxCap creates or updates a maximum cap limit for virtual
@@ -37,3 +41,18 @@ message MsgSetVirtualStakingMaxCap {
 
 // MsgSetVirtualStakingMaxCap returns result data.
 message MsgSetVirtualStakingMaxCapResponse {}
+
+
+// MsgUpdateParams defines a Msg for updating the x/inflation module parameters.
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+  // authority is the address of the governance account.
+  string authority = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  // params defines the x/inflation parameters to update.
+  // NOTE: All parameters must be supplied.
+  Params params = 2 [(gogoproto.nullable) = false];
+}
+
+// MsgUpdateParamsResponse defines the response structure for executing a
+// MsgUpdateParams message.
+message MsgUpdateParamsResponse {}
