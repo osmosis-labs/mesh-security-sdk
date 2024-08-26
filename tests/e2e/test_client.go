@@ -15,7 +15,11 @@ import (
 	"cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity"
@@ -54,7 +58,7 @@ func (q QueryResponse) Array(key string) []QueryResponse {
 	return result
 }
 
-func Querier(t *testing.T, chain *ibctesting.TestChain) func(contract string, query Query) QueryResponse {
+func Querier(t *testing.T, chain *TestChain) func(contract string, query Query) QueryResponse {
 	return func(contract string, query Query) QueryResponse {
 		qRsp := make(map[string]any)
 		err := chain.SmartQuery(contract, query, &qRsp)
@@ -65,20 +69,67 @@ func Querier(t *testing.T, chain *ibctesting.TestChain) func(contract string, qu
 
 type TestProviderClient struct {
 	t         *testing.T
-	chain     *ibctesting.TestChain
-	contracts ProviderContracts
+	chain     *TestChain
+	Contracts ProviderContracts
 }
 
-func NewProviderClient(t *testing.T, chain *ibctesting.TestChain) *TestProviderClient {
+type TestChain struct {
+	*ibctesting.TestChain
+	t *testing.T
+}
+
+func NewTestChain(t *testing.T, chain *ibctesting.TestChain) *TestChain {
+	return &TestChain{
+		t:         t,
+		TestChain: chain,
+	}
+}
+
+func (tc *TestChain) IBCTestChain() *ibctesting.TestChain {
+	return tc.TestChain
+}
+
+func NewProviderClient(t *testing.T, chain *TestChain) *TestProviderClient {
 	return &TestProviderClient{t: t, chain: chain}
 }
 
-type ProviderContracts struct {
-	vault           sdk.AccAddress
-	externalStaking sdk.AccAddress
+func (tc *TestChain) SendMsgsWithSigner(privKey cryptotypes.PrivKey, signer *authtypes.BaseAccount, msgs ...sdk.Msg) (*sdk.Result, error) {
+	// ensure the chain has the latest time
+	tc.Coordinator.UpdateTimeForChain(tc.TestChain)
+	_, r, gotErr := app.SignAndDeliverWithoutCommit(
+		tc.t,
+		tc.TxConfig,
+		tc.App.GetBaseApp(),
+		msgs,
+		tc.DefaultMsgFees,
+		tc.ChainID,
+		[]uint64{signer.GetAccountNumber()},
+		[]uint64{signer.GetSequence()},
+		privKey,
+	)
+
+	// NextBlock calls app.Commit()
+	tc.NextBlock()
+
+	// increment sequence for successful and failed transaction execution
+	require.NoError(tc.t, signer.SetSequence(signer.GetSequence()+1))
+	tc.Coordinator.IncrementTime()
+
+	if gotErr != nil {
+		return nil, gotErr
+	}
+
+	tc.CaptureIBCEvents(r.Events)
+
+	return r, nil
 }
 
-func (p *TestProviderClient) BootstrapContracts(connId, portID string) ProviderContracts {
+type ProviderContracts struct {
+	Vault           sdk.AccAddress
+	ExternalStaking sdk.AccAddress
+}
+
+func (p *TestProviderClient) BootstrapContracts(provApp *app.MeshApp, connId, portID string) ProviderContracts {
 	var (
 		unbondingPeriod           = 21 * 24 * 60 * 60 // 21 days - make configurable?
 		localSlashRatioDoubleSign = "0.20"
@@ -95,7 +146,10 @@ func (p *TestProviderClient) BootstrapContracts(connId, portID string) ProviderC
 	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d, "slash_ratio_dsign": %q, "slash_ratio_offline": %q }`, localTokenDenom, proxyCodeID, localSlashRatioDoubleSign, localSlashRatioOffline))
 	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, localTokenDenom, nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
 	vaultContract := InstantiateContract(p.t, p.chain, vaultCodeID, initMsg)
-
+	ctx := p.chain.GetContext()
+	params := provApp.MeshSecProvKeeper.GetParams(ctx)
+	params.VaultAddress = vaultContract.String()
+	provApp.MeshSecProvKeeper.SetParams(ctx, params)
 	// external staking
 	extStakingCodeID := p.chain.StoreCodeFile(buildPathToWasm("mesh_external_staking.wasm")).CodeID
 	initMsg = []byte(fmt.Sprintf(
@@ -104,19 +158,53 @@ func (p *TestProviderClient) BootstrapContracts(connId, portID string) ProviderC
 	externalStakingContract := InstantiateContract(p.t, p.chain, extStakingCodeID, initMsg)
 
 	r := ProviderContracts{
-		vault:           vaultContract,
-		externalStaking: externalStakingContract,
+		Vault:           vaultContract,
+		ExternalStaking: externalStakingContract,
 	}
-	p.contracts = r
+	p.Contracts = r
 	return r
 }
 
+func (p TestProviderClient) MustCreatePermanentLockedAccount(acc string, coins ...sdk.Coin) *sdk.Result {
+	rsp, err := p.chain.SendMsgs(&vestingtypes.MsgCreatePermanentLockedAccount{
+		FromAddress: p.chain.SenderAccount.GetAddress().String(),
+		ToAddress:   acc,
+		Amount:      coins,
+	})
+	require.NoError(p.t, err)
+	return rsp
+}
+
+func (p TestProviderClient) BankSendWithSigner(privKey cryptotypes.PrivKey, signer *authtypes.BaseAccount, to string, coins ...sdk.Coin) error {
+	_, err := p.chain.SendMsgsWithSigner(
+		privKey,
+		signer,
+		&banktypes.MsgSend{
+			FromAddress: signer.GetAddress().String(),
+			ToAddress:   to,
+			Amount:      coins,
+		},
+	)
+	return err
+}
+
 func (p TestProviderClient) MustExecVault(payload string, funds ...sdk.Coin) *sdk.Result {
-	return p.mustExec(p.contracts.vault, payload, funds)
+	return p.mustExec(p.Contracts.Vault, payload, funds)
+}
+
+func (p TestProviderClient) MustExecVaultWithSigner(privKey cryptotypes.PrivKey, signer *authtypes.BaseAccount, payload string, funds ...sdk.Coin) *sdk.Result {
+	rsp, err := p.ExecWithSigner(privKey, signer, p.Contracts.Vault, payload, funds...)
+	require.NoError(p.t, err)
+	return rsp
+}
+
+func (p TestProviderClient) ExecVaultWithSigner(privKey cryptotypes.PrivKey, signer *authtypes.BaseAccount, payload string, funds ...sdk.Coin) error {
+	_, err := p.ExecWithSigner(privKey, signer, p.Contracts.Vault, payload, funds...)
+	return err
 }
 
 func (p TestProviderClient) MustExecExtStaking(payload string, funds ...sdk.Coin) *sdk.Result {
-	return p.mustExec(p.contracts.externalStaking, payload, funds)
+	return p.mustExec(p.Contracts.ExternalStaking, payload, funds)
 }
 
 func (p TestProviderClient) mustExec(contract sdk.AccAddress, payload string, funds []sdk.Coin) *sdk.Result {
@@ -135,8 +223,22 @@ func (p TestProviderClient) Exec(contract sdk.AccAddress, payload string, funds 
 	return rsp, err
 }
 
+func (p TestProviderClient) ExecWithSigner(privKey cryptotypes.PrivKey, signer *authtypes.BaseAccount, contract sdk.AccAddress, payload string, funds ...sdk.Coin) (*sdk.Result, error) {
+	rsp, err := p.chain.SendMsgsWithSigner(
+		privKey,
+		signer,
+		&wasmtypes.MsgExecuteContract{
+			Sender:   signer.GetAddress().String(),
+			Contract: contract.String(),
+			Msg:      []byte(payload),
+			Funds:    funds,
+		},
+	)
+	return rsp, err
+}
+
 func (p TestProviderClient) MustFailExecVault(payload string, funds ...sdk.Coin) error {
-	rsp, err := p.Exec(p.contracts.vault, payload, funds...)
+	rsp, err := p.Exec(p.Contracts.Vault, payload, funds...)
 	require.Error(p.t, err, "Response: %v", rsp)
 	return err
 }
@@ -147,10 +249,10 @@ func (p TestProviderClient) MustExecStakeRemote(val string, amt sdk.Coin) {
 
 func (p TestProviderClient) ExecStakeRemote(val string, amt sdk.Coin) error {
 	payload := fmt.Sprintf(`{"stake_remote":{"contract":"%s", "amount": {"denom":%q, "amount":"%s"}, "msg":%q}}`,
-		p.contracts.externalStaking.String(),
+		p.Contracts.ExternalStaking.String(),
 		amt.Denom, amt.Amount.String(),
 		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, val))))
-	_, err := p.Exec(p.contracts.vault, payload)
+	_, err := p.Exec(p.Contracts.Vault, payload)
 	return err
 }
 
@@ -166,11 +268,11 @@ func (p TestProviderClient) QueryExtStakingAmount(user, validator string) int {
 }
 
 func (p TestProviderClient) QueryExtStaking(q Query) QueryResponse {
-	return Querier(p.t, p.chain)(p.contracts.externalStaking.String(), q)
+	return Querier(p.t, p.chain)(p.Contracts.ExternalStaking.String(), q)
 }
 
 func (p TestProviderClient) QueryVault(q Query) QueryResponse {
-	return Querier(p.t, p.chain)(p.contracts.vault.String(), q)
+	return Querier(p.t, p.chain)(p.Contracts.Vault.String(), q)
 }
 
 type HighLowType struct {
@@ -208,6 +310,16 @@ func (p TestProviderClient) QueryVaultBalance() int {
 	return b
 }
 
+func (p TestProviderClient) QuerySpecificAddressVaultBalance(address string) int {
+	qRsp := p.QueryVault(Query{
+		"account_details": {"account": address},
+	})
+	require.NotEmpty(p.t, qRsp["bonded"], qRsp)
+	b, err := strconv.Atoi(qRsp["bonded"].(string))
+	require.NoError(p.t, err)
+	return b
+}
+
 func (p TestProviderClient) QueryMaxLien() int {
 	qRsp := p.QueryVault(Query{
 		"account_details": {"account": p.chain.SenderAccount.GetAddress().String()},
@@ -226,12 +338,12 @@ func (p TestProviderClient) QuerySlashableAmount() int {
 
 type TestConsumerClient struct {
 	t         *testing.T
-	chain     *ibctesting.TestChain
+	chain     *TestChain
 	contracts ConsumerContract
 	app       *app.MeshApp
 }
 
-func NewConsumerClient(t *testing.T, chain *ibctesting.TestChain) *TestConsumerClient {
+func NewConsumerClient(t *testing.T, chain *TestChain) *TestConsumerClient {
 	return &TestConsumerClient{t: t, chain: chain, app: chain.App.(*app.MeshApp)}
 }
 
@@ -276,7 +388,7 @@ func (p *TestConsumerClient) ExecNewEpoch() {
 	execHeight, ok := p.app.MeshSecKeeper.GetNextScheduledTaskHeight(p.chain.GetContext(), types.SchedulerTaskHandleEpoch, p.contracts.staking)
 	require.True(p.t, ok)
 	if ch := uint64(p.chain.GetContext().BlockHeight()); ch < execHeight {
-		p.chain.Coordinator.CommitNBlocks(p.chain, execHeight-ch)
+		p.chain.Coordinator.CommitNBlocks(p.chain.IBCTestChain(), execHeight-ch)
 	}
 	rsp := p.chain.NextBlock()
 	// ensure capture events do not contain a contract error
