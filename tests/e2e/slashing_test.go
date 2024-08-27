@@ -329,11 +329,6 @@ func TestSlasingImmediateUnbond(t *testing.T) {
 
 	// Get native staking proxy contract
 	nativeStakingProxy := providerCli.QueryNativeStakingProxyByOwner(x.ProviderChain.SenderAccount.GetAddress().String())
-	config := Querier(t, x.ProviderChain)(nativeStakingProxy.String(), Query{
-		"config": {},
-	})
-	fmt.Println("config: ", config)
-	fmt.Println("sender account: ", x.ProviderChain.SenderAccount.GetAddress().String())
 	_, err := providerCli.Exec(nativeStakingProxy, execMsg)
 	require.NoError(t, err)
 
