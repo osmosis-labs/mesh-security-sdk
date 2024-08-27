@@ -73,7 +73,7 @@ type AppModule struct {
 }
 
 func (am AppModule) RegisterServices(cfg module.Configurator) {
-	// types.RegisterMsgServer(cfg.MsgServer(), meshsecurityprovider.NewMsgServerImpl(&am.k))
+	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(am.k))
 	// queryproto.RegisterQueryServer(cfg.QueryServer(), grpc.Querier{Q: module.NewQuerier(am.k)})
 }
 

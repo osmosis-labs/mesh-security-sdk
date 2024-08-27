@@ -124,7 +124,7 @@ func (p *ProviderClient) BootstrapContracts(connId, portID, rewardDenom string) 
 
 	nativeInitMsg := []byte(fmt.Sprintf(`{"denom": %q, "proxy_code_id": %d, "slash_ratio_dsign": %q, "slash_ratio_offline": %q }`, localTokenDenom, proxyCodeID, localSlashRatioDoubleSign, localSlashRatioOffline))
 	initMsg := []byte(fmt.Sprintf(`{"denom": %q, "local_staking": {"code_id": %d, "msg": %q}}`, localTokenDenom, nativeStakingCodeID, base64.StdEncoding.EncodeToString(nativeInitMsg)))
-	contracts, err := InstantiateContract(p.Chain, vaultCodeID, "provider-valut-contract", initMsg)
+	contracts, err := InstantiateContract(p.Chain, vaultCodeID, "provider-vault-contract", initMsg)
 	if err != nil {
 		return nil, err
 	}

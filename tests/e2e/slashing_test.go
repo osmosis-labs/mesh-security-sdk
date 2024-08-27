@@ -1,13 +1,14 @@
 package e2e
 
 import (
-	"cosmossdk.io/math"
 	"encoding/base64"
 	"fmt"
+	"testing"
+
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestSlashingScenario1(t *testing.T) {
@@ -282,4 +283,61 @@ func TestSlashingScenario3(t *testing.T) {
 	require.Equal(t, 64_043_796, providerCli.QuerySlashableAmount())
 	// Check new free collateral
 	require.Equal(t, 0, providerCli.QueryVaultFreeBalance()) // 185 - max(32, 185) = 185 - 185 = 0
+}
+
+func TestSlasingImmediateUnbond(t *testing.T) {
+	x := setupExampleChains(t)
+	_, _, providerCli := setupMeshSecurity(t, x)
+
+	// Provider chain
+	// ==============
+	// Deposit - A user deposits the vault denom to provide some collateral to their account
+	execMsg := fmt.Sprintf(`{"bond":{"amount":{"denom":"%s", "amount":"200000000"}}}`, x.ProviderDenom)
+	providerCli.MustExecVault(execMsg)
+
+	// Stake Locally - A user triggers a local staking action to a chosen validator.
+	myLocalValidatorAddr := sdk.ValAddress(x.ProviderChain.Vals.Validators[0].Address).String()
+	execLocalStakingMsg := fmt.Sprintf(`{"stake_local":{"amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
+		x.ProviderDenom, 100_000_000,
+		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myLocalValidatorAddr))))
+	providerCli.MustExecVault(execLocalStakingMsg)
+
+	assert.Equal(t, 100_000_000, providerCli.QueryVaultFreeBalance())
+
+	// Check slashable amount
+	require.Equal(t, 20_000_000, providerCli.QuerySlashableAmount())
+	// Check free collateral
+	require.Equal(t, 100_000_000, providerCli.QueryVaultFreeBalance())
+
+	// Validator on the provider chain is jailed
+	myLocalValidatorConsAddr := sdk.ConsAddress(x.ProviderChain.Vals.Validators[0].PubKey.Address())
+	jailValidator(t, myLocalValidatorConsAddr, x.Coordinator, x.ProviderChain, x.ProviderApp)
+
+	x.ProviderChain.NextBlock()
+
+	// Check new collateral
+	require.Equal(t, 200_000_000, providerCli.QueryVaultBalance())
+	// Check new max lien
+	require.Equal(t, 100_000_000, providerCli.QueryMaxLien())
+	// Check new slashable amount
+	require.Equal(t, 20_000_000, providerCli.QuerySlashableAmount())
+	// Check new free collateral
+	require.Equal(t, 100_000_000, providerCli.QueryVaultFreeBalance())
+
+	execMsg = fmt.Sprintf(`{"unstake": {"validator":%q,"amount": {"denom":%q, "amount":"%d"}}}`,
+		myLocalValidatorAddr, x.ProviderDenom, 10_000_000)
+
+	// Get native staking proxy contract
+	nativeStakingProxy := providerCli.QueryNativeStakingProxyByOwner(x.ProviderChain.SenderAccount.GetAddress().String())
+	config := Querier(t, x.ProviderChain)(nativeStakingProxy.String(), Query{
+		"config": {},
+	})
+	fmt.Println("config: ", config)
+	fmt.Println("sender account: ", x.ProviderChain.SenderAccount.GetAddress().String())
+	_, err := providerCli.Exec(nativeStakingProxy, execMsg)
+	require.NoError(t, err)
+
+	x.ProviderChain.NextBlock()
+
+	require.Equal(t, 190_000_001, providerCli.QueryVaultBalance())
 }

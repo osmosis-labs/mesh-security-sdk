@@ -24,6 +24,7 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
+	providertypes "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 )
 
 // Query is a query type used in tests only
@@ -126,6 +127,7 @@ func (tc *TestChain) SendMsgsWithSigner(privKey cryptotypes.PrivKey, signer *aut
 
 type ProviderContracts struct {
 	Vault           sdk.AccAddress
+	NativeStaking   sdk.AccAddress
 	ExternalStaking sdk.AccAddress
 }
 
@@ -150,6 +152,7 @@ func (p *TestProviderClient) BootstrapContracts(provApp *app.MeshApp, connId, po
 	params := provApp.MeshSecProvKeeper.GetParams(ctx)
 	params.VaultAddress = vaultContract.String()
 	provApp.MeshSecProvKeeper.SetParams(ctx, params)
+
 	// external staking
 	extStakingCodeID := p.chain.StoreCodeFile(buildPathToWasm("mesh_external_staking.wasm")).CodeID
 	initMsg = []byte(fmt.Sprintf(
@@ -162,6 +165,19 @@ func (p *TestProviderClient) BootstrapContracts(provApp *app.MeshApp, connId, po
 		ExternalStaking: externalStakingContract,
 	}
 	p.Contracts = r
+
+	// local staking
+	vaultConfig := p.QueryVault(Query{
+		"config": {},
+	})
+	require.Contains(p.t, vaultConfig, "local_staking")
+	nativeStaking, err := sdk.AccAddressFromBech32(vaultConfig["local_staking"].(string))
+	require.NoError(p.t, err)
+	r.NativeStaking = nativeStaking
+	p.Contracts = r
+
+	p.MustExecParamsChangeProposal(provApp, vaultContract.String(), nativeStaking.String())
+
 	return r
 }
 
@@ -237,6 +253,19 @@ func (p TestProviderClient) ExecWithSigner(privKey cryptotypes.PrivKey, signer *
 	return rsp, err
 }
 
+// MustExecGovProposal submit and vote yes on proposal
+func (p TestProviderClient) MustExecParamsChangeProposal(provApp *app.MeshApp, vault, nativeStaking string) {
+	msg := &providertypes.MsgUpdateParams{
+		Authority: provApp.MeshSecKeeper.GetAuthority(),
+		Params: providertypes.Params{
+			VaultAddress:         vault,
+			NativeStakingAddress: nativeStaking,
+		},
+	}
+	proposalID := submitGovProposal(p.t, p.chain, msg)
+	voteAndPassGovProposal(p.t, p.chain, proposalID)
+}
+
 func (p TestProviderClient) MustFailExecVault(payload string, funds ...sdk.Coin) error {
 	rsp, err := p.Exec(p.Contracts.Vault, payload, funds...)
 	require.Error(p.t, err, "Response: %v", rsp)
@@ -267,12 +296,28 @@ func (p TestProviderClient) QueryExtStakingAmount(user, validator string) int {
 	return ParseHighLow(p.t, qRsp["stake"]).Low
 }
 
+func (p TestProviderClient) QueryNativeStakingProxyByOwner(user string) sdk.AccAddress {
+	qRsp := p.QueryNativeStaking(Query{
+		"proxy_by_owner": {
+			"owner": user,
+		},
+	})
+	require.Contains(p.t, qRsp, "proxy")
+	a, err := sdk.AccAddressFromBech32(qRsp["proxy"].(string))
+	require.NoError(p.t, err)
+
+	return a
+}
 func (p TestProviderClient) QueryExtStaking(q Query) QueryResponse {
 	return Querier(p.t, p.chain)(p.Contracts.ExternalStaking.String(), q)
 }
 
 func (p TestProviderClient) QueryVault(q Query) QueryResponse {
 	return Querier(p.t, p.chain)(p.Contracts.Vault.String(), q)
+}
+
+func (p TestProviderClient) QueryNativeStaking(q Query) QueryResponse {
+	return Querier(p.t, p.chain)(p.Contracts.NativeStaking.String(), q)
 }
 
 type HighLowType struct {
