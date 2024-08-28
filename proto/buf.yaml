@@ -4,7 +4,7 @@ deps:
   - buf.build/cosmos/cosmos-proto
   - buf.build/cosmos/cosmos-sdk:v0.47.0
   - buf.build/cosmos/gogo-proto
-  - buf.build/cosmos/ibc
+  - buf.build/cosmos/ibc:fbb44f5ad3194450af479a615fa715d9
 breaking:
   use:
     - FILE

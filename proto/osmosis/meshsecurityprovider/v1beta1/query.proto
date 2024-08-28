@@ -1,10 +1,10 @@
 syntax = "proto3";
-package osmosis.meshsecurityprovider;
+package osmosis.meshsecurityprovider.v1beta1;
 
 import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
-import "osmosis/meshsecurityprovider/genesis.proto";
-import "osmosis/meshsecurityprovider/tx.proto";
+import "osmosis/meshsecurityprovider/v1beta1/genesis.proto";
+import "osmosis/meshsecurityprovider/v1beta1/tx.proto";
 
 option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types";
 

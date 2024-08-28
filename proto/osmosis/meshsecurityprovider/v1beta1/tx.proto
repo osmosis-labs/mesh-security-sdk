@@ -8,6 +8,7 @@ import "amino/amino.proto";
 import "ibc/core/client/v1/client.proto";
 import "ibc/lightclients/tendermint/v1/tendermint.proto";
 import "tendermint/types/evidence.proto";
+import "osmosis/meshsecurityprovider/v1beta1/genesis.proto";
 
 option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types";
 option (gogoproto.goproto_getters_all) = false;
@@ -22,6 +23,8 @@ service Msg {
 // a double signing infraction observed on a consumer chain
     rpc SubmitConsumerDoubleVoting(MsgSubmitConsumerDoubleVoting)
       returns (MsgSubmitConsumerDoubleVotingResponse);
+    rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
+
 }
 
 
@@ -56,3 +59,19 @@ message MsgSubmitConsumerDoubleVoting {
   ibc.lightclients.tendermint.v1.Header infraction_block_header = 3;
 }
 message MsgSubmitConsumerDoubleVotingResponse {}
+
+// MsgUpdateParams updates meshsecurityprovider module 's params
+message MsgUpdateParams {
+  option (amino.name) = "meshsecurityprovider/MsgUpdateParams";
+  option (cosmos.msg.v1.signer) = "authority";
+
+  // Authority is the address that controls the module (defaults to x/gov unless
+  // overwritten).
+  string authority = 1;
+
+  // params defines the x/meshsecurityprovider parameters to update.
+  Params params = 2 [ (gogoproto.nullable) = false ];
+
+}
+
+message MsgUpdateParamsResponse {}

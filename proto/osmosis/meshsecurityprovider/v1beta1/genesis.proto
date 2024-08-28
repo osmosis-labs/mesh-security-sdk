@@ -1,5 +1,5 @@
 syntax = "proto3";
-package osmosis.meshsecurityprovider;
+package osmosis.meshsecurityprovider.v1beta1;
 
 import "gogoproto/gogo.proto";
 import "google/protobuf/any.proto";
