@@ -193,7 +193,7 @@ func unjailValidator(t *testing.T, consAddr sdk.ConsAddress, operatorKeys *secp2
 	chain.NextBlock()
 }
 
-func tombstoneValidator(t *testing.T, consAddr sdk.ConsAddress, operatorKeys *secp256k1.PrivKey, chain *TestChain, app *app.MeshApp) {
+func tombstoneValidator(t *testing.T, consAddr sdk.ConsAddress, valAddr sdk.ValAddress, chain *TestChain, app *app.MeshApp) {
 	e := &types.Equivocation{
 		Height:           chain.GetContext().BlockHeight(),
 		Power:            100,
@@ -208,7 +208,7 @@ func tombstoneValidator(t *testing.T, consAddr sdk.ConsAddress, operatorKeys *se
 	require.Len(t, packets, 1)
 	tombstoned := gjson.Get(string(packets[0].Data), "valset_update.tombstoned").Array()
 	require.Len(t, tombstoned, 1, string(packets[0].Data))
-	require.Equal(t, sdk.ValAddress(operatorKeys.PubKey().Address()).String(), tombstoned[0].String())
+	require.Equal(t, valAddr.String(), tombstoned[0].String())
 }
 
 func CreateNewValidator(t *testing.T, operatorKeys *secp256k1.PrivKey, chain *TestChain, power int64) mock.PV {

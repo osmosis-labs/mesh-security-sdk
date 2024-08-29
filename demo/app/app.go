@@ -609,7 +609,7 @@ func NewMeshApp(
 	})
 	wasmOpts = append(wasmOpts, meshMessageHandler,
 		// add support for the mesh-security queries
-		wasmkeeper.WithQueryHandlerDecorator(meshseckeeper.NewQueryDecorator(app.MeshSecKeeper, app.SlashingKeeper)),
+		wasmkeeper.WithQueryHandlerDecorator(meshseckeeper.NewQueryDecorator(app.MeshSecKeeper, app.StakingKeeper, app.SlashingKeeper)),
 	)
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks

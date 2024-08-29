@@ -70,7 +70,7 @@ func TestChainedCustomQuerier(t *testing.T) {
 			})
 
 			ctx, _ := pCtx.CacheContext()
-			gotData, gotErr := ChainedCustomQuerier(spec.viewKeeper, keepers.SlashingKeeper, next).HandleQuery(ctx, myContractAddr, spec.src)
+			gotData, gotErr := ChainedCustomQuerier(spec.viewKeeper, keepers.StakingKeeper, keepers.SlashingKeeper, next).HandleQuery(ctx, myContractAddr, spec.src)
 			if spec.expErr {
 				require.Error(t, gotErr)
 				return
