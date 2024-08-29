@@ -35,6 +35,6 @@ type (
 		Jailed     []ValidatorAddr  `json:"jailed"`
 		Unjailed   []ValidatorAddr  `json:"unjailed"`
 		Tombstoned []ValidatorAddr  `json:"tombstoned"`
-		Slashed    []ValidatorSlash `json:"slashed"`
+		Slashed    []ValidatorSlash `json:"slashed,omitempty"`
 	}
 )

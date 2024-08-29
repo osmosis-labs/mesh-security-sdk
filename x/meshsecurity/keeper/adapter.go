@@ -115,23 +115,27 @@ func NewStakingDecorator(stakingKeeper slashingtypes.StakingKeeper, k *Keeper) *
 
 // Slash captures the slash event and calls the decorated staking keeper slash method
 func (s StakingDecorator) Slash(ctx sdk.Context, consAddr sdk.ConsAddress, infractionHeight int64, power int64, slashFactor sdk.Dec) math.Int {
-	return s.SlashWithInfractionReason(ctx, consAddr, infractionHeight, power, slashFactor, stakingtypes.Infraction_INFRACTION_UNSPECIFIED)
-}
-
-// SlashWithInfractionReason implementation doesn't require the infraction (types.Infraction) to work but is required by Interchain Security.
-func (s StakingDecorator) SlashWithInfractionReason(ctx sdk.Context, consAddr sdk.ConsAddress, infractionHeight int64, power int64, slashFactor sdk.Dec, infraction stakingtypes.Infraction) math.Int {
 	val := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
 	totalSlashAmount := s.StakingKeeper.Slash(ctx, consAddr, infractionHeight, power, slashFactor)
 	if val == nil {
 		ModuleLogger(ctx).
 			Error("can not propagate slash: validator not found", "validator", consAddr.String())
-	} else if err := s.k.ScheduleSlashed(ctx, val.GetOperator(), power, infractionHeight, totalSlashAmount, slashFactor, infraction); err != nil {
+	} else if err := s.k.ScheduleSlashed(ctx, val.GetOperator(), power, infractionHeight, totalSlashAmount, slashFactor); err != nil {
 		ModuleLogger(ctx).
 			Error("can not propagate slash: schedule event",
 				"cause", err,
 				"validator", consAddr.String())
 	}
 	return totalSlashAmount
+}
+
+// SlashWithInfractionReason implementation doesn't require the infraction (types.Infraction) to work but is required by Interchain Security.
+func (s StakingDecorator) SlashWithInfractionReason(ctx sdk.Context, consAddr sdk.ConsAddress, infractionHeight int64, power int64, slashFactor sdk.Dec, infraction stakingtypes.Infraction) math.Int {
+	if infraction == stakingtypes.Infraction_INFRACTION_DOUBLE_SIGN {
+		val := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
+		s.k.SetTombstonedStatus(ctx, val.GetOperator())
+	}
+	return s.Slash(ctx, consAddr, infractionHeight, power, slashFactor)
 }
 
 // Jail captures the jail event and calls the decorated staking keeper jail method

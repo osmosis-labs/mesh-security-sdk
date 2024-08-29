@@ -31,7 +31,8 @@ var (
 	TotalDelegatedAmountKeyPrefix = []byte{0x3}
 	SchedulerKeyPrefix            = []byte{0x4}
 
-	PipedValsetPrefix = []byte{0x5}
+	PipedValsetPrefix     = []byte{0x5}
+	TombstoneStatusPrefix = []byte{0x6}
 )
 
 type PipedValsetOperation byte
@@ -102,27 +103,27 @@ func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress, slashInf
 		if slashInfo == nil {
 			panic("slash info is nil")
 		}
-		sn = 8 + 8 + 4 + 1 + len(slashInfo.TotalSlashAmount) + len(slashInfo.SlashFraction) // 8 for height, 8 for power, 4 for infraction, +1 for total amount length
+		sn = 8 + 8 + 1 + len(slashInfo.TotalSlashAmount) + len(slashInfo.SlashFraction) // 8 for height, 8 for power, +1 for total amount length
 	}
 	r := make([]byte, pn+an+sn+1+1) // +1 for address prefix, +1 for op
 	copy(r, PipedValsetPrefix)
 	copy(r[pn:], address.MustLengthPrefix(val))
 	r[pn+an+1] = byte(op)
 	if op == ValidatorSlashed {
-		b1 := make([]byte, 8)
-		binary.BigEndian.PutUint64(b1, uint64(slashInfo.InfractionHeight))
-		copy(r[pn+an+1+1:], b1)
-		binary.BigEndian.PutUint64(b1, uint64(slashInfo.Power))
-		copy(r[pn+an+1+1+8:], b1)
+		b := make([]byte, 8)
+		binary.BigEndian.PutUint64(b, uint64(slashInfo.InfractionHeight))
+		copy(r[pn+an+1+1:], b)
+		binary.BigEndian.PutUint64(b, uint64(slashInfo.Power))
+		copy(r[pn+an+1+1+8:], b)
 		tn := len(slashInfo.TotalSlashAmount)
 		r[pn+an+1+1+8+8] = byte(tn)
 		copy(r[pn+an+1+1+8+8+1:], slashInfo.TotalSlashAmount)
-		sn := len(slashInfo.SlashFraction)
-		r[pn+an+1+1+8+8+1+tn] = byte(sn)
-		copy(r[pn+an+1+1+8+8+1+tn+1:], slashInfo.SlashFraction)
-		b2 := make([]byte, 4)
-		binary.BigEndian.PutUint32(b2, uint32(slashInfo.Infraction))
-		copy(r[pn+an+1+1+8+8+1+tn+1+sn:], b2)
+		copy(r[pn+an+1+1+8+8+1+tn:], slashInfo.SlashFraction)
 	}
 	return r
+}
+
+// BuildTombstoneStatusKey build store key for the tombstone validator status store
+func BuildTombstoneStatusKey(valAddr sdk.ValAddress) []byte {
+	return append(TombstoneStatusPrefix, valAddr.Bytes()...)
 }

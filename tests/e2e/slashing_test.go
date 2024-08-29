@@ -23,7 +23,7 @@ func TestSlashingScenario1(t *testing.T) {
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
 	execMsg := fmt.Sprintf(`{"bond":{"amount":{"denom":"%s", "amount":"200000000"}}}`, x.ProviderDenom)
-	providerCli.MustExecVault(execMsg, sdk.NewCoin(x.ProviderDenom, sdk.NewInt(200000000)))
+	providerCli.MustExecVault(execMsg)
 
 	// Stake Locally - A user triggers a local staking action to a chosen validator.
 	myLocalValidatorAddr := sdk.ValAddress(x.ProviderChain.Vals.Validators[0].Address).String()
