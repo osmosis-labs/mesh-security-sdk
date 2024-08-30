@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/CosmWasm/wasmd/x/wasm"
 	"github.com/CosmWasm/wasmd/x/wasm/ibctesting"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
@@ -20,7 +19,8 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	govv1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 
-	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
+	consumerapp "github.com/osmosis-labs/mesh-security-sdk/demo/app/consumer"
+	providerapp "github.com/osmosis-labs/mesh-security-sdk/demo/app/provider"
 )
 
 var (
@@ -38,15 +38,19 @@ func buildPathToWasm(fileName string) string {
 // NewIBCCoordinator initializes Coordinator with N meshd TestChain instances
 func NewIBCCoordinator(t *testing.T, n int, opts ...[]wasmkeeper.Option) *ibctesting.Coordinator {
 	return ibctesting.NewCoordinatorX(t, n,
-		func(t *testing.T, valSet *types.ValidatorSet, genAccs []authtypes.GenesisAccount, chainID string, opts []wasm.Option, balances ...banktypes.Balance) ibctesting.ChainApp {
-			return app.SetupWithGenesisValSet(t, valSet, genAccs, chainID, opts, balances...)
+		func(t *testing.T, valSet *types.ValidatorSet, genAccs []authtypes.GenesisAccount, chainID string, opts []wasmkeeper.Option, balances ...banktypes.Balance) ibctesting.ChainApp {
+			if chainID == ibctesting.GetChainID(1) {
+				return consumerapp.SetupWithGenesisValSet(t, valSet, genAccs, chainID, opts, balances...)
+			} else {
+				return providerapp.SetupWithGenesisValSet(t, valSet, genAccs, chainID, opts, balances...)
+			}
 		},
 		opts...,
 	)
 }
 
-func submitGovProposal(t *testing.T, chain *TestChain, msgs ...sdk.Msg) uint64 {
-	chainApp := chain.App.(*app.MeshApp)
+func submitProviderGovProposal(t *testing.T, chain *TestChain, msgs ...sdk.Msg) uint64 {
+	chainApp := chain.App.(*providerapp.MeshProviderApp)
 	govParams := chainApp.GovKeeper.GetParams(chain.GetContext())
 	govMsg, err := govv1.NewMsgSubmitProposal(msgs, govParams.MinDeposit, chain.SenderAccount.GetAddress().String(), "", "my title", "my summary")
 	require.NoError(t, err)
@@ -57,12 +61,41 @@ func submitGovProposal(t *testing.T, chain *TestChain, msgs ...sdk.Msg) uint64 {
 	return id
 }
 
-func voteAndPassGovProposal(t *testing.T, chain *TestChain, proposalID uint64) {
+func voteAndPassProviderGovProposal(t *testing.T, chain *TestChain, proposalID uint64) {
 	vote := govv1.NewMsgVote(chain.SenderAccount.GetAddress(), proposalID, govv1.OptionYes, "testing")
 	_, err := chain.SendMsgs(vote)
 	require.NoError(t, err)
 
-	chainApp := chain.App.(*app.MeshApp)
+	chainApp := chain.App.(*providerapp.MeshProviderApp)
+	govParams := chainApp.GovKeeper.GetParams(chain.GetContext())
+
+	coord := chain.Coordinator
+	coord.IncrementTimeBy(*govParams.VotingPeriod)
+	coord.CommitBlock(chain.IBCTestChain())
+
+	rsp, err := chainApp.GovKeeper.Proposal(sdk.WrapSDKContext(chain.GetContext()), &govv1.QueryProposalRequest{ProposalId: proposalID})
+	require.NoError(t, err)
+	require.Equal(t, rsp.Proposal.Status, govv1.ProposalStatus_PROPOSAL_STATUS_PASSED)
+}
+
+func submitConsumerGovProposal(t *testing.T, chain *TestChain, msgs ...sdk.Msg) uint64 {
+	chainApp := chain.App.(*consumerapp.MeshConsumerApp)
+	govParams := chainApp.GovKeeper.GetParams(chain.GetContext())
+	govMsg, err := govv1.NewMsgSubmitProposal(msgs, govParams.MinDeposit, chain.SenderAccount.GetAddress().String(), "", "my title", "my summary")
+	require.NoError(t, err)
+	rsp, err := chain.SendMsgs(govMsg)
+	require.NoError(t, err)
+	id := rsp.MsgResponses[0].GetCachedValue().(*govv1.MsgSubmitProposalResponse).ProposalId
+	require.NotEmpty(t, id)
+	return id
+}
+
+func voteAndPassConsumerGovProposal(t *testing.T, chain *TestChain, proposalID uint64) {
+	vote := govv1.NewMsgVote(chain.SenderAccount.GetAddress(), proposalID, govv1.OptionYes, "testing")
+	_, err := chain.SendMsgs(vote)
+	require.NoError(t, err)
+
+	chainApp := chain.App.(*consumerapp.MeshConsumerApp)
 	govParams := chainApp.GovKeeper.GetParams(chain.GetContext())
 
 	coord := chain.Coordinator
@@ -98,8 +131,8 @@ type example struct {
 	Coordinator      *ibctesting.Coordinator
 	ConsumerChain    *TestChain
 	ProviderChain    *TestChain
-	ConsumerApp      *app.MeshApp
-	ProviderApp      *app.MeshApp
+	ConsumerApp      *consumerapp.MeshConsumerApp
+	ProviderApp      *providerapp.MeshProviderApp
 	IbcPath          *ibctesting.Path
 	ProviderDenom    string
 	ConsumerDenom    string
@@ -108,14 +141,14 @@ type example struct {
 
 func setupExampleChains(t *testing.T) example {
 	coord := NewIBCCoordinator(t, 2)
-	provChain := coord.GetChain(ibctesting2.GetChainID(1))
-	consChain := coord.GetChain(ibctesting2.GetChainID(2))
+	consChain := coord.GetChain(ibctesting2.GetChainID(1))
+	provChain := coord.GetChain(ibctesting2.GetChainID(2))
 	return example{
 		Coordinator:      coord,
 		ConsumerChain:    NewTestChain(t, consChain),
 		ProviderChain:    NewTestChain(t, provChain),
-		ConsumerApp:      consChain.App.(*app.MeshApp),
-		ProviderApp:      provChain.App.(*app.MeshApp),
+		ConsumerApp:      consChain.App.(*consumerapp.MeshConsumerApp),
+		ProviderApp:      provChain.App.(*providerapp.MeshProviderApp),
 		IbcPath:          ibctesting.NewPath(consChain, provChain),
 		ProviderDenom:    sdk.DefaultBondDenom,
 		ConsumerDenom:    sdk.DefaultBondDenom,

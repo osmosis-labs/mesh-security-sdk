@@ -1,4 +1,4 @@
-package app
+package consumer
 
 import (
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
@@ -11,30 +11,30 @@ import (
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 )
 
-func (app *MeshApp) GetIBCKeeper() *ibckeeper.Keeper {
+func (app *MeshProviderApp) GetIBCKeeper() *ibckeeper.Keeper {
 	return app.IBCKeeper
 }
 
-func (app *MeshApp) GetScopedIBCKeeper() capabilitykeeper.ScopedKeeper {
+func (app *MeshProviderApp) GetScopedIBCKeeper() capabilitykeeper.ScopedKeeper {
 	return app.ScopedIBCKeeper
 }
 
-func (app *MeshApp) GetBaseApp() *baseapp.BaseApp {
+func (app *MeshProviderApp) GetBaseApp() *baseapp.BaseApp {
 	return app.BaseApp
 }
 
-func (app *MeshApp) GetBankKeeper() bankkeeper.Keeper {
+func (app *MeshProviderApp) GetBankKeeper() bankkeeper.Keeper {
 	return app.BankKeeper
 }
 
-func (app *MeshApp) GetStakingKeeper() *stakingkeeper.Keeper {
+func (app *MeshProviderApp) GetStakingKeeper() *stakingkeeper.Keeper {
 	return app.StakingKeeper
 }
 
-func (app *MeshApp) GetAccountKeeper() authkeeper.AccountKeeper {
+func (app *MeshProviderApp) GetAccountKeeper() authkeeper.AccountKeeper {
 	return app.AccountKeeper
 }
 
-func (app *MeshApp) GetWasmKeeper() wasmkeeper.Keeper {
+func (app *MeshProviderApp) GetWasmKeeper() wasmkeeper.Keeper {
 	return app.WasmKeeper
 }

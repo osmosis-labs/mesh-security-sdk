@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/json"
+	"fmt"
 
 	errorsmod "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -15,7 +16,9 @@ func (k Keeper) doSudoCall(ctx sdk.Context, contractAddr sdk.AccAddress, msg con
 	if err != nil {
 		return errorsmod.Wrap(err, "marshal sudo msg")
 	}
-	_, err = k.wasmKeeper.Sudo(ctx, contractAddr, bz)
+	resp, err := k.wasmKeeper.Sudo(ctx, contractAddr, bz)
+	fmt.Println("sudo call: ", string(resp))
+	fmt.Println("msg: ", string(bz))
 	return err
 }
 

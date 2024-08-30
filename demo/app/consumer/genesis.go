@@ -1,4 +1,4 @@
-package app
+package consumer
 
 import (
 	"encoding/json"

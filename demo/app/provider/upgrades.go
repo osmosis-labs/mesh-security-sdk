@@ -1,4 +1,4 @@
-package app
+package consumer
 
 import (
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
@@ -32,7 +32,7 @@ import (
 // v0.46.x to v0.47.x.
 const UpgradeName = "v046-to-v047"
 
-func (app MeshApp) RegisterUpgradeHandlers() {
+func (app MeshProviderApp) RegisterUpgradeHandlers() {
 	// Set param key table for params module migration
 	for _, subspace := range app.ParamsKeeper.GetSubspaces() {
 		subspace := subspace

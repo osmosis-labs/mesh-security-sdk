@@ -1,4 +1,4 @@
-package app
+package consumer
 
 import (
 	"github.com/cosmos/cosmos-sdk/std"

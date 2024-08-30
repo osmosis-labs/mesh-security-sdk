@@ -1,4 +1,4 @@
-package app
+package consumer
 
 import (
 	"encoding/json"
@@ -45,7 +45,7 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
-// SetupOptions defines arguments that are passed into `MeshApp` constructor.
+// SetupOptions defines arguments that are passed into `MeshConsumerApp` constructor.
 type SetupOptions struct {
 	Logger   log.Logger
 	DB       *dbm.MemDB
@@ -53,7 +53,7 @@ type SetupOptions struct {
 	WasmOpts []wasmkeeper.Option
 }
 
-func setup(t testing.TB, chainID string, withGenesis bool, invCheckPeriod uint, opts ...wasmkeeper.Option) (*MeshApp, GenesisState) {
+func setup(t testing.TB, chainID string, withGenesis bool, invCheckPeriod uint, opts ...wasmkeeper.Option) (*MeshConsumerApp, GenesisState) {
 	db := dbm.NewMemDB()
 	nodeHome := t.TempDir()
 	snapshotDir := filepath.Join(nodeHome, "data", "snapshots")
@@ -67,15 +67,15 @@ func setup(t testing.TB, chainID string, withGenesis bool, invCheckPeriod uint, 
 	appOptions := make(simtestutil.AppOptionsMap, 0)
 	appOptions[flags.FlagHome] = nodeHome // ensure unique folder
 	appOptions[server.FlagInvCheckPeriod] = invCheckPeriod
-	app := NewMeshApp(log.NewNopLogger(), db, nil, true, appOptions, opts, bam.SetChainID(chainID), bam.SetSnapshot(snapshotStore, snapshottypes.SnapshotOptions{KeepRecent: 2}))
+	app := NewMeshConsumerApp(log.NewNopLogger(), db, nil, true, appOptions, opts, bam.SetChainID(chainID), bam.SetSnapshot(snapshotStore, snapshottypes.SnapshotOptions{KeepRecent: 2}))
 	if withGenesis {
 		return app, NewDefaultGenesisState(app.AppCodec())
 	}
 	return app, GenesisState{}
 }
 
-// NewMeshAppWithCustomOptions initializes a new MeshApp with custom options.
-func NewMeshAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOptions) *MeshApp {
+// NewMeshConsumerAppWithCustomOptions initializes a new MeshConsumerApp with custom options.
+func NewMeshConsumerAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOptions) *MeshConsumerApp {
 	t.Helper()
 
 	privVal := mock.NewPV()
@@ -93,7 +93,7 @@ func NewMeshAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOpti
 		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100000000000000))),
 	}
 
-	app := NewMeshApp(options.Logger, options.DB, nil, true, options.AppOpts, options.WasmOpts)
+	app := NewMeshConsumerApp(options.Logger, options.DB, nil, true, options.AppOpts, options.WasmOpts)
 	genesisState := NewDefaultGenesisState(app.appCodec)
 	genesisState, err = GenesisStateWithValSet(app.AppCodec(), genesisState, valSet, []authtypes.GenesisAccount{acc}, balance)
 	require.NoError(t, err)
@@ -116,8 +116,8 @@ func NewMeshAppWithCustomOptions(t *testing.T, isCheckTx bool, options SetupOpti
 	return app
 }
 
-// Setup initializes a new MeshApp. A Nop logger is set in MeshApp.
-func Setup(t *testing.T, opts ...wasmkeeper.Option) *MeshApp {
+// Setup initializes a new MeshConsumerApp. A Nop logger is set in MeshConsumerApp.
+func Setup(t *testing.T, opts ...wasmkeeper.Option) *MeshConsumerApp {
 	t.Helper()
 
 	privVal := mock.NewPV()
@@ -141,11 +141,11 @@ func Setup(t *testing.T, opts ...wasmkeeper.Option) *MeshApp {
 	return app
 }
 
-// SetupWithGenesisValSet initializes a new MeshApp with a validator set and genesis accounts
+// SetupWithGenesisValSet initializes a new MeshConsumerApp with a validator set and genesis accounts
 // that also act as delegators. For simplicity, each validator is bonded with a delegation
-// of one consensus engine unit in the default token of the MeshApp from first genesis
-// account. A Nop logger is set in MeshApp.
-func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount, chainID string, opts []wasmkeeper.Option, balances ...banktypes.Balance) *MeshApp {
+// of one consensus engine unit in the default token of the MeshConsumerApp from first genesis
+// account. A Nop logger is set in MeshConsumerApp.
+func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount, chainID string, opts []wasmkeeper.Option, balances ...banktypes.Balance) *MeshConsumerApp {
 	t.Helper()
 
 	app, genesisState := setup(t, chainID, true, 5, opts...)
@@ -195,14 +195,14 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 }
 
 // SetupWithEmptyStore set up a wasmd app instance with empty DB
-func SetupWithEmptyStore(t testing.TB) *MeshApp {
+func SetupWithEmptyStore(t testing.TB) *MeshConsumerApp {
 	app, _ := setup(t, "testing", false, 0)
 	return app
 }
 
 // GenesisStateWithSingleValidator initializes GenesisState with a single validator and genesis accounts
 // that also act as delegators.
-func GenesisStateWithSingleValidator(t *testing.T, app *MeshApp) GenesisState {
+func GenesisStateWithSingleValidator(t *testing.T, app *MeshConsumerApp) GenesisState {
 	t.Helper()
 
 	privVal := mock.NewPV()
@@ -232,11 +232,11 @@ func GenesisStateWithSingleValidator(t *testing.T, app *MeshApp) GenesisState {
 
 // AddTestAddrsIncremental constructs and returns accNum amount of accounts with an
 // initial balance of accAmt in random order
-func AddTestAddrsIncremental(app *MeshApp, ctx sdk.Context, accNum int, accAmt math.Int) []sdk.AccAddress {
+func AddTestAddrsIncremental(app *MeshConsumerApp, ctx sdk.Context, accNum int, accAmt math.Int) []sdk.AccAddress {
 	return addTestAddrs(app, ctx, accNum, accAmt, simtestutil.CreateIncrementalAccounts)
 }
 
-func addTestAddrs(app *MeshApp, ctx sdk.Context, accNum int, accAmt math.Int, strategy simtestutil.GenerateAccountStrategy) []sdk.AccAddress {
+func addTestAddrs(app *MeshConsumerApp, ctx sdk.Context, accNum int, accAmt math.Int, strategy simtestutil.GenerateAccountStrategy) []sdk.AccAddress {
 	testAddrs := strategy(accNum)
 
 	initCoins := sdk.NewCoins(sdk.NewCoin(app.StakingKeeper.BondDenom(ctx), accAmt))
@@ -248,7 +248,7 @@ func addTestAddrs(app *MeshApp, ctx sdk.Context, accNum int, accAmt math.Int, st
 	return testAddrs
 }
 
-func initAccountWithCoins(app *MeshApp, ctx sdk.Context, addr sdk.AccAddress, coins sdk.Coins) {
+func initAccountWithCoins(app *MeshConsumerApp, ctx sdk.Context, addr sdk.AccAddress, coins sdk.Coins) {
 	err := app.BankKeeper.MintCoins(ctx, minttypes.ModuleName, coins)
 	if err != nil {
 		panic(err)
@@ -262,14 +262,14 @@ func initAccountWithCoins(app *MeshApp, ctx sdk.Context, addr sdk.AccAddress, co
 
 // ModuleAccountAddrs provides a list of blocked module accounts from configuration in AppConfig
 //
-// Ported from MeshApp
+// Ported from MeshConsumerApp
 func ModuleAccountAddrs() map[string]bool {
 	return BlockedAddresses()
 }
 
 var emptyWasmOptions []wasmkeeper.Option
 
-// NewTestNetworkFixture returns a new MeshApp AppConstructor for network simulation tests
+// NewTestNetworkFixture returns a new MeshConsumerApp AppConstructor for network simulation tests
 func NewTestNetworkFixture() network.TestFixture {
 	dir, err := os.MkdirTemp("", "simapp")
 	if err != nil {
@@ -277,9 +277,9 @@ func NewTestNetworkFixture() network.TestFixture {
 	}
 	defer os.RemoveAll(dir)
 
-	app := NewMeshApp(log.NewNopLogger(), dbm.NewMemDB(), nil, true, simtestutil.NewAppOptionsWithFlagHome(dir), emptyWasmOptions)
+	app := NewMeshConsumerApp(log.NewNopLogger(), dbm.NewMemDB(), nil, true, simtestutil.NewAppOptionsWithFlagHome(dir), emptyWasmOptions)
 	appCtr := func(val network.ValidatorI) servertypes.Application {
-		return NewMeshApp(val.GetCtx().Logger, dbm.NewMemDB(), nil, true, simtestutil.NewAppOptionsWithFlagHome(val.GetCtx().Config.RootDir), emptyWasmOptions, bam.SetPruning(pruningtypes.NewPruningOptionsFromString(val.GetAppConfig().Pruning)), bam.SetMinGasPrices(val.GetAppConfig().MinGasPrices), bam.SetChainID(val.GetCtx().Viper.GetString(flags.FlagChainID)))
+		return NewMeshConsumerApp(val.GetCtx().Logger, dbm.NewMemDB(), nil, true, simtestutil.NewAppOptionsWithFlagHome(val.GetCtx().Config.RootDir), emptyWasmOptions, bam.SetPruning(pruningtypes.NewPruningOptionsFromString(val.GetAppConfig().Pruning)), bam.SetMinGasPrices(val.GetAppConfig().MinGasPrices), bam.SetChainID(val.GetCtx().Viper.GetString(flags.FlagChainID)))
 	}
 
 	return network.TestFixture{

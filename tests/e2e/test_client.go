@@ -21,9 +21,11 @@ import (
 	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
-	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
+	consumerapp "github.com/osmosis-labs/mesh-security-sdk/demo/app/consumer"
+	providerapp "github.com/osmosis-labs/mesh-security-sdk/demo/app/provider"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
+	providertypes "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 )
 
 // Query is a query type used in tests only
@@ -96,7 +98,7 @@ func NewProviderClient(t *testing.T, chain *TestChain) *TestProviderClient {
 func (tc *TestChain) SendMsgsWithSigner(privKey cryptotypes.PrivKey, signer *authtypes.BaseAccount, msgs ...sdk.Msg) (*sdk.Result, error) {
 	// ensure the chain has the latest time
 	tc.Coordinator.UpdateTimeForChain(tc.TestChain)
-	_, r, gotErr := app.SignAndDeliverWithoutCommit(
+	_, r, gotErr := providerapp.SignAndDeliverWithoutCommit(
 		tc.t,
 		tc.TxConfig,
 		tc.App.GetBaseApp(),
@@ -126,10 +128,11 @@ func (tc *TestChain) SendMsgsWithSigner(privKey cryptotypes.PrivKey, signer *aut
 
 type ProviderContracts struct {
 	Vault           sdk.AccAddress
+	NativeStaking   sdk.AccAddress
 	ExternalStaking sdk.AccAddress
 }
 
-func (p *TestProviderClient) BootstrapContracts(provApp *app.MeshApp, connId, portID string) ProviderContracts {
+func (p *TestProviderClient) BootstrapContracts(provApp *providerapp.MeshProviderApp, connId, portID string) ProviderContracts {
 	var (
 		unbondingPeriod           = 21 * 24 * 60 * 60 // 21 days - make configurable?
 		localSlashRatioDoubleSign = "0.20"
@@ -162,6 +165,19 @@ func (p *TestProviderClient) BootstrapContracts(provApp *app.MeshApp, connId, po
 		ExternalStaking: externalStakingContract,
 	}
 	p.Contracts = r
+
+	// local staking
+	vaultConfig := p.QueryVault(Query{
+		"config": {},
+	})
+	require.Contains(p.t, vaultConfig, "local_staking")
+	nativeStaking, err := sdk.AccAddressFromBech32(vaultConfig["local_staking"].(string))
+	require.NoError(p.t, err)
+	r.NativeStaking = nativeStaking
+	p.Contracts = r
+
+	p.MustExecParamsChangeProposal(provApp, vaultContract.String(), nativeStaking.String())
+
 	return r
 }
 
@@ -256,6 +272,36 @@ func (p TestProviderClient) ExecStakeRemote(val string, amt sdk.Coin) error {
 	return err
 }
 
+// MustExecGovProposal submit and vote yes on proposal
+func (p TestProviderClient) MustExecParamsChangeProposal(provApp *providerapp.MeshProviderApp, vault, nativeStaking string) {
+	msg := &providertypes.MsgUpdateParams{
+		Authority: provApp.MeshSecKeeper.GetAuthority(),
+		Params: providertypes.Params{
+			VaultAddress:         vault,
+			NativeStakingAddress: nativeStaking,
+		},
+	}
+	proposalID := submitProviderGovProposal(p.t, p.chain, msg)
+	voteAndPassProviderGovProposal(p.t, p.chain, proposalID)
+}
+
+func (p TestProviderClient) QueryNativeStakingProxyByOwner(user string) sdk.AccAddress {
+	qRsp := p.QueryNativeStaking(Query{
+		"proxy_by_owner": {
+			"owner": user,
+		},
+	})
+	require.Contains(p.t, qRsp, "proxy")
+	a, err := sdk.AccAddressFromBech32(qRsp["proxy"].(string))
+	require.NoError(p.t, err)
+
+	return a
+}
+
+func (p TestProviderClient) QueryNativeStaking(q Query) QueryResponse {
+	return Querier(p.t, p.chain)(p.Contracts.NativeStaking.String(), q)
+}
+
 func (p TestProviderClient) QueryExtStakingAmount(user, validator string) int {
 	qRsp := p.QueryExtStaking(Query{
 		"stake": {
@@ -340,11 +386,11 @@ type TestConsumerClient struct {
 	t         *testing.T
 	chain     *TestChain
 	contracts ConsumerContract
-	app       *app.MeshApp
+	app       *consumerapp.MeshConsumerApp
 }
 
 func NewConsumerClient(t *testing.T, chain *TestChain) *TestConsumerClient {
-	return &TestConsumerClient{t: t, chain: chain, app: chain.App.(*app.MeshApp)}
+	return &TestConsumerClient{t: t, chain: chain, app: chain.App.(*consumerapp.MeshConsumerApp)}
 }
 
 type ConsumerContract struct {
@@ -411,13 +457,13 @@ func (p *TestConsumerClient) MustEnableVirtualStaking(maxCap sdk.Coin) {
 		Contract:  p.contracts.staking.String(),
 		MaxCap:    maxCap,
 	}
-	p.MustExecGovProposal(govProposal)
+	p.MustExecConsumerGovProposal(govProposal)
 }
 
 // MustExecGovProposal submit and vote yes on proposal
-func (p *TestConsumerClient) MustExecGovProposal(msg *types.MsgSetVirtualStakingMaxCap) {
-	proposalID := submitGovProposal(p.t, p.chain, msg)
-	voteAndPassGovProposal(p.t, p.chain, proposalID)
+func (p *TestConsumerClient) MustExecConsumerGovProposal(msg *types.MsgSetVirtualStakingMaxCap) {
+	proposalID := submitConsumerGovProposal(p.t, p.chain, msg)
+	voteAndPassConsumerGovProposal(p.t, p.chain, proposalID)
 }
 
 func (p *TestConsumerClient) QueryMaxCap() types.QueryVirtualStakingMaxCapLimitResponse {
