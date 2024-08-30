@@ -324,15 +324,26 @@ func TestSlasingImmediateUnbond(t *testing.T) {
 	// Check new free collateral
 	require.Equal(t, 100_000_000, providerCli.QueryVaultFreeBalance())
 
-	execMsg = fmt.Sprintf(`{"unstake": {"validator":%q,"amount": {"denom":%q, "amount":"%d"}}}`,
-		myLocalValidatorAddr, x.ProviderDenom, 10_000_000)
-
 	// Get native staking proxy contract
 	nativeStakingProxy := providerCli.QueryNativeStakingProxyByOwner(x.ProviderChain.SenderAccount.GetAddress().String())
+
+	execMsg = fmt.Sprintf(`{"unstake": {"validator":%q,"amount": {"denom":%q, "amount":"%d"}}}`,
+		myLocalValidatorAddr, x.ProviderDenom, 10_000_000)
 	_, err := providerCli.Exec(nativeStakingProxy, execMsg)
 	require.NoError(t, err)
 
 	x.ProviderChain.NextBlock()
 
-	require.Equal(t, 190_000_001, providerCli.QueryVaultBalance())
+	_, err = providerCli.Exec(nativeStakingProxy, `{"release_unbonded": {}}`)
+	require.NoError(t, err)
+
+	// Check new collateral
+	require.Equal(t, 200_000_000, providerCli.QueryVaultBalance())
+	// Check new max lien
+	// Max lien decrease as release_unbonded
+	require.Equal(t, 90_000_001, providerCli.QueryMaxLien())
+	// Check new slashable amount
+	require.Equal(t, 18000001, providerCli.QuerySlashableAmount())
+	// Check new free collateral
+	require.Equal(t, 109999999, providerCli.QueryVaultFreeBalance())
 }
