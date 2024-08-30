@@ -1,8 +1,6 @@
 package keeper
 
 import (
-	"fmt"
-
 	"cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -96,13 +94,22 @@ func (s StakingDecorator) SlashWithInfractionReason(ctx sdk.Context, consAddr sd
 	params := s.k.GetParams(ctx)
 	nativeStakingAddr := sdk.MustAccAddressFromBech32(params.NativeStakingAddress)
 
-	fmt.Println("nativeStakingAddr: ", nativeStakingAddr)
+	validator := s.StakingKeeper.ValidatorByConsAddr(ctx, consAddr)
+
 	if infraction == stakingtypes.Infraction_INFRACTION_DOUBLE_SIGN {
-		s.k.SendJailHandlingMsg(ctx, nativeStakingAddr, nil, []string{consAddr.String()})
+		err := s.k.SendJailHandlingMsg(ctx, nativeStakingAddr, []string{}, []string{validator.GetOperator().String()})
+		if err != nil {
+			meshsecuritykeeper.ModuleLogger(ctx).
+				Error("can not send tombstone handling message to native-staking contract")
+		}
 	}
 
 	if infraction == stakingtypes.Infraction_INFRACTION_DOWNTIME {
-		s.k.SendJailHandlingMsg(ctx, nativeStakingAddr, []string{consAddr.String()}, nil)
+		err := s.k.SendJailHandlingMsg(ctx, nativeStakingAddr, []string{validator.GetOperator().String()}, []string{})
+		if err != nil {
+			meshsecuritykeeper.ModuleLogger(ctx).
+				Error("can not send jail handling message to native-staking contract")
+		}
 	}
 	return s.Slash(ctx, consAddr, infractionHeight, power, slashFactor)
 }

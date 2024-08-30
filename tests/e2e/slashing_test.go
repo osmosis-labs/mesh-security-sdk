@@ -331,8 +331,8 @@ func TestSlashingProviderChain(t *testing.T) {
 	require.Equal(t, validator1.GetTokens(), sdk.NewInt(90_900_000))
 
 	// Assert sudo msg has been sent to contract
-	require.Equal(t, 200_000_000, providerCli.QueryVaultBalance())
-	require.Equal(t, 150_000_000, providerCli.QueryMaxLien())
-	require.Equal(t, 30_000_000, providerCli.QuerySlashableAmount())
+	require.Equal(t, 190_000_000, providerCli.QueryVaultBalance())
+	require.Equal(t, 140_000_000, providerCli.QueryMaxLien())
+	require.Equal(t, 28_000_000, providerCli.QuerySlashableAmount())
 	require.Equal(t, 50_000_000, providerCli.QueryVaultFreeBalance())
 }
