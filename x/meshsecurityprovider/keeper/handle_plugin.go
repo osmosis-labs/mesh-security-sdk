@@ -17,7 +17,6 @@ type CustomMessenger struct {
 	k *Keeper
 }
 
-
 // CustomMessageDecorator returns decorator for custom CosmWasm bindings messages
 func CustomMessageDecorator(provKeeper *Keeper) *CustomMessenger {
 	return &CustomMessenger{
@@ -45,7 +44,8 @@ func (h CustomMessenger) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddres
 		return h.k.HandleBondMsg(ctx, contractAddr, customMsg.Provider.Bond)
 	case customMsg.Provider.Unbond != nil:
 		return h.k.HandleUnbondMsg(ctx, contractAddr, customMsg.Provider.Unbond)
+	case customMsg.Register != nil:
+		return h.k.HandleRegistryConsumer(ctx, contractAddr.String(), customMsg.Register.ChainID)
 	}
 	return nil, nil, wasmtypes.ErrUnknownMsg
 }
-

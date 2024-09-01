@@ -7,11 +7,9 @@ import (
 
 var _ sdk.Msg = &MsgUpdateParams{}
 
-
 const (
 	TypeMsgUpdateParams = "update-params"
 )
-
 
 func (msg MsgUpdateParams) Route() string { return ModuleName }
 func (msg MsgUpdateParams) Type() string  { return TypeMsgUpdateParams }

@@ -147,3 +147,43 @@ func (k Keeper) HandleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress, unbondMsg
 		sdk.NewAttribute(types.AttributeKeyDelegator, delAddr.String()),
 	)}, nil, nil
 }
+
+// TODO: testing
+func (keeper Keeper) HandleRegistryConsumer(
+	ctx sdk.Context,
+	chainID string,
+	contractAddress string,
+) ([]sdk.Event, [][]byte, error) {
+	keeper.SetConsumerChainID(ctx, chainID, contractAddress)
+
+	return []sdk.Event{sdk.NewEvent(
+		types.EventTypeUnbond,
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		sdk.NewAttribute(types.AttributeKeyContractAddress, contractAddress),
+		sdk.NewAttribute(types.AttributeConsumerChainID, chainID),
+	)}, nil, nil
+}
+
+// // TODO: testing
+func (keeper Keeper) SetConsumerChainID(ctx sdk.Context, contractAddress, chainID string) {
+	store := ctx.KVStore(keeper.storeKey)
+
+	bz := append([]byte(chainID), []byte(contractAddress)...)
+	key := append(types.ConsumerChainIDKey, bz...)
+	store.Set(key, []byte{})
+}
+
+// TODO: testing
+func (keeper Keeper) IteratorProxyStakingContractAddr(ctx sdk.Context, chainID string, cb func(contractAddress string) (stop bool)) {
+	store := ctx.KVStore(keeper.storeKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, append(types.ConsumerChainIDKey, []byte(chainID)...))
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		chainIDoffset := len([]byte(chainID))
+		if cb(string(iterator.Key()[chainIDoffset:])) {
+			return
+		}
+	}
+}

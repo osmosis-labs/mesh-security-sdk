@@ -4,7 +4,8 @@ import wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 
 type (
 	CustomMsg struct {
-		Provider *ProviderMsg `json:"provider,omitempty"`
+		Provider *ProviderMsg             `json:"provider,omitempty"`
+		Register *RegisterMeshConsumerMsg `json:"register,omitempty"`
 	}
 	ProviderMsg struct {
 		Bond   *BondMsg   `json:"bond,omitempty"`
@@ -17,5 +18,8 @@ type (
 	UnbondMsg struct {
 		Amount    wasmvmtypes.Coin `json:"amount"`
 		Delegator string           `json:"delegator"`
+	}
+	RegisterMeshConsumerMsg struct {
+		ChainID string `json:"chain_id"`
 	}
 )
