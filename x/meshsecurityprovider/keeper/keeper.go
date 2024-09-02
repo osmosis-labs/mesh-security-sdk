@@ -21,6 +21,8 @@ type Keeper struct {
 	bankKeeper    types.BankKeeper
 	wasmKeeper    types.WasmKeeper
 	stakingKeeper types.StakingKeeper
+	channelKeeper types.ChannelKeeper
+	clientKeeper  types.ClientKeeper
 }
 
 func NewKeeper(cdc codec.BinaryCodec, storeKey storetypes.StoreKey,
@@ -152,38 +154,45 @@ func (k Keeper) HandleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress, unbondMsg
 func (keeper Keeper) HandleRegistryConsumer(
 	ctx sdk.Context,
 	chainID string,
-	contractAddress string,
+	channelID string,
+	contractAddress sdk.AccAddress,
 ) ([]sdk.Event, [][]byte, error) {
-	keeper.SetConsumerChainID(ctx, chainID, contractAddress)
+	keeper.SetConsumerChainID(ctx, chainID, contractAddress, channelID)
 
 	return []sdk.Event{sdk.NewEvent(
 		types.EventTypeUnbond,
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
-		sdk.NewAttribute(types.AttributeKeyContractAddress, contractAddress),
+		sdk.NewAttribute(types.AttributeKeyContractAddress, string(contractAddress)),
 		sdk.NewAttribute(types.AttributeConsumerChainID, chainID),
 	)}, nil, nil
 }
 
 // // TODO: testing
-func (keeper Keeper) SetConsumerChainID(ctx sdk.Context, contractAddress, chainID string) {
+func (keeper Keeper) SetConsumerChainID(ctx sdk.Context, chainID string, contractAddress []byte, clientID string) {
 	store := ctx.KVStore(keeper.storeKey)
 
-	bz := append([]byte(chainID), []byte(contractAddress)...)
-	key := append(types.ConsumerChainIDKey, bz...)
-	store.Set(key, []byte{})
+	bz := append([]byte(chainID), []byte(clientID)...)
+	value := append(types.ConsumerChainIDKey, bz...)
+
+	store.Set(bz, value)
 }
 
 // TODO: testing
-func (keeper Keeper) IteratorProxyStakingContractAddr(ctx sdk.Context, chainID string, cb func(contractAddress string) (stop bool)) {
+func (keeper Keeper) IteratorProxyStakingContractAddr(ctx sdk.Context, chainID string, cb func(contractAddress sdk.AccAddress) (stop bool)) {
 	store := ctx.KVStore(keeper.storeKey)
 
 	iterator := sdk.KVStorePrefixIterator(store, append(types.ConsumerChainIDKey, []byte(chainID)...))
 	defer iterator.Close()
 
 	for ; iterator.Valid(); iterator.Next() {
-		chainIDoffset := len([]byte(chainID))
-		if cb(string(iterator.Key()[chainIDoffset:])) {
+		if cb(iterator.Value()) {
 			return
 		}
 	}
+}
+
+func (keeper Keeper) GetProxyStakingContractAccAddr(ctx sdk.Context, chainID string, clientID string) sdk.AccAddress {
+	store := ctx.KVStore(keeper.storeKey)
+
+	return store.Get(append([]byte(chainID), []byte(clientID)...))
 }

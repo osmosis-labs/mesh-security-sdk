@@ -20,6 +20,7 @@ type (
 		Delegator string           `json:"delegator"`
 	}
 	RegisterMeshConsumerMsg struct {
-		ChainID string `json:"chain_id"`
+		ChainID   string `json:"chain_id"`
+		ChannelID string `json:"channel_id"`
 	}
 )
