@@ -1,7 +1,7 @@
 package types
 
 const (
-	ModuleName = "test_module"
+	ModuleName = "mesh-provider"
 
 	StoreKey = ModuleName
 
