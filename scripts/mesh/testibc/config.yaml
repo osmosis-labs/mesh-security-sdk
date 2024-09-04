@@ -35,7 +35,7 @@ chains:
             key-directory: /Users/phamminh/.relayer/keys/chain-2/
             key: key2
             chain-id: chain-2
-            rpc-addr: http://localhost:26654
+            rpc-addr: http://localhost:26667
             account-prefix: mesh
             keyring-backend: test
             gas-adjustment: 1.2
