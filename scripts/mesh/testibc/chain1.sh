@@ -18,8 +18,8 @@ meshd init mesh-1 --chain-id chain-1 --home=$home
 # Change parameter token denominations to stake
 cat $HOME/.meshd/chain1/config/genesis.json | jq '.app_state["staking"]["params"]["bond_denom"]="stake"' > $HOME/.meshd/chain1/config/tmp_genesis.json && mv $HOME/.meshd/chain1/config/tmp_genesis.json $HOME/.meshd/chain1/config/genesis.json
 cat $HOME/.meshd/chain1/config/genesis.json | jq '.app_state["crisis"]["constant_fee"]["denom"]="stake"' > $HOME/.meshd/chain1/config/tmp_genesis.json && mv $HOME/.meshd/chain1/config/tmp_genesis.json $HOME/.meshd/chain1/config/genesis.json
-cat $HOME/.meshd/chain1/config/genesis.json | jq '.app_state["gov"]["deposit_params"]["min_deposit"][0]["denom"]="stake"' > $HOME/.meshd/chain1/config/tmp_genesis.json && mv $HOME/.meshd/chain1/config/tmp_genesis.json $HOME/.meshd/chain1/config/genesis.json
-cat $HOME/.meshd/chain1/config/genesis.json | jq '.app_state["gov"]["voting_params"]["voting_period"]="30s"' > $HOME/.meshd/chain1/config/tmp_genesis.json && mv $HOME/.meshd/chain1/config/tmp_genesis.json $HOME/.meshd/chain1/config/genesis.json
+cat $HOME/.meshd/chain1/config/genesis.json | jq '.app_state["gov"]["params"]["min_deposit"][0]["denom"]="stake"' > $HOME/.meshd/chain1/config/tmp_genesis.json && mv $HOME/.meshd/chain1/config/tmp_genesis.json $HOME/.meshd/chain1/config/genesis.json
+cat $HOME/.meshd/chain1/config/genesis.json | jq '.app_state["gov"]["params"]["voting_period"]="30s"' > $HOME/.meshd/chain1/config/tmp_genesis.json && mv $HOME/.meshd/chain1/config/tmp_genesis.json $HOME/.meshd/chain1/config/genesis.json
 cat $HOME/.meshd/chain1/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="stake"' > $HOME/.meshd/chain1/config/tmp_genesis.json && mv $HOME/.meshd/chain1/config/tmp_genesis.json $HOME/.meshd/chain1/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
