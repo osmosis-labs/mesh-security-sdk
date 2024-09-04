@@ -15,7 +15,6 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
 )
 
-// TODO: testing
 // VerifyDoubleVotingEvidence verifies a double voting evidence
 // for a given chain id and a validator public key
 func (keeper Keeper) VerifyDoubleVotingEvidence(
@@ -82,7 +81,6 @@ func (keeper Keeper) VerifyDoubleVotingEvidence(
 	return nil
 }
 
-// TODO: testing
 // HandleConsumerDoubleVoting verifies a double voting evidence for a given a consumer chain ID
 // and a public key and, if successful, executes the slashing, jailing, and tombstoning of the malicious validator.
 func (keeper Keeper) HandleConsumerDoubleVoting(

@@ -21,7 +21,6 @@ type Keeper struct {
 	bankKeeper    types.BankKeeper
 	wasmKeeper    types.WasmKeeper
 	stakingKeeper types.StakingKeeper
-	channelKeeper types.ChannelKeeper
 	clientKeeper  types.ClientKeeper
 }
 
@@ -150,7 +149,6 @@ func (k Keeper) HandleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress, unbondMsg
 	)}, nil, nil
 }
 
-// TODO: testing
 func (keeper Keeper) HandleRegistryConsumer(
 	ctx sdk.Context,
 	chainID string,
@@ -167,17 +165,15 @@ func (keeper Keeper) HandleRegistryConsumer(
 	)}, nil, nil
 }
 
-// // TODO: testing
 func (keeper Keeper) SetConsumerChainID(ctx sdk.Context, chainID string, contractAddress []byte, clientID string) {
 	store := ctx.KVStore(keeper.storeKey)
 
 	bz := append([]byte(chainID), []byte(clientID)...)
-	value := append(types.ConsumerChainIDKey, bz...)
+	key := append(types.ConsumerChainIDKey, bz...)
 
-	store.Set(bz, value)
+	store.Set(key, contractAddress)
 }
 
-// TODO: testing
 func (keeper Keeper) IteratorProxyStakingContractAddr(ctx sdk.Context, chainID string, cb func(contractAddress sdk.AccAddress) (stop bool)) {
 	store := ctx.KVStore(keeper.storeKey)
 
@@ -194,5 +190,6 @@ func (keeper Keeper) IteratorProxyStakingContractAddr(ctx sdk.Context, chainID s
 func (keeper Keeper) GetProxyStakingContractAccAddr(ctx sdk.Context, chainID string, clientID string) sdk.AccAddress {
 	store := ctx.KVStore(keeper.storeKey)
 
-	return store.Get(append([]byte(chainID), []byte(clientID)...))
+	bz := append([]byte(chainID), []byte(clientID)...)
+	return store.Get(append(types.ConsumerChainIDKey, bz...))
 }
