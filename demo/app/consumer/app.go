@@ -136,7 +136,7 @@ const appName = "MeshConsumerApp"
 
 // We pull these out so we can set them with LDFLAGS in the Makefile
 var (
-	NodeDir      = ".meshd"
+	NodeDir      = ".meshconsumerd"
 	Bech32Prefix = "mesh"
 )
 
