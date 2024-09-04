@@ -188,10 +188,12 @@ func (k Keeper) HandleConsumerMisbehaviour(ctx sdk.Context, misbehaviour ibctmty
 	for _, v := range byzantineValidators {
 		// sudo call `tombstone` to the staking proxy contract
 		contractAddr := contractAccAddr.String()
-		consAddr := sdk.ConsAddress(v.Address.Bytes()).String()
+		consAddr := sdk.ConsAddress(v.Address.Bytes())
+		val := k.stakingKeeper.ValidatorByConsAddr(ctx, consAddr)
 
+		valAddr := val.GetOperator().String()
 		msg := contract.SudoMsg{
-			Tombstoned: &consAddr,
+			Tombstoned: &valAddr,
 		}
 
 		err := k.doSudoCall(ctx, contractAccAddr, msg)
