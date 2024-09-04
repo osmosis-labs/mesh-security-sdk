@@ -17,7 +17,7 @@ virtual_staking=$(meshd q wasm list-contract-by-code 2 --output json | jq -r '.c
 converter=$(meshd q wasm list-contract-by-code 3 --output json | jq -r '.contracts[0]' )
 vault=$(meshd q wasm list-contract-by-code 1 --output json --node tcp://127.0.0.1:26654 | jq -r '.contracts[0]' )
 ext_staking=$(meshd q wasm list-contract-by-code 4 --output json --node tcp://127.0.0.1:26654 | jq -r '.contracts[0]' )
-test1_provider_addr=$(meshd keys show test1 --keyring-backend test --home home=$HOME/.meshd/chain2)
+test1_provider_addr=$(meshd keys show test1 --keyring-backend test --home=$HOME/.meshd/chain2 --address)
 meshd tx meshsecurity submit-proposal set-virtual-staking-max-cap $virtual_staking 100000000stake --title "a title" --summary "a summary" --from test1 --keyring-backend test --home=$HOME/.meshd/chain1 --chain-id chain-1 -y --deposit 10000000stake
 
 sleep 5
@@ -52,7 +52,7 @@ stake_local_msg=$(cat <<EOF
 }
 EOF
 )
-meshd tx wasm execute $vault "$stake_local_msg" --from test1 --home=$HOME/.meshd/chain2  --chain-id chain-2 --keyring-backend test --node tcp://127.0.0.1:26654 --fees 1stake -y --gas 5406929
+meshd tx wasm execute $vault "$stake_local_msg" --from test1 --home=$HOME/.meshd/chain2  --chain-id chain-2 --keyring-backend test --node tcp://127.0.0.1:26654 --fees 1stake -y --gas 15406929
 
 sleep 7
 
@@ -79,17 +79,17 @@ stake_remote_msg=$(cat <<EOF
 EOF
 )
 
-meshd tx wasm execute $vault "$stake_remote_msg" --from test1 --home=$HOME/.meshd/chain2  --chain-id chain-2 --keyring-backend test --node tcp://127.0.0.1:26654 --fees 1stake -y --gas 5406929
+meshd tx wasm execute $vault "$stake_remote_msg" --from test1 --home=$HOME/.meshd/chain2  --chain-id chain-2 --keyring-backend test --node tcp://127.0.0.1:26654 --fees 1stake -y --gas 15406929
 
 # {"stake_remote":{"contract":"cosmos1zwv6feuzhy6a9wekh96cd57lsarmqlwxdypdsplw6zhfncqw6ftqp82y57", "amount": {"denom":"stake", "amount":"100000000"}, "msg":"eyJ2YWxpZGF0b3IiOiAiY29zbW9zdmFsb3BlcjF5czA0bnNhbTAyeHA1cGt3Y3A2eGozeTd6bDd0emtmZnN3ampteSJ9"}}
 stake_query=$(cat <<EOF
 {
     "stake": {
         "user": "$test1_provider_addr",
-        "validator": "$val1_consumer_addr",
+        "validator": "$val1_consumer_addr"
     }
 }
 EOF
 )
-meshd q wasm smart $ext_staking "$stake_query" --node tcp://127.0.0.1:26654
+meshd q wasm state smart $ext_staking "$stake_query" --node tcp://127.0.0.1:26654
 # meshd tx wasm execute mesh1zwv6feuzhy6a9wekh96cd57lsarmqlwxdypdsplw6zhfncqw6ftqsqwra5 '{"stake_remote":{"contract":"mesh1zwv6feuzhy6a9wekh96cd57lsarmqlwxdypdsplw6zhfncqw6ftqsqwra5", "amount": {"denom":"stake", "amount":"1000"}, "msg":"eyJ2YWxpZGF0b3IiOiAibWVzaHZhbG9wZXIxZjd0d2djcTR5cHpnN3kyNHd1eXd5MDZ4bWRldDhwYzRoc2w2dHkifQ=="}}' --amount 1000stake  --from test1 --home=$HOME/.meshd/chain2  --chain-id chain-2 --keyring-backend test --node tcp://127.0.0.1:26654 --fees 1stake -y --gas 5406929

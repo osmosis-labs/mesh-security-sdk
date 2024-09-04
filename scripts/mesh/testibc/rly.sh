@@ -19,18 +19,18 @@ sleep 5
 
 rly tx clients demo
 
-sleep 7
+sleep 10
 
 rly tx connection demo
 
-sleep 7
+sleep 10
 
 converter=$(meshd q wasm list-contract-by-code 3 --output json | jq -r '.contracts[0]' )
 ext_staking=$(meshd q wasm list-contract-by-code 4 --output json --node tcp://127.0.0.1:26654 | jq -r '.contracts[0]' )
 
 rly tx channel demo --src-port wasm.$converter --dst-port wasm.$ext_staking --order unordered --version '{"protocol":"mesh-security","version":"0.11.0"}'
 
-sleep 7
+sleep 15
 
 screen -S rly -t rly -d -m  rly start demo
 
