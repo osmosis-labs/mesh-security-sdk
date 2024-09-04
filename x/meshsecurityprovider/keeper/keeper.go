@@ -1,13 +1,16 @@
 package keeper
 
 import (
+	errorsmod "cosmossdk.io/errors"
 	"github.com/cometbft/cometbft/libs/log"
+	ibctm "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
 
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	"github.com/cosmos/cosmos-sdk/codec"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	channeltypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/contract"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
@@ -22,6 +25,7 @@ type Keeper struct {
 	wasmKeeper    types.WasmKeeper
 	stakingKeeper types.StakingKeeper
 	clientKeeper  types.ClientKeeper
+	channelKeeper types.ChannelKeeper
 }
 
 func NewKeeper(cdc codec.BinaryCodec, storeKey storetypes.StoreKey,
@@ -151,17 +155,39 @@ func (k Keeper) HandleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress, unbondMsg
 
 func (keeper Keeper) HandleRegistryConsumer(
 	ctx sdk.Context,
-	chainID string,
 	channelID string,
 	contractAddress sdk.AccAddress,
 ) ([]sdk.Event, [][]byte, error) {
-	keeper.SetConsumerChainID(ctx, chainID, contractAddress, channelID)
+	// get portID
+	portID := "wasm." + contractAddress.String()
+	// get connection ID
+	channel, found := keeper.channelKeeper.GetChannel(ctx, portID, channelID)
+	if !found {
+		return nil, nil, errorsmod.Wrapf(channeltypes.ErrChannelNotFound, "port ID (%s) channel ID (%s)", portID, channelID)
+	}
+
+	connection, err := keeper.channelKeeper.GetConnection(ctx, channel.ConnectionHops[0])
+	if err != nil {
+		return nil, nil, err
+	}
+
+	clientState, found := keeper.clientKeeper.GetClientState(ctx, connection.ClientId)
+	if !found {
+		return nil, nil, errorsmod.Wrapf(channeltypes.ErrChannelNotFound, "port ID (%s) channel ID (%s)", portID, channelID)
+	}
+
+	tmCs, ok := clientState.(*ibctm.ClientState)
+	if !ok {
+		return nil, nil, errorsmod.Wrapf(types.ErrUnsupportedCounterpartyClientTypes, "got (%s)", clientState.ClientType())
+	}
+
+	keeper.SetConsumerChainID(ctx, tmCs.ChainId, contractAddress, channelID)
 
 	return []sdk.Event{sdk.NewEvent(
 		types.EventTypeUnbond,
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 		sdk.NewAttribute(types.AttributeKeyContractAddress, string(contractAddress)),
-		sdk.NewAttribute(types.AttributeConsumerChainID, chainID),
+		sdk.NewAttribute(types.AttributeConsumerChainID, tmCs.ChainId),
 	)}, nil, nil
 }
 
@@ -174,7 +200,7 @@ func (keeper Keeper) SetConsumerChainID(ctx sdk.Context, chainID string, contrac
 	store.Set(key, contractAddress)
 }
 
-func (keeper Keeper) IteratorProxyStakingContractAddr(ctx sdk.Context, chainID string, cb func(contractAddress sdk.AccAddress) (stop bool)) {
+func (keeper Keeper) IteratorExternalStakingContractAddr(ctx sdk.Context, chainID string, cb func(contractAddress sdk.AccAddress) (stop bool)) {
 	store := ctx.KVStore(keeper.storeKey)
 
 	iterator := sdk.KVStorePrefixIterator(store, append(types.ConsumerChainIDKey, []byte(chainID)...))
@@ -187,7 +213,7 @@ func (keeper Keeper) IteratorProxyStakingContractAddr(ctx sdk.Context, chainID s
 	}
 }
 
-func (keeper Keeper) GetProxyStakingContractAccAddr(ctx sdk.Context, chainID string, clientID string) sdk.AccAddress {
+func (keeper Keeper) GetExternalStakingContractAccAddr(ctx sdk.Context, chainID string, clientID string) sdk.AccAddress {
 	store := ctx.KVStore(keeper.storeKey)
 
 	bz := append([]byte(chainID), []byte(clientID)...)

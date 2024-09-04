@@ -45,7 +45,7 @@ func (h CustomMessenger) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddres
 	case customMsg.Provider.Unbond != nil:
 		return h.k.HandleUnbondMsg(ctx, contractAddr, customMsg.Provider.Unbond)
 	case customMsg.Register != nil:
-		return h.k.HandleRegistryConsumer(ctx, customMsg.Register.ChainID, customMsg.Register.ChannelID, contractAddr)
+		return h.k.HandleRegistryConsumer(ctx, customMsg.Register.ChannelID, contractAddr)
 	}
 	return nil, nil, wasmtypes.ErrUnknownMsg
 }

@@ -5,5 +5,6 @@ import (
 )
 
 var (
-	ErrInvalidDoubleVotingEvidence = errorsmod.Register(ModuleName, 1, "invalid consumer double voting evidence")
+	ErrInvalidDoubleVotingEvidence        = errorsmod.Register(ModuleName, 1, "invalid consumer double voting evidence")
+	ErrUnsupportedCounterpartyClientTypes = errorsmod.Register(ModuleName, 2, "invalid counterparty client type, only support tendermint light client")
 )

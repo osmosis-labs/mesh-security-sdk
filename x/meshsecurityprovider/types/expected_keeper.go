@@ -3,6 +3,9 @@ package types
 import (
 	"time"
 
+	connectiontypes "github.com/cosmos/ibc-go/v7/modules/core/03-connection/types"
+	channeltypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -33,6 +36,8 @@ type StakingKeeper interface {
 
 type ChannelKeeper interface {
 	GetChannelClientState(ctx sdk.Context, portID, channelID string) (string, exported.ClientState, error)
+	GetConnection(ctx sdk.Context, connectionID string) (connectiontypes.ConnectionEnd, error)
+	GetChannel(ctx sdk.Context, srcPort, srcChan string) (channel channeltypes.Channel, found bool)
 }
 
 // ClientKeeper defines the expected IBC client keeper

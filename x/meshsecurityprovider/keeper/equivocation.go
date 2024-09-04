@@ -93,8 +93,8 @@ func (keeper Keeper) HandleConsumerDoubleVoting(
 	if err := keeper.VerifyDoubleVotingEvidence(*evidence, chainID, pubkey); err != nil {
 		return err
 	}
-	keeper.IteratorProxyStakingContractAddr(ctx, chainID, func(contractAccAddr sdk.AccAddress) bool {
-		// sudo call `tombstone` to the staking proxy contract
+	keeper.IteratorExternalStakingContractAddr(ctx, chainID, func(contractAccAddr sdk.AccAddress) bool {
+		// sudo call `tombstone` to the external staking contract
 		contractAddr := contractAccAddr.String()
 		consAddr := sdk.ConsAddress(evidence.VoteA.ValidatorAddress.Bytes()).String()
 
@@ -124,8 +124,8 @@ func (keeper Keeper) HandleConsumerDoubleVoting(
 func (k Keeper) CheckMisbehaviour(ctx sdk.Context, misbehaviour ibctmtypes.Misbehaviour) (sdk.AccAddress, error) {
 	// check that the misbehaviour is for an ICS consumer chain
 	clientId := misbehaviour.ClientId
-	proxyStakingContractAccAddr := k.GetProxyStakingContractAccAddr(ctx, misbehaviour.Header1.Header.ChainID, clientId)
-	if proxyStakingContractAccAddr == nil {
+	externalStakingContractAccAddr := k.GetExternalStakingContractAccAddr(ctx, misbehaviour.Header1.Header.ChainID, clientId)
+	if externalStakingContractAccAddr == nil {
 		return nil, errorsmod.Wrapf(ibcclienttypes.ErrClientNotFound, "cannot find contract with client ID %s", clientId)
 	}
 
@@ -157,7 +157,7 @@ func (k Keeper) CheckMisbehaviour(ctx sdk.Context, misbehaviour ibctmtypes.Misbe
 		return nil, err
 	}
 
-	return proxyStakingContractAccAddr, nil
+	return externalStakingContractAccAddr, nil
 }
 
 //
@@ -186,7 +186,7 @@ func (k Keeper) HandleConsumerMisbehaviour(ctx sdk.Context, misbehaviour ibctmty
 	}
 	// slash, jail, and tombstone the Byzantine validators
 	for _, v := range byzantineValidators {
-		// sudo call `tombstone` to the staking proxy contract
+		// sudo call `tombstone` to the external staking contract
 		contractAddr := contractAccAddr.String()
 		consAddr := sdk.ConsAddress(v.Address.Bytes())
 		val := k.stakingKeeper.ValidatorByConsAddr(ctx, consAddr)

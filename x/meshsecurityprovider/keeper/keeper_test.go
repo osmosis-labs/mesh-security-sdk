@@ -24,8 +24,8 @@ func TestGetSetConsumerChainID(t *testing.T) {
 	keeper.SetConsumerChainID(ctx, chainId1, contractChain1, client1)
 	keeper.SetConsumerChainID(ctx, chainId2, contractChain2, client2)
 
-	require.Equal(t, keeper.GetProxyStakingContractAccAddr(ctx, chainId1, client1), contractChain1)
-	require.Equal(t, keeper.GetProxyStakingContractAccAddr(ctx, chainId2, client2), contractChain2)
+	require.Equal(t, keeper.GetExternalStakingContractAccAddr(ctx, chainId1, client1), contractChain1)
+	require.Equal(t, keeper.GetExternalStakingContractAccAddr(ctx, chainId2, client2), contractChain2)
 }
 
 func TestIterateProxyContractAddr(t *testing.T) {
@@ -42,7 +42,7 @@ func TestIterateProxyContractAddr(t *testing.T) {
 	}
 
 	expContractsAddr := []sdk.AccAddress{}
-	keeper.IteratorProxyStakingContractAddr(ctx, chainId, func(contractAccAddr sdk.AccAddress) (stop bool) {
+	keeper.IteratorExternalStakingContractAddr(ctx, chainId, func(contractAccAddr sdk.AccAddress) (stop bool) {
 		expContractsAddr = append(expContractsAddr, contractAccAddr)
 		return false
 	})
