@@ -152,6 +152,8 @@ sleep 30
 
 meshd tx wasm execute $ext_staking '{"withdraw_unbonded":{}}' --from test1 --home=$home2node1  --chain-id chain-2 --keyring-backend test --node $node2 --fees 1stake -y --gas 15406929
 
+sleep 7
+
 account_query=$(cat <<EOF
 {
     "account": {

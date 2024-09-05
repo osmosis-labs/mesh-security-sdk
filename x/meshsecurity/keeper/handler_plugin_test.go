@@ -36,6 +36,7 @@ func TestCustomMeshSecDispatchMsg(t *testing.T) {
 	validUnbondMsg := []byte(fmt.Sprintf(
 		`{"virtual_stake":{"unbond":{"amount":{"denom":"ALX", "amount":"1234"},"delegator":%q,"validator":%q}}}`,
 		myDelegatorAddr.String(), myValidatorAddr.String()))
+	validDeleteScheduledTasks := []byte(`{"virtual_stake":{"delete_all_scheduled_tasks":{}}}`)
 
 	specs := map[string]struct {
 		src       wasmvmtypes.CosmosMsg
@@ -89,6 +90,17 @@ func TestCustomMeshSecDispatchMsg(t *testing.T) {
 			auth: allAuthZ,
 			setup: func(t *testing.T) (msKeeper, func()) {
 				m := msKeeperMock{UndelegateFn: func(_ sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin) error {
+					return myErr
+				}}
+				return &m, t.FailNow
+			},
+			expErr: myErr,
+		},
+		"handle delete tasks": {
+			src:  wasmvmtypes.CosmosMsg{Custom: validDeleteScheduledTasks},
+			auth: allAuthZ,
+			setup: func(t *testing.T) (msKeeper, func()) {
+				m := msKeeperMock{DeleteAllScheduledTasksFn: func(_ sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress) error {
 					return myErr
 				}}
 				return &m, t.FailNow
@@ -182,9 +194,10 @@ func captureCall(t *testing.T, myContractAddr sdk.AccAddress, myValidatorAddr sd
 var _ msKeeper = msKeeperMock{}
 
 type msKeeperMock struct {
-	DelegateFn         func(ctx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin) (sdk.Dec, error)
-	UndelegateFn       func(ctx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin) error
-	UpdateDelegationFn func(ctx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin, isDeduct bool)
+	DelegateFn                func(ctx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin) (sdk.Dec, error)
+	UndelegateFn              func(ctx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin) error
+	UpdateDelegationFn        func(ctx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin, isDeduct bool)
+	DeleteAllScheduledTasksFn func(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress) error
 }
 
 func (m msKeeperMock) Delegate(ctx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin) (sdk.Dec, error) {
@@ -207,6 +220,14 @@ func (m msKeeperMock) UpdateDelegation(ctx sdk.Context, actor, delAddr sdk.AccAd
 	}
 	m.UpdateDelegationFn(ctx, actor, delAddr, valAddr, coin, isDeduct)
 }
+
+func (m msKeeperMock) DeleteAllScheduledTasks(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress) error {
+	if m.DeleteAllScheduledTasksFn == nil {
+		panic("not expected to be called")
+	}
+	return m.DeleteAllScheduledTasksFn(ctx, tp, contract)
+}
+
 func TestIntegrityHandler(t *testing.T) {
 	myContractAddr := sdk.AccAddress(rand.Bytes(32))
 	specs := map[string]struct {

@@ -26,6 +26,7 @@ type msKeeper interface {
 	Delegate(ctx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin) (sdk.Dec, error)
 	Undelegate(ctx sdk.Context, actor sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin) error
 	UpdateDelegation(ctx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, coin sdk.Coin, isDeduct bool)
+	DeleteAllScheduledTasks(ctx sdk.Context, tp types.SchedulerTaskType, contract sdk.AccAddress) error
 }
 
 type CustomMsgHandler struct {
@@ -78,6 +79,8 @@ func (h CustomMsgHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddre
 		return h.handleUnbondMsg(ctx, contractAddr, customMsg.VirtualStake.Unbond)
 	case customMsg.VirtualStake.UpdateDelegation != nil:
 		return h.handleUpdateDelegationMsg(ctx, contractAddr, customMsg.VirtualStake.UpdateDelegation)
+	case customMsg.VirtualStake.DeleteAllScheduledTasks != nil:
+		return nil, nil, h.k.DeleteAllScheduledTasks(ctx, types.SchedulerTaskHandleEpoch, contractAddr)
 	}
 	return nil, nil, wasmtypes.ErrUnknownMsg
 }

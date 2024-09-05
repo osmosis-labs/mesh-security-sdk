@@ -7,9 +7,10 @@ type (
 		VirtualStake *VirtualStakeMsg `json:"virtual_stake,omitempty"`
 	}
 	VirtualStakeMsg struct {
-		Bond             *BondMsg             `json:"bond,omitempty"`
-		Unbond           *UnbondMsg           `json:"unbond,omitempty"`
-		UpdateDelegation *UpdateDelegationMsg `json:"update_delegation,omitempty"`
+		Bond                    *BondMsg                    `json:"bond,omitempty"`
+		Unbond                  *UnbondMsg                  `json:"unbond,omitempty"`
+		UpdateDelegation        *UpdateDelegationMsg        `json:"update_delegation,omitempty"`
+		DeleteAllScheduledTasks *DeleteAllScheduledTasksMsg `json:"delete_all_scheduled_tasks,omitempty"`
 	}
 	BondMsg struct {
 		Amount    wasmvmtypes.Coin `json:"amount"`
@@ -25,4 +26,6 @@ type (
 		Delegator string           `json:"delegator"`
 		Validator string           `json:"validator"`
 	}
+
+	DeleteAllScheduledTasksMsg struct{}
 )
