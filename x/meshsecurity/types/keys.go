@@ -33,7 +33,8 @@ var (
 
 	PipedValsetPrefix = []byte{0x5}
 
-	DelegationKey = []byte{0x6}
+	DelegationKey         = []byte{0x6}
+	TombstoneStatusPrefix = []byte{0x7}
 )
 
 type PipedValsetOperation byte
@@ -54,6 +55,7 @@ type SlashInfo struct {
 	Power            int64
 	TotalSlashAmount string
 	SlashFraction    string
+	Infraction       int32
 }
 
 // BuildMaxCapLimitKey build max cap limit store key
@@ -133,4 +135,9 @@ func BuildDelegationKey(actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress) [
 	key := append(BuildDelegationsKey(actor), address.MustLengthPrefix(delAddr)...)
 	key = append(key, address.MustLengthPrefix(valAddr)...)
 	return key
+}
+
+// BuildTombstoneStatusKey build store key for the tombstone validator status store
+func BuildTombstoneStatusKey(valAddr sdk.ValAddress) []byte {
+	return append(TombstoneStatusPrefix, valAddr.Bytes()...)
 }

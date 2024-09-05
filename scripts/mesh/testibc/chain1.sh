@@ -20,6 +20,7 @@ cat $home1/config/genesis.json | jq '.app_state["staking"]["params"]["bond_denom
 cat $home1/config/genesis.json | jq '.app_state["crisis"]["constant_fee"]["denom"]="stake"' > $home1/config/tmp_genesis.json && mv $home1/config/tmp_genesis.json $home1/config/genesis.json
 cat $home1/config/genesis.json | jq '.app_state["gov"]["params"]["min_deposit"][0]["denom"]="stake"' > $home1/config/tmp_genesis.json && mv $home1/config/tmp_genesis.json $home1/config/genesis.json
 cat $home1/config/genesis.json | jq '.app_state["gov"]["params"]["voting_period"]="30s"' > $home1/config/tmp_genesis.json && mv $home1/config/tmp_genesis.json $home1/config/genesis.json
+cat $home1/config/genesis.json | jq '.app_state["slashing"]["params"]["downtime_jail_duration"]="10s"' > $home1/config/tmp_genesis.json && mv $home1/config/tmp_genesis.json $home1/config/genesis.json
 cat $home1/config/genesis.json | jq '.app_state["meshsecurity"]["params"]["epoch_length"]=5' > $home1/config/tmp_genesis.json && mv $home1/config/tmp_genesis.json $home1/config/genesis.json
 cat $home1/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="stake"' > $home1/config/tmp_genesis.json && mv $home1/config/tmp_genesis.json $home1/config/genesis.json
 

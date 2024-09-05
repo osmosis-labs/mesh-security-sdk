@@ -31,7 +31,8 @@ init_converter=$(cat <<EOF
     "discount": "0.1", 
     "remote_denom": "stake",
     "virtual_staking_code_id": 2, 
-    "max_retrieve":100
+    "max_retrieve":100,
+    "tombstoned_unbond_enable": true
 }
 EOF
 )

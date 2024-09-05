@@ -24,6 +24,7 @@ type (
 		Power            int64  `json:"power"`
 		SlashAmount      string `json:"slash_amount"`
 		SlashRatio       string `json:"slash_ratio"`
+		IsTombstoned     bool   `json:"is_tombstoned"`
 	}
 
 	// ValsetUpdate updates to the active validator set
@@ -34,6 +35,6 @@ type (
 		Jailed     []ValidatorAddr  `json:"jailed"`
 		Unjailed   []ValidatorAddr  `json:"unjailed"`
 		Tombstoned []ValidatorAddr  `json:"tombstoned"`
-		Slashed    []ValidatorSlash `json:"slashed"`
+		Slashed    []ValidatorSlash `json:"slashed,omitempty"`
 	}
 )
