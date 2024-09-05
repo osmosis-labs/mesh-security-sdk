@@ -176,7 +176,6 @@ func (k Keeper) HandleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, unstakeM
 		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
 	}
 
-	fmt.Println("proxyContract: ", proxyRes.Proxy)
 	proxyContract, err := sdk.AccAddressFromBech32(proxyRes.Proxy)
 	if err != nil {
 		return nil, nil, sdkerrors.ErrInvalidAddress.Wrapf("native staking proxy contract not able to get")
