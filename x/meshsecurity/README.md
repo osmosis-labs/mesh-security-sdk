@@ -1,8 +1,7 @@
-# Meshi-security
+# Mesh-security
 Cosmos module implementation
 
 # Integrate the mesh security module
-
 
 ## Prerequisites 
 Projects that want to integrate the meshsecurity module onto their Cosmos SDK chain must enable the following modules:
@@ -16,177 +15,138 @@ Projects that want to integrate the meshsecurity module onto their Cosmos SDK ch
     ```
     require (
     ...
-    github.com/osmosis-labs/mesh security v<VERSION>
+    github.com/osmosis-labs/mesh-security
     ...
     )
     ```
-  **Note:** The version of the mesh security module will depend on which version of the Cosmos SDK your chain is using. If in doubt about which version to use, please consult the documentation: https://github.com/osmosis-labs/mesh security
   
 2. Add the following modules to `app.go`
     ```
     import (
     ... 
-        feeabsmodule "github.com/notional-labs/mesh security/v2/x/feeabs"
-        feeabskeeper "github.com/notional-labs/mesh security/v2/x/feeabs/keeper"
-        feeabstypes "github.com/notional-labs/mesh security/v2/x/feeabs/types"
+        "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity"
+        meshseckeeper "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/keeper"
+        meshsectypes "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
     ...
     )
     ```
-3. In `app.go`: Register the AppModule for the fee middleware module.
+3. In `app.go`: Register the AppModule for the mesh security module.
     ```
     ModuleBasics = module.NewBasicManager(
       ...
-      feeabsmodule.AppModuleBasic{},
+      meshsecurity.AppModuleBasic{},
       ...
     )
     ```
-4. In `app.go`: Add module account permissions for the fee abstractions.
+4. In `app.go`: Add module account permissions:
     ```
     maccPerms = map[string][]string{
       ...
-      feeabsmodule.ModuleName:            nil,
+      meshsectypes.ModuleName: {authtypes.Minter, authtypes.Burner}
     }
-    // module accounts that are allowed to receive tokens
-	allowedReceivingModAcc = map[string]bool{
-		feeabstypes.ModuleName: true,
-	}
     ```
-5. In `app.go`: Add fee abstraction keeper.
+5. In `app.go`: Add mesh security keeper.
     ```
     type App struct {
       ...
-      FeeabsKeeper feeabskeeper.Keeper
+      MeshSecKeeper *meshseckeeper.Keeper
       ...
     }
     ```
-6. In `app.go`: Add fee abstraction store key.
+6. In `app.go`: Add mesh security store key.
     ```
     keys := sdk.NewKVStoreKeys(
       ...
-      feeabstypes.StoreKey,
+      meshsectypes.StoreKey,
       ...
     )
     ```
-7. In `app.go`: Instantiate Fee abstraction keeper
+7. In `app.go`: Instantiate mesh security keeper
     ```
-    app.FeeabsKeeper = feeabskeeper.NewKeeper(
-      appCodec,
-      keys[feeabstypes.StoreKey],
-      keys[feeabstypes.MemStoreKey],
-      app.GetSubspace(feeabstypes.ModuleName),
-      app.StakingKeeper,
-      app.AccountKeeper,
-      app.BankKeeper,
-      app.TransferKeeper,
-      app.IBCKeeper.ChannelKeeper,
-      &app.IBCKeeper.PortKeeper,
-      scopedFeeabsKeeper,
-    )
+    app.MeshSecKeeper = meshseckeeper.NewKeeper(
+		app.appCodec,
+		keys[meshsectypes.StoreKey],
+		memKeys[meshsectypes.MemStoreKey],
+		app.BankKeeper,
+		app.StakingKeeper,
+		&app.WasmKeeper, // ensure this is a pointer as we instantiate the keeper a bit later
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
     ```
-8. In `app.go`: Add the IBC router.
-    ```
-    feeabsIBCModule := feeabsmodule.NewIBCModule(appCodec, app.FeeabsKeeper)
-    
-    ibcRouter := porttypes.NewRouter()
-    ibcRouter.
-    ...
-    AddRoute(feeabstypes.ModuleName, feeabsIBCModule)
-    ...
-    ```
-9. In `app.go`: Add the mesh security module to the app manager and simulation manager instantiations.
+8. In `app.go`: Add the mesh security module to the app manager instantiation.
     ```
     app.mm = module.NewManager(
         ...
-        feeabsModule := feeabsmodule.NewAppModule(appCodec, app.FeeabsKeeper),
+        meshsecurity.NewAppModule(appCodec, app.MeshSecKeeper),
         ...
     )
     ```
-    ```
-    app.sm = module.NewSimulationManager(
-        ...
-        transferModule,
-        feeabsModule := feeabsmodule.NewAppModule(appCodec, app.FeeabsKeeper),
-        ...
-    )
-    ```
-10. In `app.go`: Add the module as the final element to the following:
+9. In `app.go`: Add the module as the final element to the following:
 - SetOrderBeginBlockers
 - SetOrderEndBlockers
 - SetOrderInitGenesis
     ```
-    // Add fee abstraction to begin blocker logic
+    // Add mesh security to begin blocker logic
     app.moduleManager.SetOrderBeginBlockers(
       ...
-      feeabstypes.ModuleName,
+      meshsectypes.ModuleName,
       ...
     )
 
-    // Add fee abstraction to end blocker logic
+    // Add mesh security to end blocker logic
     app.moduleManager.SetOrderEndBlockers(
       ...
-      feeabstypes.ModuleName,
+      meshsectypes.ModuleName,
       ...
     )
 
-    // Add fee abstraction to init genesis logic
+    // Add mesh security to init genesis logic
     app.moduleManager.SetOrderInitGenesis(
       ...
-      feeabstypes.ModuleName,
+      meshsectypes.ModuleName,
       ...
     )
     ```
-11. In `app.go`: Allow module account address.
+10. In `app.go`: Add the mesh security staking decorator to the slashing module.
     ```
-    func (app *FeeAbs) ModuleAccountAddrs() map[string]bool {
-	    blockedAddrs := make(map[string]bool)
-
-	    accs := make([]string, 0, len(maccPerms))
-	    for k := range maccPerms {
-		    accs = append(accs, k)
-	    }
-	    sort.Strings(accs)
-
-	    for _, acc := range accs {
-		    blockedAddrs[authtypes.NewModuleAddress(acc).String()] = !allowedReceivingModAcc[acc]
-	    }
-
-	    return blockedAddrs
-    }
+	app.SlashingKeeper = slashingkeeper.NewKeeper(
+		appCodec,
+		legacyAmino,
+		keys[slashingtypes.StoreKey],
+		// decorate the sdk keeper to capture all jail/ unjail events for MS
+		meshseckeeper.NewStakingDecorator(app.StakingKeeper, app.MeshSecKeeper),
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
     ```
-12. In `app.go`: Add to Param keeper.
+11. In `app.go`: Add the mesh security hooks to the staking module.
     ```
-    func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino, key, tkey sdk.StoreKey) paramskeeper.Keeper {
-	    paramsKeeper := paramskeeper.NewKeeper(appCodec, legacyAmino, key, tkey)
-        ...
-	    paramsKeeper.Subspace(feeabstypes.ModuleName)
-        ...
-	    return paramsKeeper
-    }
+	app.StakingKeeper.SetHooks(
+		stakingtypes.NewMultiStakingHooks(
+            ...
+			// register hook to capture valset updates
+			app.MeshSecKeeper.Hooks()
+		),
+	)
     ```
-13. Modified Fee Antehandler
-
-    To allow for this, we use modified versions of `MempoolFeeDecorator` and `DeductFeeDecorate`. In these ante handlers, IBC tokens are swapped to the native token before the next fee handler logic is executed.
-
-    If a blockchain uses the Fee Abstraction module, it is necessary to replace the `MempoolFeeDecorator` and `DeductFeeDecorate` with the `FeeAbstrationMempoolFeeDecorator` and `FeeAbstractionDeductFeeDecorate`, respectively. These can be found in `app/ante.go`, and should be implemented as below:
-    
-    Example:
+12. In `app.go`: Add the mesh security hooks to the evidence module.
     ```
-    anteDecorators := []sdk.AnteDecorator{
-      ante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
-      ante.NewRejectExtensionOptionsDecorator(),
-      feeabsante.NewFeeAbstrationMempoolFeeDecorator(options.FeeAbskeeper),
-      ante.NewValidateBasicDecorator(),
-      ante.NewTxTimeoutHeightDecorator(),
-      ante.NewValidateMemoDecorator(options.AccountKeeper),
-      ante.NewConsumeGasForTxSizeDecorator(options.AccountKeeper),
-      feeabsante.NewFeeAbstractionDeductFeeDecorate(options.AccountKeeper, options.BankKeeper, options.FeeAbskeeper, options.FeegrantKeeper),
-      // SetPubKeyDecorator must be called before all signature verification decorators
-      ante.NewSetPubKeyDecorator(options.AccountKeeper),
-      ante.NewValidateSigCountDecorator(options.AccountKeeper),
-      ante.NewSigGasConsumeDecorator(options.AccountKeeper, sigGasConsumer),
-      ante.NewSigVerificationDecorator(options.AccountKeeper, options.SignModeHandler),
-      ante.NewIncrementSequenceDecorator(options.AccountKeeper),
-      ibcante.NewAnteDecorator(options.IBCKeeper),
-     }
+	evidenceKeeper := evidencekeeper.NewKeeper(
+		...
+		// decorate the SlashingKeeper to capture the tombstone event
+		meshseckeeper.CaptureTombstoneDecorator(app.MeshSecKeeper, app.SlashingKeeper, app.StakingKeeper),
+	)
     ```
-    
+13. In `app.go`: Add the mesh security wasm message handler decorator to the wasm module.
+    ```
+	meshMessageHandler := wasmkeeper.WithMessageHandlerDecorator(func(nested wasmkeeper.Messenger) wasmkeeper.Messenger {
+		return wasmkeeper.NewMessageHandlerChain(
+			meshseckeeper.NewIntegrityHandler(app.MeshSecKeeper),
+			nested,
+			meshseckeeper.NewDefaultCustomMsgHandler(app.MeshSecKeeper),
+		)
+	})
+	wasmOpts = append(wasmOpts, meshMessageHandler,
+		// add support for the mesh-security queries
+		wasmkeeper.WithQueryHandlerDecorator(meshseckeeper.NewQueryDecorator(app.MeshSecKeeper, app.SlashingKeeper)),
+	)
+    ```
