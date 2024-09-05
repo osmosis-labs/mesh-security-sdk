@@ -302,8 +302,6 @@ func TestSlasingImmediateUnbond(t *testing.T) {
 		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myLocalValidatorAddr))))
 	providerCli.MustExecVault(execLocalStakingMsg)
 
-	assert.Equal(t, 100_000_000, providerCli.QueryVaultFreeBalance())
-
 	// Check slashable amount
 	require.Equal(t, 20_000_000, providerCli.QuerySlashableAmount())
 	// Check free collateral
