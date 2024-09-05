@@ -153,13 +153,19 @@ func (k Keeper) HandleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress, unbondMsg
 }
 
 func (k Keeper) HandleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, unstakeMsg *contract.UnstakeMsg) ([]sdk.Event, [][]byte, error) {
-	nativeContractAddr := k.NativeStakingAddress(ctx)
+	nativeContract := k.NativeStakingAddress(ctx)
+	nativeContractAddr, err := sdk.AccAddressFromBech32(nativeContract)
+	if err != nil {
+		return nil, nil, sdkerrors.ErrInvalidAddress.Wrapf("native staking contract not able to get")
+	}
 	var proxyRes types.ProxyByOwnerResponse
 
-	resBytes, err := k.wasmKeeper.QuerySmart(ctx,
-		sdk.AccAddress(nativeContractAddr),
-		[]byte(fmt.Sprintf(`{"proxy_by_owner": {"owner": "%s"}}`, actor.String())),
+	resBytes, err := k.wasmKeeper.QuerySmart(
+		ctx,
+		nativeContractAddr,
+		[]byte(fmt.Sprintf(`{"proxy_by_owner": {"owner": "%s"}}`, unstakeMsg.Delegator)),
 	)
+
 	if err != nil {
 		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
 	}
@@ -168,6 +174,11 @@ func (k Keeper) HandleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, unstakeM
 	}
 	if proxyRes.Proxy == "" {
 		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
+	}
+
+	proxyContract, err := sdk.AccAddressFromBech32(proxyRes.Proxy)
+	if err != nil {
+		return nil, nil, sdkerrors.ErrInvalidAddress.Wrapf("native staking proxy contract not able to get")
 	}
 
 	coin, err := wasmkeeper.ConvertWasmCoinToSdkCoin(unstakeMsg.Amount)
@@ -180,7 +191,7 @@ func (k Keeper) HandleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, unstakeM
 		return nil, nil, err
 	}
 
-	err = k.unstake(ctx, actor, valAddr, coin)
+	err = k.unstake(ctx, proxyContract, valAddr, coin)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -193,7 +204,7 @@ func (k Keeper) HandleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, unstakeM
 	)}, nil, nil
 }
 
-func (k Keeper) unstake(ctx sdk.Context, actor sdk.AccAddress, validator sdk.ValAddress, coin sdk.Coin) error {
+func (k Keeper) unstake(ctx sdk.Context, proxyContract sdk.AccAddress, validator sdk.ValAddress, coin sdk.Coin) error {
 	if coin.Amount.IsNil() || coin.Amount.IsZero() || coin.Amount.IsNegative() {
 		return sdkerrors.ErrInvalidRequest.Wrap("amount")
 	}
@@ -204,34 +215,34 @@ func (k Keeper) unstake(ctx sdk.Context, actor sdk.AccAddress, validator sdk.Val
 		return sdkerrors.ErrInvalidRequest.Wrapf("invalid coin denomination: got %s, expected %s", coin.Denom, bondDenom)
 	}
 
-	shares, err := k.stakingKeeper.ValidateUnbondAmount(ctx, actor, validator, coin.Amount)
+	validatorInfo, found := k.stakingKeeper.GetValidator(ctx, validator)
+	if !found {
+		return sdkerrors.ErrNotFound.Wrapf("can not found validator with address: %s", validator.String())
+	}
+
+	shares, err := k.stakingKeeper.ValidateUnbondAmount(ctx, proxyContract, validator, coin.Amount)
 	if err == stakingtypes.ErrNoDelegation {
 		return nil
 	} else if err != nil {
 		return err
 	}
 
-	validatorInfo, found := k.stakingKeeper.GetValidator(ctx, validator)
-	if !found {
-		return sdkerrors.ErrNotFound.Wrapf("can not found validator with address: %s", validator.String())
-	}
 	if validatorInfo.IsBonded() {
-		_, err = k.stakingKeeper.Undelegate(ctx, actor, validator, shares)
-	} else {
-		_, err = k.InstantUndelegate(ctx, actor, validatorInfo, shares)
+		_, err = k.stakingKeeper.Undelegate(ctx, proxyContract, validator, shares)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return k.InstantUndelegate(ctx, proxyContract, validator, shares)
 }
 
-func (k Keeper) InstantUndelegate(ctx sdk.Context, delAddr sdk.AccAddress, validator stakingtypes.Validator, sharesAmount sdk.Dec) (sdk.Coin, error) {
-	returnAmount, err := k.stakingKeeper.Unbond(ctx, delAddr, sdk.ValAddress(validator.OperatorAddress), sharesAmount)
+func (k Keeper) InstantUndelegate(ctx sdk.Context, delAddr sdk.AccAddress, validator sdk.ValAddress, sharesAmount sdk.Dec) error {
+	returnAmount, err := k.stakingKeeper.Unbond(ctx, delAddr, validator, sharesAmount)
 	if err != nil {
-		return sdk.Coin{}, err
+		return err
 	}
 
 	bondDenom := k.stakingKeeper.BondDenom(ctx)
@@ -239,13 +250,5 @@ func (k Keeper) InstantUndelegate(ctx sdk.Context, delAddr sdk.AccAddress, valid
 	amt := sdk.NewCoin(bondDenom, returnAmount)
 	res := sdk.NewCoins(amt)
 
-	moduleName := stakingtypes.NotBondedPoolName
-	if validator.IsBonded() {
-		moduleName = stakingtypes.BondedPoolName
-	}
-	err = k.bankKeeper.UndelegateCoinsFromModuleToAccount(ctx, moduleName, delAddr, res)
-	if err != nil {
-		return sdk.Coin{}, err
-	}
-	return amt, nil
+	return k.bankKeeper.UndelegateCoinsFromModuleToAccount(ctx, stakingtypes.NotBondedPoolName, delAddr, res)
 }
