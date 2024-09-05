@@ -30,8 +30,7 @@ ext_staking=$(meshd q wasm list-contract-by-code 4 --output json --node tcp://12
 
 rly tx channel demo --src-port wasm.$converter --dst-port wasm.$ext_staking --order unordered --version '{"protocol":"mesh-security","version":"0.11.0"}'
 
-sleep 15
+sleep 5
 
 screen -S relayer -t relayer -d -m  rly start demo
-
-sleep 10
+sleep 5

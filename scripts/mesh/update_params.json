@@ -1,1 +1,16 @@
-{ "messages": [ { "@type": "/osmosis.meshsecurityprovider.MsgUpdateParams", "authority": "mesh10d07y265gmmuvt4z0w9aw880jnsr700js2ljng", "params": { "vault_address": "mesh14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9sysl6kf", "native_staking_address": "mesh1qg5ega6dykkxc307y25pecuufrjkxkaggkkxh7nad0vhyhtuhw3stmd2jl" } } ], "metadata": "ipfs://CID", "deposit": "100000000stake", "title": "Update params", "summary": "Update params" }
+{
+ "messages": [
+  {
+   "@type": "/osmosis.meshsecurityprovider.MsgUpdateParams",
+   "authority": "",
+   "params": {
+    "vault_address": "",
+    "native_staking_address": ""
+   }
+  }
+ ],
+ "metadata": "ipfs://CID",
+ "deposit": "100000000stake",
+ "title": "Update params",
+ "summary": "Update params"
+}

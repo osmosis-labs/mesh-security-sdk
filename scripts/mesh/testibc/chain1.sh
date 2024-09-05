@@ -20,6 +20,7 @@ cat $home1/config/genesis.json | jq '.app_state["staking"]["params"]["bond_denom
 cat $home1/config/genesis.json | jq '.app_state["crisis"]["constant_fee"]["denom"]="stake"' > $home1/config/tmp_genesis.json && mv $home1/config/tmp_genesis.json $home1/config/genesis.json
 cat $home1/config/genesis.json | jq '.app_state["gov"]["params"]["min_deposit"][0]["denom"]="stake"' > $home1/config/tmp_genesis.json && mv $home1/config/tmp_genesis.json $home1/config/genesis.json
 cat $home1/config/genesis.json | jq '.app_state["gov"]["params"]["voting_period"]="30s"' > $home1/config/tmp_genesis.json && mv $home1/config/tmp_genesis.json $home1/config/genesis.json
+cat $home1/config/genesis.json | jq '.app_state["meshsecurity"]["params"]["epoch_length"]=5' > $home1/config/tmp_genesis.json && mv $home1/config/tmp_genesis.json $home1/config/genesis.json
 cat $home1/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="stake"' > $home1/config/tmp_genesis.json && mv $home1/config/tmp_genesis.json $home1/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
@@ -32,8 +33,8 @@ meshd add-genesis-account $test1 1000000000stake --keyring-backend test --home=$
 cp $home1/config/genesis.json $home2/config/genesis.json
 
 # Sign genesis transaction
-meshd gentx val1 1000000stake --keyring-backend test --chain-id $chainid --home=$home1
-meshd gentx val2 1000000stake --keyring-backend test --chain-id $chainid --home=$home2
+meshd gentx val1 100000000000stake --keyring-backend test --chain-id $chainid --home=$home1
+meshd gentx val2 100000000000stake --keyring-backend test --chain-id $chainid --home=$home2
 cp $home2/config/gentx/*.json $home1/config/gentx/
 
 # Collect genesis tx

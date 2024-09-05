@@ -14,7 +14,7 @@ chains:
             account-prefix: mesh
             keyring-backend: test
             gas-adjustment: 1.2
-            gas-prices: 1stake
+            gas-prices: 0.01stake
             min-gas-amount: 1000000
             max-gas-amount: 0
             debug: false
@@ -39,7 +39,7 @@ chains:
             account-prefix: mesh
             keyring-backend: test
             gas-adjustment: 1.2
-            gas-prices: 1stake
+            gas-prices: 0.01stake
             min-gas-amount: 1000000
             max-gas-amount: 0
             debug: false

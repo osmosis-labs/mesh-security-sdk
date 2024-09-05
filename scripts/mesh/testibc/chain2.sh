@@ -32,8 +32,8 @@ meshd add-genesis-account $test1 1000000000stake --keyring-backend test --home=$
 cp $home1/config/genesis.json $home2/config/genesis.json
 
 # Sign genesis transactions
-meshd gentx val1 1000000stake --keyring-backend test --chain-id $chainid --home $home1
-meshd gentx val2 1000000stake --keyring-backend test --chain-id $chainid --home $home2
+meshd gentx val1 100000000000stake --keyring-backend test --chain-id $chainid --home $home1
+meshd gentx val2 100000000000stake --keyring-backend test --chain-id $chainid --home $home2
 cp $home2/config/gentx/*.json $home1/config/gentx/
 
 # Collect genesis tx
