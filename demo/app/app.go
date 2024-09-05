@@ -428,7 +428,7 @@ func NewMeshApp(
 		keys[meshsecprovtypes.StoreKey],
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 		app.BankKeeper,
-		app.WasmKeeper,
+		&app.WasmKeeper,
 		app.StakingKeeper,
 	)
 

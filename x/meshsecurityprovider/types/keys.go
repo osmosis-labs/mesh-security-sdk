@@ -1,7 +1,7 @@
 package types
 
 const (
-	ModuleName = "test_module"
+	ModuleName = "mesh-security-provider"
 
 	StoreKey = ModuleName
 
@@ -9,7 +9,7 @@ const (
 )
 
 var (
-	// Key defines the store key for test_module.
+	// Key defines the store key for mesh security provider module.
 	Key       = []byte{0x01}
 	ParamsKey = []byte{0x02}
 )
