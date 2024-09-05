@@ -1,0 +1,19 @@
+syntax = "proto3";
+package osmosis.meshsecurityprovider;
+
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "osmosis/meshsecurityprovider/genesis.proto";
+import "osmosis/meshsecurityprovider/tx.proto";
+
+option go_package = "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types";
+
+service Query {
+  rpc Params(ParamsRequest) returns (ParamsResponse) {
+    option (google.api.http).get = "/osmosis/meshsecurityprovider/Params";
+  }
+}
+
+//=============================== Params
+message ParamsRequest {}
+message ParamsResponse { Params params = 1 [ (gogoproto.nullable) = false ]; }

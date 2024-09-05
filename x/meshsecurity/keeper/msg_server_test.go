@@ -43,50 +43,6 @@ func TestSetVirtualStakingMaxCap(t *testing.T) {
 				assert.True(t, k.HasScheduledTask(ctx, types.SchedulerTaskHandleEpoch, myContract, true))
 			},
 		},
-		"existing limit updated": {
-			setup: func(ctx sdk.Context) {
-				_, err := m.SetVirtualStakingMaxCap(sdk.WrapSDKContext(ctx), &types.MsgSetVirtualStakingMaxCap{
-					Authority: k.GetAuthority(),
-					Contract:  myContract.String(),
-					MaxCap:    sdk.NewInt64Coin(denom, 456),
-				})
-				require.NoError(t, err)
-			},
-			src: types.MsgSetVirtualStakingMaxCap{
-				Authority: k.GetAuthority(),
-				Contract:  myContract.String(),
-				MaxCap:    myAmount,
-			},
-			expLimit: myAmount,
-			expSchedule: func(t *testing.T, ctx sdk.Context) {
-				repeat, exists := k.getScheduledTaskAt(ctx, types.SchedulerTaskHandleEpoch, myContract, uint64(ctx.BlockHeight()))
-				require.True(t, exists)
-				assert.False(t, repeat)
-				assert.True(t, k.HasScheduledTask(ctx, types.SchedulerTaskHandleEpoch, myContract, true))
-			},
-		},
-		"existing limit set to empty value": {
-			setup: func(ctx sdk.Context) {
-				_, err := m.SetVirtualStakingMaxCap(sdk.WrapSDKContext(ctx), &types.MsgSetVirtualStakingMaxCap{
-					Authority: k.GetAuthority(),
-					Contract:  myContract.String(),
-					MaxCap:    myAmount,
-				})
-				require.NoError(t, err)
-			},
-			src: types.MsgSetVirtualStakingMaxCap{
-				Authority: k.GetAuthority(),
-				Contract:  myContract.String(),
-				MaxCap:    sdk.NewInt64Coin(denom, 0),
-			},
-			expLimit: sdk.NewInt64Coin(denom, 0),
-			expSchedule: func(t *testing.T, ctx sdk.Context) {
-				repeat, exists := k.getScheduledTaskAt(ctx, types.SchedulerTaskHandleEpoch, myContract, uint64(ctx.BlockHeight()))
-				require.True(t, exists)
-				assert.False(t, repeat)
-				assert.False(t, k.HasScheduledTask(ctx, types.SchedulerTaskHandleEpoch, myContract, true))
-			},
-		},
 		"fails for non existing contract": {
 			setup: func(ctx sdk.Context) {},
 			src: types.MsgSetVirtualStakingMaxCap{

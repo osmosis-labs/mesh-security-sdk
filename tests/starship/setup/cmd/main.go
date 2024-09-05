@@ -12,6 +12,7 @@ var (
 	ConfigFile          string
 	ProviderChain       string
 	ConsumerChain       string
+	maxRetrieve         = uint16(50)
 )
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 	flag.StringVar(&ConsumerChain, "consumer-chain", "mesh-juno-1", "consumer chain name, from config file")
 	flag.Parse()
 
-	_, _, err := setup.MeshSecurity(ProviderChain, ConsumerChain, ConfigFile, WasmContractPath, WasmContractGZipped)
+	_, _, err := setup.MeshSecurity(ProviderChain, ConsumerChain, ConfigFile, WasmContractPath, WasmContractGZipped, maxRetrieve)
 	if err != nil {
 		panic(err)
 	}

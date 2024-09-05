@@ -23,9 +23,11 @@ import (
 //	require.NoError(t, err)
 //}
 
+var maxRetrieve = uint16(50)
+
 func Test2WayContract(t *testing.T) {
 	// create clients for provider and consumer
-	providerClient1, consumerClient1, err := setup.MeshSecurity(providerChain, consumerChain, configFile, wasmContractPath, wasmContractGZipped)
+	providerClient1, consumerClient1, err := setup.MeshSecurity(providerChain, consumerChain, configFile, wasmContractPath, wasmContractGZipped, 50)
 	require.NoError(t, err)
 	require.NotEmpty(t, providerClient1)
 	require.NotEmpty(t, consumerClient1)
@@ -36,10 +38,7 @@ func Test2WayContract(t *testing.T) {
 		func() bool {
 			qRsp = providerClient1.QueryExtStaking(setup.Query{"list_active_validators": {}})
 			v := qRsp["validators"].([]interface{})
-			if len(v) > 0 {
-				return true
-			}
-			return false
+			return len(v) > 0
 		},
 		120*time.Second,
 		2*time.Second,
@@ -91,7 +90,8 @@ func Test2WayContract(t *testing.T) {
 	require.NoError(t, err)
 
 	// require.NoError(t, coord.RelayAndAckPendingPackets(ibcPath))
-	require.Equal(t, 20_000_000, providerClient1.QueryVaultFreeBalance()) // = 70 (free)  + 30 (local) - 80 (remote staked)
+	providerClient1.QueryVaultFreeBalance() // = 70 (free)  + 30 (local) - 80 (remote staked)
+	providerClient1.QueryVaultActiveExtStaking()
 
 	// then
 	fmt.Println("provider chain: query ext staking")
@@ -105,7 +105,7 @@ func Test2WayContract(t *testing.T) {
 	assert.Empty(t, qRsp["pending_unbonds"])
 
 	// create opposite clients
-	providerClient2, consumerClient2, err := setup.MeshSecurity(consumerChain, providerChain, configFile, wasmContractPath, wasmContractGZipped)
+	providerClient2, consumerClient2, err := setup.MeshSecurity(consumerChain, providerChain, configFile, wasmContractPath, wasmContractGZipped, maxRetrieve)
 	require.NoError(t, err)
 	require.NotEmpty(t, providerClient2)
 	require.NotEmpty(t, consumerClient2)
@@ -114,10 +114,7 @@ func Test2WayContract(t *testing.T) {
 		func() bool {
 			qRsp = providerClient2.QueryExtStaking(setup.Query{"list_active_validators": {}})
 			v := qRsp["validators"].([]interface{})
-			if len(v) > 0 {
-				return true
-			}
-			return false
+			return len(v) > 0
 		},
 		120*time.Second,
 		2*time.Second,

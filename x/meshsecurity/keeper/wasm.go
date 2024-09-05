@@ -5,6 +5,7 @@ import (
 
 	errorsmod "cosmossdk.io/errors"
 
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
@@ -15,13 +16,14 @@ func (k Keeper) SendHandleEpoch(ctx sdk.Context, contractAddr sdk.AccAddress) er
 	msg := contract.SudoMsg{
 		HandleEpoch: &struct{}{},
 	}
+	ctx = ctx.WithGasMeter(storetypes.NewInfiniteGasMeter())
 	return k.doSudoCall(ctx, contractAddr, msg)
 }
 
 // SendValsetUpdate submit the valset update report to the virtual staking contract via sudo
-func (k Keeper) SendValsetUpdate(ctx sdk.Context, contractAddr sdk.AccAddress, v contract.ValsetUpdate) error {
+func (k Keeper) SendValsetUpdate(ctx sdk.Context, contractAddr sdk.AccAddress, v contract.HandleValsetUpdate) error {
 	msg := contract.SudoMsg{
-		ValsetUpdate: &v,
+		HandleValsetUpdate: &v,
 	}
 	return k.doSudoCall(ctx, contractAddr, msg)
 }

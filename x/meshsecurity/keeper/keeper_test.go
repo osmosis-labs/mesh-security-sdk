@@ -123,3 +123,26 @@ func TestSetMaxCapLimit(t *testing.T) {
 		})
 	}
 }
+
+func TestSetDelegation(t *testing.T) {
+	pCtx, keepers := CreateDefaultTestInput(t)
+	k := keepers.MeshKeeper
+	var (
+		myContractAddr = sdk.AccAddress(rand.Bytes(32))
+		myAccAddr      = sdk.AccAddress(rand.Bytes(32))
+		myValAddr      = sdk.ValAddress(rand.Bytes(32))
+		oneStakeCoin   = sdk.NewInt64Coin(sdk.DefaultBondDenom, 1)
+	)
+
+	ctx, _ := pCtx.CacheContext()
+
+	k.UpdateDelegation(ctx, myContractAddr, myAccAddr, myValAddr, oneStakeCoin, false)
+
+	allDels := k.GetAllDelegations(ctx, myContractAddr, 10)
+	assert.Len(t, allDels, 1)
+	assert.Equal(t, allDels[0].Amount, oneStakeCoin.Amount)
+
+	k.UpdateDelegation(ctx, myContractAddr, myAccAddr, myValAddr, oneStakeCoin, true)
+	allDels = k.GetAllDelegations(ctx, myContractAddr, 10)
+	assert.Len(t, allDels, 0)
+}

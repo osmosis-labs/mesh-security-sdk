@@ -18,7 +18,6 @@ func TestSlashingScenario1(t *testing.T) {
 	// - We use millions instead of unit tokens.
 	x := setupExampleChains(t)
 	consumerCli, _, providerCli := setupMeshSecurity(t, x)
-
 	// Provider chain
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
@@ -92,6 +91,7 @@ func TestSlashingScenario1(t *testing.T) {
 	// Assert that the validator's stake has been slashed
 	// and that the validator has been jailed
 	validator1, found = x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
+	require.True(t, found)
 	require.True(t, validator1.IsJailed())
 	require.Equal(t, validator1.GetTokens(), sdk.NewInt(41_400_000)) // 10% slash
 
@@ -118,7 +118,6 @@ func TestSlashingScenario2(t *testing.T) {
 	// - We use millions instead of unit tokens.
 	x := setupExampleChains(t)
 	consumerCli, _, providerCli := setupMeshSecurity(t, x)
-
 	// Provider chain
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
@@ -179,6 +178,7 @@ func TestSlashingScenario2(t *testing.T) {
 	// Assert that the validator's stake has been slashed
 	// and that the validator has been jailed
 	validator1, found = x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
+	require.True(t, found)
 	require.True(t, validator1.IsJailed())
 	require.Equal(t, validator1.GetTokens(), sdk.NewInt(81_900_000)) // 10% slash
 
@@ -205,7 +205,6 @@ func TestSlashingScenario3(t *testing.T) {
 	// - We use millions instead of unit tokens.
 	x := setupExampleChains(t)
 	consumerCli, _, providerCli := setupMeshSecurity(t, x)
-
 	// Provider chain
 	// ==============
 	// Deposit - A user deposits the vault denom to provide some collateral to their account
@@ -266,6 +265,7 @@ func TestSlashingScenario3(t *testing.T) {
 	// Assert that the validator's stake has been slashed
 	// and that the validator has been jailed
 	validator1, found = x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
+	require.True(t, found)
 	require.True(t, validator1.IsJailed())
 	require.Equal(t, validator1.GetTokens(), sdk.NewInt(61_700_000)) // 10% slash (plus 50_000 rounding)
 
