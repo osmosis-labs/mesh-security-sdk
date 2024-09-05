@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"strconv"
@@ -20,9 +21,11 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/keeper"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
@@ -353,7 +356,7 @@ type ConsumerContract struct {
 	converter sdk.AccAddress
 }
 
-func (p *TestConsumerClient) BootstrapContracts() ConsumerContract {
+func (p *TestConsumerClient) BootstrapContracts(x example) ConsumerContract {
 	// modify end-blocker to fail fast in tests
 	msModule := p.app.ModuleManager.Modules[types.ModuleName].(*meshsecurity.AppModule)
 	msModule.SetAsyncTaskRspHandler(meshsecurity.PanicOnErrorExecutionResponseHandler())
@@ -370,8 +373,8 @@ func (p *TestConsumerClient) BootstrapContracts() ConsumerContract {
 	virtStakeCodeID := p.chain.StoreCodeFile(buildPathToWasm("mesh_virtual_staking.wasm")).CodeID
 	// instantiate converter
 	codeID = p.chain.StoreCodeFile(buildPathToWasm("mesh_converter.wasm")).CodeID
-	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d, "tombstoned_unbond_enable": true}`,
-		priceFeedContract.String(), discount, remoteDenom, virtStakeCodeID))
+	initMsg = []byte(fmt.Sprintf(`{"price_feed": %q, "discount": %q, "remote_denom": %q,"virtual_staking_code_id": %d, "max_retrieve": %d, "tombstoned_unbond_enable": true}`,
+		priceFeedContract.String(), discount, remoteDenom, virtStakeCodeID, x.MaxRetrieve))
 	converterContract := InstantiateContract(p.t, p.chain, codeID, initMsg)
 
 	staking := Querier(p.t, p.chain)(converterContract.String(), Query{"config": {}})["virtual_staking"]
@@ -404,6 +407,15 @@ func (p *TestConsumerClient) ExecNewEpoch() {
 	}
 }
 
+func (p *TestConsumerClient) ExecSetMaxCap(cap sdk.Coin) {
+	msgServer := keeper.NewMsgServer(p.app.MeshSecKeeper)
+	msgServer.SetVirtualStakingMaxCap(p.chain.GetContext(), &types.MsgSetVirtualStakingMaxCap{
+		Authority: authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		Contract:  p.contracts.staking.String(),
+		MaxCap:    cap,
+	})
+}
+
 // MustEnableVirtualStaking add authority to mint/burn virtual tokens gov proposal
 func (p *TestConsumerClient) MustEnableVirtualStaking(maxCap sdk.Coin) {
 	govProposal := &types.MsgSetVirtualStakingMaxCap{
@@ -423,7 +435,7 @@ func (p *TestConsumerClient) MustExecGovProposal(msg *types.MsgSetVirtualStaking
 func (p *TestConsumerClient) QueryMaxCap() types.QueryVirtualStakingMaxCapLimitResponse {
 	q := baseapp.QueryServiceTestHelper{GRPCQueryRouter: p.app.GRPCQueryRouter(), Ctx: p.chain.GetContext()}
 	var rsp types.QueryVirtualStakingMaxCapLimitResponse
-	err := q.Invoke(nil, "/osmosis.meshsecurity.v1beta1.Query/VirtualStakingMaxCapLimit", &types.QueryVirtualStakingMaxCapLimitRequest{Address: p.contracts.staking.String()}, &rsp)
+	err := q.Invoke(context.TODO(), "/osmosis.meshsecurity.v1beta1.Query/VirtualStakingMaxCapLimit", &types.QueryVirtualStakingMaxCapLimitRequest{Address: p.contracts.staking.String()}, &rsp)
 	require.NoError(p.t, err)
 	return rsp
 }

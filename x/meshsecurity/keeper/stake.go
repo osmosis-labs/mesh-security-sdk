@@ -60,6 +60,7 @@ func (k Keeper) Delegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.Val
 
 	// and update our records
 	k.setTotalDelegated(cacheCtx, actor, newTotalDelegatedAmount)
+
 	done()
 	return newShares, err
 }
@@ -114,4 +115,13 @@ func (k Keeper) Undelegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.V
 
 	done()
 	return nil
+}
+
+func (k Keeper) UpdateDelegation(pCtx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, amt sdk.Coin, isDeduct bool) {
+	cacheCtx, done := pCtx.CacheContext() // work in a cached store (safety net?)
+	if isDeduct {
+		amt.Amount = amt.Amount.Neg()
+	}
+	k.setDelegation(cacheCtx, actor, delAddr, valAddr, amt.Amount)
+	done()
 }

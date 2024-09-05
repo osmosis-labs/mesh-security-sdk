@@ -33,6 +33,7 @@ var (
 
 	PipedValsetPrefix     = []byte{0x5}
 	TombstoneStatusPrefix = []byte{0x6}
+	DelegationKey         = []byte{0x7}
 )
 
 type PipedValsetOperation byte
@@ -126,4 +127,16 @@ func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress, slashInf
 // BuildTombstoneStatusKey build store key for the tombstone validator status store
 func BuildTombstoneStatusKey(valAddr sdk.ValAddress) []byte {
 	return append(TombstoneStatusPrefix, valAddr.Bytes()...)
+}
+
+// BuildDelegationsKey build the delegations's prefix for a contract
+func BuildDelegationsKey(actor sdk.AccAddress) []byte {
+	return append(DelegationKey, address.MustLengthPrefix(actor)...)
+}
+
+// BuildDelegationKey build the prefix for a delegator bond with validator
+func BuildDelegationKey(actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress) []byte {
+	key := append(BuildDelegationsKey(actor), address.MustLengthPrefix(delAddr)...)
+	key = append(key, address.MustLengthPrefix(valAddr)...)
+	return key
 }

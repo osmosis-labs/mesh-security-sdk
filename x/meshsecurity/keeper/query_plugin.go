@@ -13,6 +13,7 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
 type (
@@ -20,6 +21,7 @@ type (
 	viewKeeper interface {
 		GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
 		GetTotalDelegated(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
+		GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.Delegation
 	}
 	stakingKeeper interface {
 		BondDenom(ctx sdk.Context) string
@@ -107,6 +109,16 @@ func ChainedCustomQuerier(k viewKeeper, stk stakingKeeper, slk slashingKeeper, n
 			totalDelegation := sdk.NewCoin(stk.BondDenom(ctx), amount)
 			res = contract.TotalDelegationResponse{
 				Delegation: wasmkeeper.ConvertSdkCoinToWasmCoin(totalDelegation),
+			}
+		case query.AllDelegations != nil:
+			contractAddr, err := sdk.AccAddressFromBech32(query.AllDelegations.Contract)
+			if err != nil {
+				return nil, sdkerrors.ErrInvalidAddress.Wrap(query.AllDelegations.Contract)
+			}
+			delegations := k.GetAllDelegations(ctx, contractAddr, query.AllDelegations.MaxRetrieve)
+
+			res = contract.AllDelegationsResponse{
+				Delegations: contract.ConvertDelegationsToWasm(delegations),
 			}
 		default:
 			return nil, wasmvmtypes.UnsupportedRequest{Kind: "unknown virtual_stake query variant"}
