@@ -6,6 +6,7 @@ import (
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/cometbft/cometbft/libs/rand"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -35,6 +36,9 @@ func TestChainedCustomQuerier(t *testing.T) {
 				},
 				GetTotalDelegatedFn: func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
 					return sdk.NewCoin("ALX", math.NewInt(456))
+				},
+				GetAllDelegationsFn: func(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.Delegation {
+					return []types.Delegation{}
 				},
 			},
 			expData: []byte(`{"cap":{"denom":"ALX","amount":"123"},"delegated":{"denom":"ALX","amount":"456"}}`),
@@ -87,6 +91,7 @@ var _ viewKeeper = &MockViewKeeper{}
 type MockViewKeeper struct {
 	GetMaxCapLimitFn    func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
 	GetTotalDelegatedFn func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
+	GetAllDelegationsFn func(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.Delegation
 }
 
 func (m MockViewKeeper) GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
@@ -101,4 +106,11 @@ func (m MockViewKeeper) GetTotalDelegated(ctx sdk.Context, actor sdk.AccAddress)
 		panic("not expected to be called")
 	}
 	return m.GetTotalDelegatedFn(ctx, actor)
+}
+
+func (m MockViewKeeper) GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.Delegation {
+	if m.GetAllDelegationsFn == nil {
+		panic("not expected to be called")
+	}
+	return m.GetAllDelegationsFn(ctx, actor, maxRetrieve)
 }

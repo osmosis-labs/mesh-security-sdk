@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/CosmWasm/wasmd/x/wasm"
 	"github.com/CosmWasm/wasmd/x/wasm/ibctesting"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
@@ -38,14 +37,14 @@ func buildPathToWasm(fileName string) string {
 // NewIBCCoordinator initializes Coordinator with N meshd TestChain instances
 func NewIBCCoordinator(t *testing.T, n int, opts ...[]wasmkeeper.Option) *ibctesting.Coordinator {
 	return ibctesting.NewCoordinatorX(t, n,
-		func(t *testing.T, valSet *types.ValidatorSet, genAccs []authtypes.GenesisAccount, chainID string, opts []wasm.Option, balances ...banktypes.Balance) ibctesting.ChainApp {
+		func(t *testing.T, valSet *types.ValidatorSet, genAccs []authtypes.GenesisAccount, chainID string, opts []wasmkeeper.Option, balances ...banktypes.Balance) ibctesting.ChainApp {
 			return app.SetupWithGenesisValSet(t, valSet, genAccs, chainID, opts, balances...)
 		},
 		opts...,
 	)
 }
 
-func submitGovProposal(t *testing.T, chain *ibctesting.TestChain, msgs ...sdk.Msg) uint64 {
+func submitGovProposal(t *testing.T, chain *TestChain, msgs ...sdk.Msg) uint64 {
 	chainApp := chain.App.(*app.MeshApp)
 	govParams := chainApp.GovKeeper.GetParams(chain.GetContext())
 	govMsg, err := govv1.NewMsgSubmitProposal(msgs, govParams.MinDeposit, chain.SenderAccount.GetAddress().String(), "", "my title", "my summary")
@@ -57,7 +56,7 @@ func submitGovProposal(t *testing.T, chain *ibctesting.TestChain, msgs ...sdk.Ms
 	return id
 }
 
-func voteAndPassGovProposal(t *testing.T, chain *ibctesting.TestChain, proposalID uint64) {
+func voteAndPassGovProposal(t *testing.T, chain *TestChain, proposalID uint64) {
 	vote := govv1.NewMsgVote(chain.SenderAccount.GetAddress(), proposalID, govv1.OptionYes, "testing")
 	_, err := chain.SendMsgs(vote)
 	require.NoError(t, err)
@@ -67,14 +66,14 @@ func voteAndPassGovProposal(t *testing.T, chain *ibctesting.TestChain, proposalI
 
 	coord := chain.Coordinator
 	coord.IncrementTimeBy(*govParams.VotingPeriod)
-	coord.CommitBlock(chain)
+	coord.CommitBlock(chain.IBCTestChain())
 
 	rsp, err := chainApp.GovKeeper.Proposal(sdk.WrapSDKContext(chain.GetContext()), &govv1.QueryProposalRequest{ProposalId: proposalID})
 	require.NoError(t, err)
 	require.Equal(t, rsp.Proposal.Status, govv1.ProposalStatus_PROPOSAL_STATUS_PASSED)
 }
 
-func InstantiateContract(t *testing.T, chain *ibctesting.TestChain, codeID uint64, initMsg []byte, funds ...sdk.Coin) sdk.AccAddress {
+func InstantiateContract(t *testing.T, chain *TestChain, codeID uint64, initMsg []byte, funds ...sdk.Coin) sdk.AccAddress {
 	instantiateMsg := &wasmtypes.MsgInstantiateContract{
 		Sender: chain.SenderAccount.GetAddress().String(),
 		Admin:  chain.SenderAccount.GetAddress().String(),
@@ -96,14 +95,15 @@ func InstantiateContract(t *testing.T, chain *ibctesting.TestChain, codeID uint6
 
 type example struct {
 	Coordinator      *ibctesting.Coordinator
-	ConsumerChain    *ibctesting.TestChain
-	ProviderChain    *ibctesting.TestChain
+	ConsumerChain    *TestChain
+	ProviderChain    *TestChain
 	ConsumerApp      *app.MeshApp
 	ProviderApp      *app.MeshApp
 	IbcPath          *ibctesting.Path
 	ProviderDenom    string
 	ConsumerDenom    string
 	MyProvChainActor string
+	MaxRetrieve      uint16
 }
 
 func setupExampleChains(t *testing.T) example {
@@ -112,14 +112,15 @@ func setupExampleChains(t *testing.T) example {
 	consChain := coord.GetChain(ibctesting2.GetChainID(2))
 	return example{
 		Coordinator:      coord,
-		ConsumerChain:    consChain,
-		ProviderChain:    provChain,
+		ConsumerChain:    NewTestChain(t, consChain),
+		ProviderChain:    NewTestChain(t, provChain),
 		ConsumerApp:      consChain.App.(*app.MeshApp),
 		ProviderApp:      provChain.App.(*app.MeshApp),
 		IbcPath:          ibctesting.NewPath(consChain, provChain),
 		ProviderDenom:    sdk.DefaultBondDenom,
 		ConsumerDenom:    sdk.DefaultBondDenom,
 		MyProvChainActor: provChain.SenderAccount.GetAddress().String(),
+		MaxRetrieve:      50,
 	}
 }
 
@@ -128,7 +129,7 @@ func setupMeshSecurity(t *testing.T, x example) (*TestConsumerClient, ConsumerCo
 
 	// setup contracts on both chains
 	consumerCli := NewConsumerClient(t, x.ConsumerChain)
-	consumerContracts := consumerCli.BootstrapContracts()
+	consumerContracts := consumerCli.BootstrapContracts(x)
 	converterPortID := wasmkeeper.PortIDForContract(consumerContracts.converter)
 	// add some fees so that we can distribute something
 	x.ConsumerChain.DefaultMsgFees = sdk.NewCoins(sdk.NewCoin(x.ConsumerDenom, math.NewInt(1_000_000)))
@@ -138,7 +139,7 @@ func setupMeshSecurity(t *testing.T, x example) (*TestConsumerClient, ConsumerCo
 
 	// setup ibc control path: consumer -> provider (direction matters)
 	x.IbcPath.EndpointB.ChannelConfig = &ibctesting2.ChannelConfig{
-		PortID: wasmkeeper.PortIDForContract(providerContracts.externalStaking),
+		PortID: wasmkeeper.PortIDForContract(providerContracts.ExternalStaking),
 		Order:  types2.UNORDERED,
 	}
 	x.IbcPath.EndpointA.ChannelConfig = &ibctesting2.ChannelConfig{

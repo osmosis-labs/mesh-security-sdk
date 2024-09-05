@@ -36,7 +36,6 @@ func TestMVP(t *testing.T) {
 	// ...
 	x := setupExampleChains(t)
 	consumerCli, consumerContracts, providerCli := setupMeshSecurity(t, x)
-
 	// then the active set should be stored in the ext staking contract
 	// and contain all active validator addresses
 	qRsp := providerCli.QueryExtStaking(Query{"list_active_validators": {}})

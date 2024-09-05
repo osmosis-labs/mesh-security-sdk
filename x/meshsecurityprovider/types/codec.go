@@ -3,9 +3,9 @@ package types
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
+	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/msgservice"
-	authzcodec "github.com/cosmos/cosmos-sdk/x/authz/codec"
 )
 
 // RegisterLegacyAminoCodec registers the necessary x/meshsecurityprovider interfaces and concrete types
@@ -30,10 +30,6 @@ var (
 
 func init() {
 	RegisterLegacyAminoCodec(amino)
-	// Register all Amino interfaces and concrete types on the authz Amino codec so that this can later be
-	// used to properly serialize MsgGrant and MsgExec instances
+	cryptocodec.RegisterCrypto(amino)
 	sdk.RegisterLegacyAminoCodec(amino)
-	RegisterLegacyAminoCodec(authzcodec.Amino)
-
-	amino.Seal()
 }
