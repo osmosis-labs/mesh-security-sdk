@@ -176,6 +176,7 @@ func (k Keeper) HandleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, unstakeM
 		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
 	}
 
+	fmt.Println("proxyContract: ", proxyRes.Proxy)
 	proxyContract, err := sdk.AccAddressFromBech32(proxyRes.Proxy)
 	if err != nil {
 		return nil, nil, sdkerrors.ErrInvalidAddress.Wrapf("native staking proxy contract not able to get")
@@ -295,7 +296,7 @@ func (k Keeper) unstake(ctx sdk.Context, proxyContract sdk.AccAddress, validator
 }
 
 func (k Keeper) InstantUndelegate(ctx sdk.Context, delAddr sdk.AccAddress, validator stakingtypes.Validator, sharesAmount sdk.Dec) (sdk.Coin, error) {
-	returnAmount, err := k.stakingKeeper.Unbond(ctx, delAddr, sdk.ValAddress(validator.OperatorAddress), sharesAmount)
+	returnAmount, err := k.stakingKeeper.Unbond(ctx, delAddr, validator.GetOperator(), sharesAmount)
 	if err != nil {
 		return sdk.Coin{}, err
 	}
@@ -305,11 +306,7 @@ func (k Keeper) InstantUndelegate(ctx sdk.Context, delAddr sdk.AccAddress, valid
 	amt := sdk.NewCoin(bondDenom, returnAmount)
 	res := sdk.NewCoins(amt)
 
-	moduleName := stakingtypes.NotBondedPoolName
-	if validator.IsBonded() {
-		moduleName = stakingtypes.BondedPoolName
-	}
-	err = k.bankKeeper.UndelegateCoinsFromModuleToAccount(ctx, moduleName, delAddr, res)
+	err = k.bankKeeper.UndelegateCoinsFromModuleToAccount(ctx, stakingtypes.NotBondedPoolName, delAddr, res)
 	if err != nil {
 		return sdk.Coin{}, err
 	}
