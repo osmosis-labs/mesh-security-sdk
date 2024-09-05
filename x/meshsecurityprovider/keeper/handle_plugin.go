@@ -45,7 +45,12 @@ func (h CustomMessenger) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddres
 		return h.k.HandleBondMsg(ctx, contractAddr, customMsg.Provider.Bond)
 	case customMsg.Provider.Unbond != nil:
 		return h.k.HandleUnbondMsg(ctx, contractAddr, customMsg.Provider.Unbond)
+	case customMsg.Provider.Unstake != nil:
+		return h.k.HandleUnstakeMsg(ctx, contractAddr, customMsg.Provider.Unstake)
+	case customMsg.Provider.Restake != nil:
+		return h.k.HandleRestakeMsg(ctx, contractAddr, customMsg.Provider.Restake)
 	}
+
 	return nil, nil, wasmtypes.ErrUnknownMsg
 }
 
