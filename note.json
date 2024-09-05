@@ -1,0 +1,155 @@
+{
+    "stake": {
+        "delegator": "cosmos1ph3tq3s5afcg6z4c4mpd9kdklt9a8j7gw8sygn",
+        "validator": "cosmosvaloper1gtnfjqp6pgkdu6szu5rzk4h5z5d54fadcfsv90",
+        "stake": {
+            "denom": "stake",
+            "amount": "20000000"
+        },
+        "tx_id": 2
+    }
+}
+
+[
+    Execute { 
+        contract_addr: "cosmos1qg5ega6dykkxc307y25pecuufrjkxkaggkkxh7nad0vhyhtuhw3s6ufdm4", 
+        msg: {
+            "internal_unstake":{
+                "delegator":"cosmos1whqnmupfwm3gfmvjegy0j69z42mfngmg2q8emj",
+                "validator":"cosmosvaloper1jgaec5l7glsy2l37n25kmqj7p9hrfzsh43df3u",
+                "amount":{"denom":"stake","amount":"22500000"}}
+        }, 
+        funds: [] 
+    }, 
+    Execute { 
+        contract_addr: "cosmos1qg5ega6dykkxc307y25pecuufrjkxkaggkkxh7nad0vhyhtuhw3s6ufdm4", 
+        msg: {
+            "internal_unstake":{
+                "delegator":"cosmos1whqnmupfwm3gfmvjegy0j69z42mfngmg2q8emj",
+                "validator":"cosmosvaloper1mt78w786v2qz24skefvv6x3xulq4495egj33yc",
+                "amount":{"denom":"stake","amount":"9000000"}}}, funds: [] }]
+
+panic: 
+failed to execute scheduled task for contract 
+"cosmos1xr3rq8yvd7qplsw5yx90ftsr2zdhg4e9z60h5duusgxpv72hud3s493rn8": 
+execution: {Loading CosmWasm module: execute}: panic [recovered]
+
+routes:  map[
+    /cosmos.auth.v1beta1.MsgUpdateParams:0x10378c850 
+    /cosmos.authz.v1beta1.MsgExec:0x10378c850 
+    /cosmos.authz.v1beta1.MsgGrant:0x10378c850 
+    /cosmos.authz.v1beta1.MsgRevoke:0x10378c850 
+    /cosmos.bank.v1beta1.MsgMultiSend:0x10378c850 
+    /cosmos.bank.v1beta1.MsgSend:0x10378c850 
+    /cosmos.bank.v1beta1.MsgSetSendEnabled:0x10378c850 
+    /cosmos.bank.v1beta1.MsgUpdateParams:0x10378c850 
+    /cosmos.consensus.v1.MsgUpdateParams:0x10378c850 
+    /cosmos.crisis.v1beta1.MsgUpdateParams:0x10378c850 
+    /cosmos.crisis.v1beta1.MsgVerifyInvariant:0x10378c850 
+    /cosmos.distribution.v1beta1.MsgCommunityPoolSpend:0x10378c850 
+    /cosmos.distribution.v1beta1.MsgFundCommunityPool:0x10378c850 
+    /cosmos.distribution.v1beta1.MsgSetWithdrawAddress:0x10378c850 
+    /cosmos.distribution.v1beta1.MsgUpdateParams:0x10378c850 
+    /cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward:0x10378c850 /
+    cosmos.distribution.v1beta1.MsgWithdrawValidatorCommission:0x10378c850 
+    /cosmos.evidence.v1beta1.MsgSubmitEvidence:0x10378c850 
+    /cosmos.feegrant.v1beta1.MsgGrantAllowance:0x10378c8
+50 /cosmos.feegrant.v1beta1.MsgRevokeAllowance:0x10378c850 
+    /cosmos.gov.v1.MsgDeposit:0x10378c850 
+    /cosmos.gov.v1.MsgExecLegacyContent:0x10378c850 
+    /cosmos.gov.v1.MsgSubmitProposal:0x10378c850 
+    /cosmos.gov.v1.MsgUpdateParams:0x10378c850 
+    /cosmos.gov.v1.MsgVote:0x10378c850 
+    /cosmos.gov.v1.MsgVoteWeighted:0x10378c850 
+    /cosmos.gov.v1beta1.MsgDeposit:0x10378c850 
+    /cosmos.gov.v1beta1.MsgSubmitProposal:0x10378c850 
+    /cosmos.gov.v1beta1.MsgVote:0x10378c850 
+    /cosmos.gov.v1beta1.MsgVoteWeighted:0x10378c850 
+    /cosmos.group.v1.MsgCreateGroup:0x10378c850 
+    /cosmos.group.v1.MsgCreateGroupPolicy:0x10378c850 
+    /cosmos.group.v1.MsgCreateGroupWithPolicy:0x10378c850 
+    /cosmos.group.v1.MsgExec:0x10378c850 
+    /cosmos.group.v1.MsgLeaveGroup:0x10378c850 
+    /cosmos.group.v1.MsgSubmitProposal:0x10378c850 
+    /cosmos.group.v1.MsgUpdateGroupAdmin:0x10378c850 
+    /cosmos.group.v1.MsgUpdateGroupMembers:0x10378c850 
+    /cosmos.group.v1.MsgUpdateGroupMetadata:0x10378c850 
+    /cosmos.group.v1.MsgUpdateGroupPolicyAdmin:0x10378c850 
+    /cosmos.group.v1.MsgUpdateGroupPolicyDecisionPolicy:0x10378c850 
+    /cosmos.group.v1.MsgUpdateGroupPolicyMetadata:0x10378c850 
+    /cosmos.group.v1.MsgVote:0x10378c850 
+    /cosmos.group.v1.MsgWithdrawProposal:0x10378c850 
+    /cosmos.mint.v1beta1.MsgUpdateParams:0x10378c850 
+    /cosmos.nft.v1beta1.MsgSend:0x10378c850 
+    /cosmos.slashing.v1beta1.MsgUnjail:0x10378c850 
+    /cosmos.slashing.v1beta1.MsgUpdateParams:0x10378c850 
+    /cosmos.staking.v1beta1.MsgBeginRedelegate:0x10378c850 
+    /cosmos.staking.v1beta1.MsgCancelUnbondingDelegation:0x10378c850 
+    /cosmos.staking.v1beta1.MsgCreateValidator:0x10378c850 
+    /cosmos.staking.v1beta1.MsgDelegate:0x10378c850 
+    /cosmos.staking.v1beta1.MsgEditValidator:0x10378c850 
+    /cosmos.staking.v1beta1.MsgUndelegate:0x10378c850 
+    /cosmos.staking.v1beta1.MsgUpdateParams:0x10378c850 
+    /cosmos.upgrade.v1beta1.MsgCancelUpgrade:0x10378c850 
+    /cosmos.upgrade.v1beta1.MsgSoftwareUpgrade:0x10378c850 
+    /cosmos.vesting.v1beta1.MsgCreatePeriodicVestingAccount:0x10378c850 
+    /cosmos.vesting.v1beta1.MsgCreatePermanentLockedAccount:0x10378c850 
+    /cosmos.vesting.v1beta1.MsgCreateVestingAccount:0x10378c850 
+    /cosmwasm.wasm.v1.MsgAddCodeUploadParamsAddresses:0x10378c850 
+    /cosmwasm.wasm.v1.MsgClearAdmin:0x10378c850 
+    /cosmwasm.wasm.v1.MsgExecuteContract:0x10378c850 
+    /cosmwasm.wasm.v1.MsgInstantiateContract:0x10378c850 
+    /cosmwasm.wasm.v1.MsgInstantiateContract2:0x10378c850 
+    /cosmwasm.wasm.v1.MsgMigrateContract:0x10378c850 
+    /cosmwasm.wasm.v1.MsgPinCodes:0x10378c850 
+    /cosmwasm.wasm.v1.MsgRemoveCodeUploadParamsAddresses:0x10378c850 
+    /cosmwasm.wasm.v1.MsgStoreAndInstantiateContract:0x10378c850 
+    /cosmwasm.wasm.v1.MsgStoreAndMigrateContract:0x10378c850 
+    /cosmwasm.wasm.v1.MsgStoreCode:0x10378c850 
+    /cosmwasm.wasm.v1.MsgSudoContract:0x10378c850 
+    /cosmwasm.wasm.v1.MsgUnpinCodes:0x10378c850 
+    /cosmwasm.wasm.v1.MsgUpdateAdmin:0x10378c850 
+    /cosmwasm.wasm.v1.MsgUpdateContractLabel:0x10378c850 
+    /cosmwasm.wasm.v1.MsgUpdateInstantiateConfig:0x10378c850 
+    /cosmwasm.wasm.v1.MsgUpdateParams:0x10378c850 
+    /ibc.applications.fee.v1.MsgPayPacketFee:0x10378c850 
+    /ibc.applications.fee.v1.MsgPayPacketFeeAsync:0x10378c850 
+    /ibc.applications.fee.v1.MsgRegisterCounterpartyPayee:0x10378c850 
+    /ibc.applications.fee.v1.MsgRegisterPayee:0x10378c850 
+    /ibc.applications.interchain_accounts.controller.v1.MsgRegisterInterchainAccount:0x10378c850 
+    /ibc.applications.interchain_accounts.controller.v1.MsgSendTx:0x10378c850 
+    /ibc.applications.transfer.v1.MsgTransfer:0x10378c850 
+    /ibc.core.channel.v1.MsgAcknowledgement:0x10378c850 
+    /ibc.core.channel.v1.MsgChannelCloseConfirm:0x10378c850 
+    /ibc.core.channel.v1.MsgChannelCloseInit:0x10378c850 
+    /ibc.core.channel.v1.MsgChannelOpenAck:0x10378c850 
+    /ibc.core.channel.v1.MsgChannelOpenConfirm:0x10378c850 
+    /ibc.core.channel.v1.MsgChannelOpenInit:0x10378c850 
+    /ibc.core.channel.v1.MsgChannelOpenTry:0x10378c850 
+    /ibc.core.channel.v1.MsgRecvPacket:0x10378c850 
+    /ibc.core.channel.v1.MsgTimeout:0x10378c850 
+    /ibc.core.channel.v1.MsgTimeoutOnClose:0x10378c850 
+    /ibc.core.client.v1.MsgCreateClient:0x10378c850 
+    /ibc.core.client.v1.MsgSubmitMisbehaviour:0x10378c850 
+    /ibc.core.client.v1.MsgUpdateClient:0x10378c850 
+    /ibc.core.client.v1.MsgUpgradeClient:0x10378c850 
+    /ibc.core.connection.v1.MsgConnectionOpenAck:0x10378c850 
+    /ibc.core.connection.v1.MsgConnectionOpenConfirm:0x10378c850 
+    /ibc.core.connection.v1.MsgConnectionOpenInit:0x10378c850 
+    /ibc.core.connection.v1.MsgConnectionOpenTry:0x10378c850 
+    /osmosis.meshsecurity.v1beta1.MsgSetVirtualStakingMaxCap:0x10378c850]
+
+
+    Cannot unbond 49999999 tokens from validator cosmosvaloper1fhm5lj9wcvxwdxmgtz36mnjuhwtk7ly93c3rqg, not enough staked
+
+    data:  {
+        "internal_unstake":{
+            "delegator":"cosmos1yw0saxm7nkwl0e8r3kqpar2a0vusdzcaku8mys",
+            "validator":"cosmosvaloper1szy96jnddalx7s686e4ylres02uv6a5dyxj82c",
+            "normalize_amount":{"denom":"stake","amount":"9000000"},
+            "inverted_amount":{"denom":"stake","amount":"19999999"}
+        }
+    }
+
+    failed to execute message; message index: 0: acknowledge packet callback failed: on ack: submessages: Error calling the VM: Error executing Wasm: Wasmer runtime error: RuntimeError: 
+    Aborted: panicked at contracts/consumer/virtual-staking/src/contract.rs:519:9:
