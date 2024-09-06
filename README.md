@@ -12,14 +12,14 @@ for specs and wasm contracts.
 # Integrate the mesh security consumer and provider modules
 
 ## Prerequisites 
-Projects that want to integrate the meshsecurityprovider module onto their Cosmos SDK chain must enable the following modules:
+Projects that want to integrate the meshsecurity-provider module onto their Cosmos SDK chain must enable the following modules:
 - [x/staking](https://github.com/cosmos/cosmos-sdk/tree/main/x/staking)
 - [x/auth](https://github.com/cosmos/cosmos-sdk/tree/main/x/auth)
 - [x/bank](https://github.com/cosmos/cosmos-sdk/tree/main/x/bank)
 - [x/wasm](github.com/CosmWasm/wasmd/x/wasm)
 
 ## Configuring and Adding Module
-1. Add the mesh security package to the go.mod and install it.
+1. Install the mesh security package on the go.mod.
     ```
     require (
     ...
