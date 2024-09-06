@@ -71,6 +71,17 @@ jobs:
       - name: Publish to GitHub Packages
         uses: docker/build-push-action@v4
         with:
+          file: consumer.Dockerfile
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+                ghcr.io/osmosis-labs/meshconsumerd:latest
+      
+      - name: Publish to GitHub Packages
+        uses: docker/build-push-action@v4
+        with:
+          file: provider.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+                ghcr.io/osmosis-labs/meshproviderd:latest

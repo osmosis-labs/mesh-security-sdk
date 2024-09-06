@@ -19,7 +19,8 @@ import (
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/osmosis-labs/mesh-security-sdk/demo/app"
+	consumerapp "github.com/osmosis-labs/mesh-security-sdk/demo/app/consumer"
+	providerapp "github.com/osmosis-labs/mesh-security-sdk/demo/app/provider"
 )
 
 func TestValsetTransitions(t *testing.T) {
@@ -71,7 +72,7 @@ func TestValsetTransitions(t *testing.T) {
 		"active to jailed": {
 			setup: setupVal,
 			doTransition: func(t *testing.T, val mock.PV, x example) {
-				jailValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), x.Coordinator, x.ConsumerChain, x.ConsumerApp)
+				jailConsumerValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), x.Coordinator, x.ConsumerChain, x.ConsumerApp)
 			},
 			assertPackets: func(t *testing.T, packets []channeltypes.Packet) {
 				require.Len(t, packets, 1)
@@ -83,13 +84,13 @@ func TestValsetTransitions(t *testing.T) {
 		"jailed to active": {
 			setup: func(t *testing.T, x example) mock.PV {
 				val := CreateNewValidator(t, operatorKeys, x.ConsumerChain, 200)
-				jailValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), x.Coordinator, x.ConsumerChain, x.ConsumerApp)
+				jailConsumerValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), x.Coordinator, x.ConsumerChain, x.ConsumerApp)
 				x.ConsumerChain.NextBlock()
 				require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
 				return val
 			},
 			doTransition: func(t *testing.T, val mock.PV, x example) {
-				unjailValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), operatorKeys, x.Coordinator, x.ConsumerChain, x.ConsumerApp)
+				unjailConsumerValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), operatorKeys, x.Coordinator, x.ConsumerChain, x.ConsumerApp)
 			},
 			assertPackets: func(t *testing.T, packets []channeltypes.Packet) {
 				for _, v := range packets {
@@ -105,7 +106,7 @@ func TestValsetTransitions(t *testing.T) {
 			setup: func(t *testing.T, x example) mock.PV {
 				val := CreateNewValidator(t, operatorKeys, x.ConsumerChain, 200)
 				t.Log("jail validator")
-				jailValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), x.Coordinator, x.ConsumerChain, x.ConsumerApp)
+				jailConsumerValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), x.Coordinator, x.ConsumerChain, x.ConsumerApp)
 
 				t.Log("Add new validator")
 				otherOperator := secp256k1.GenPrivKey()
@@ -121,7 +122,7 @@ func TestValsetTransitions(t *testing.T) {
 			},
 			doTransition: func(t *testing.T, val mock.PV, x example) {
 				t.Log("unjail")
-				unjailValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), operatorKeys, x.Coordinator, x.ConsumerChain, x.ConsumerApp)
+				unjailConsumerValidator(t, sdk.ConsAddress(val.PrivKey.PubKey().Address()), operatorKeys, x.Coordinator, x.ConsumerChain, x.ConsumerApp)
 			},
 			assertPackets: func(t *testing.T, packets []channeltypes.Packet) {
 				require.Len(t, packets, 1)
@@ -165,7 +166,7 @@ func undelegate(t *testing.T, operatorKeys *secp256k1.PrivKey, amount sdkmath.In
 	x.ConsumerChain.NextBlock()
 }
 
-func jailValidator(t *testing.T, consAddr sdk.ConsAddress, coordinator *wasmibctesting.Coordinator, chain *TestChain, app *app.MeshApp) {
+func jailConsumerValidator(t *testing.T, consAddr sdk.ConsAddress, coordinator *wasmibctesting.Coordinator, chain *TestChain, app *consumerapp.MeshConsumerApp) {
 	ctx := chain.GetContext()
 	signInfo, found := app.SlashingKeeper.GetValidatorSigningInfo(ctx, consAddr)
 	require.True(t, found)
@@ -180,7 +181,22 @@ func jailValidator(t *testing.T, consAddr sdk.ConsAddress, coordinator *wasmibct
 	chain.NextBlock()
 }
 
-func unjailValidator(t *testing.T, consAddr sdk.ConsAddress, operatorKeys *secp256k1.PrivKey, coordinator *wasmibctesting.Coordinator, chain *TestChain, app *app.MeshApp) {
+func jailProviderValidator(t *testing.T, consAddr sdk.ConsAddress, coordinator *wasmibctesting.Coordinator, chain *TestChain, app *providerapp.MeshProviderApp) {
+	ctx := chain.GetContext()
+	signInfo, found := app.SlashingKeeper.GetValidatorSigningInfo(ctx, consAddr)
+	require.True(t, found)
+	// bump height to be > block window
+	coordinator.CommitNBlocks(chain.IBCTestChain(), 100)
+	ctx = chain.GetContext()
+	signInfo.MissedBlocksCounter = app.SlashingKeeper.MinSignedPerWindow(ctx)
+	app.SlashingKeeper.SetValidatorSigningInfo(ctx, consAddr, signInfo)
+	power := app.StakingKeeper.GetLastValidatorPower(ctx, sdk.ValAddress(consAddr))
+	app.SlashingKeeper.HandleValidatorSignature(ctx, cryptotypes.Address(consAddr), power, false)
+	// when updates trigger
+	chain.NextBlock()
+}
+
+func unjailConsumerValidator(t *testing.T, consAddr sdk.ConsAddress, operatorKeys *secp256k1.PrivKey, coordinator *wasmibctesting.Coordinator, chain *TestChain, app *consumerapp.MeshConsumerApp) {
 	// move clock
 	aa, ok := app.SlashingKeeper.GetValidatorSigningInfo(chain.GetContext(), consAddr)
 	require.True(t, ok)
@@ -193,7 +209,7 @@ func unjailValidator(t *testing.T, consAddr sdk.ConsAddress, operatorKeys *secp2
 	chain.NextBlock()
 }
 
-func tombstoneValidator(t *testing.T, consAddr sdk.ConsAddress, valAddr sdk.ValAddress, chain *TestChain, app *app.MeshApp) {
+func tombstoneConsumerValidator(t *testing.T, consAddr sdk.ConsAddress, valAddr sdk.ValAddress, chain *TestChain, consApp *consumerapp.MeshConsumerApp) {
 	e := &types.Equivocation{
 		Height:           chain.GetContext().BlockHeight(),
 		Power:            100,
@@ -201,7 +217,7 @@ func tombstoneValidator(t *testing.T, consAddr sdk.ConsAddress, valAddr sdk.ValA
 		ConsensusAddress: consAddr.String(),
 	}
 	// when
-	app.EvidenceKeeper.HandleEquivocationEvidence(chain.GetContext(), e)
+	consApp.EvidenceKeeper.HandleEquivocationEvidence(chain.GetContext(), e)
 	chain.NextBlock()
 
 	packets := chain.PendingSendPackets
