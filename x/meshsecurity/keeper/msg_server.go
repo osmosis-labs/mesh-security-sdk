@@ -47,16 +47,5 @@ func (m msgServer) SetVirtualStakingMaxCap(goCtx context.Context, req *types.Msg
 		}
 		return &types.MsgSetVirtualStakingMaxCapResponse{}, nil
 	}
-	if req.MaxCap.IsZero() {
-		// no need to run regular rebalances with a new limit of 0
-		if err := m.k.DeleteAllScheduledTasks(ctx, types.SchedulerTaskHandleEpoch, acc); err != nil {
-			return nil, err
-		}
-	}
-
-	// schedule last rebalance callback to let the contract do undelegates and housekeeping
-	if err := m.k.ScheduleOneShotTask(ctx, types.SchedulerTaskHandleEpoch, acc, uint64(ctx.BlockHeight())); err != nil {
-		return nil, errorsmod.Wrap(err, "schedule one shot rebalance task")
-	}
 	return &types.MsgSetVirtualStakingMaxCapResponse{}, nil
 }

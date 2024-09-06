@@ -22,6 +22,21 @@ message VirtualStakingMaxCapInfo {
   cosmos.base.v1beta1.Coin cap = 3 [ (gogoproto.nullable) = false ];
 }
 
+// Delegation represents the bond with tokens held by an account.
+message Delegation {
+  option (gogoproto.equal) = false;
+
+  // delegator_address is the bech32-encoded address of the delegator.
+  string delegator_address = 1;
+  // validator_address is the bech32-encoded address of the validator.
+  string validator_address = 2;
+  // amount define the delegation amount.
+  string amount = 3 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int",
+    (gogoproto.nullable)   = false
+  ];
+}
+
 // Params defines the parameters for the x/meshsecurity module.
 message Params {
   option (amino.name) = "meshsecurity/Params";

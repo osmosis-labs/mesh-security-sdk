@@ -1,6 +1,9 @@
 package keeper
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/cometbft/cometbft/libs/log"
 
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
@@ -8,6 +11,7 @@ import (
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/contract"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurityprovider/types"
@@ -148,4 +152,164 @@ func (k Keeper) HandleUnbondMsg(ctx sdk.Context, actor sdk.AccAddress, unbondMsg
 		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
 		sdk.NewAttribute(types.AttributeKeyDelegator, delAddr.String()),
 	)}, nil, nil
+}
+
+func (k Keeper) HandleUnstakeMsg(ctx sdk.Context, actor sdk.AccAddress, unstakeMsg *contract.UnstakeMsg) ([]sdk.Event, [][]byte, error) {
+	nativeContract := k.NativeStakingAddress(ctx)
+	nativeContractAddr, err := sdk.AccAddressFromBech32(nativeContract)
+	if err != nil {
+		return nil, nil, sdkerrors.ErrInvalidAddress.Wrapf("native staking contract not able to get")
+	}
+	var proxyRes types.ProxyByOwnerResponse
+
+	resBytes, err := k.wasmKeeper.QuerySmart(
+		ctx,
+		nativeContractAddr,
+		[]byte(fmt.Sprintf(`{"proxy_by_owner": {"owner": "%s"}}`, unstakeMsg.Delegator)),
+	)
+
+	if err != nil {
+		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
+	}
+	if err = json.Unmarshal(resBytes, &proxyRes); err != nil {
+		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
+	}
+	if proxyRes.Proxy == "" {
+		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
+	}
+
+	proxyContract, err := sdk.AccAddressFromBech32(proxyRes.Proxy)
+	if err != nil {
+		return nil, nil, sdkerrors.ErrInvalidAddress.Wrapf("native staking proxy contract not able to get")
+	}
+
+	coin, err := wasmkeeper.ConvertWasmCoinToSdkCoin(unstakeMsg.Amount)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	valAddr, err := sdk.ValAddressFromBech32(unstakeMsg.Validator)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = k.unstake(ctx, proxyContract, valAddr, coin)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []sdk.Event{sdk.NewEvent(
+		types.EventTypeUnstake,
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
+		sdk.NewAttribute(types.AttributeKeyValidator, valAddr.String()),
+	)}, nil, nil
+}
+
+func (k Keeper) HandleRestakeMsg(ctx sdk.Context, actor sdk.AccAddress, restakeMsg *contract.RestakeMsg) ([]sdk.Event, [][]byte, error) {
+	if actor.String() != k.VaultAddress(ctx) {
+		return nil, nil, sdkerrors.ErrUnauthorized.Wrapf("contract has no permission for mesh security operations")
+	}
+
+	coin, err := wasmkeeper.ConvertWasmCoinToSdkCoin(restakeMsg.Amount)
+	if err != nil {
+		return nil, nil, err
+	}
+	bondDenom := k.stakingKeeper.BondDenom(ctx)
+	if coin.Denom != bondDenom {
+		return nil, nil, sdkerrors.ErrInvalidRequest.Wrapf("invalid coin denomination: got %s, expected %s", coin.Denom, bondDenom)
+	}
+
+	delAddr, err := sdk.AccAddressFromBech32(restakeMsg.Delegator)
+	if err != nil {
+		return nil, nil, err
+	}
+	valAddr, err := sdk.ValAddressFromBech32(restakeMsg.Validator)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	validatorInfo, found := k.stakingKeeper.GetValidator(ctx, valAddr)
+	if !found {
+		return nil, nil, sdkerrors.ErrNotFound.Wrapf("can not found validator with address: %s", restakeMsg.Validator)
+	}
+
+	shares, err := k.stakingKeeper.ValidateUnbondAmount(ctx, actor, valAddr, coin.Amount)
+	if err == stakingtypes.ErrNoDelegation {
+		return nil, nil, sdkerrors.ErrNotFound.Wrapf("can not found delegation with address: %s", restakeMsg.Delegator)
+	} else if err != nil {
+		return nil, nil, err
+	}
+	unbondAmt, err := k.InstantUndelegate(ctx, delAddr, validatorInfo, shares)
+	if err != nil {
+		return nil, nil, err
+	}
+	if !unbondAmt.Equal(coin) {
+		return nil, nil, sdkerrors.ErrInvalidRequest.Wrapf("Delegation has been slashed")
+	}
+	err = k.bankKeeper.DelegateCoins(ctx, delAddr, actor, sdk.NewCoins(unbondAmt))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []sdk.Event{sdk.NewEvent(
+		types.EventTypeUnbond,
+		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
+		sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
+		sdk.NewAttribute(types.AttributeKeyDelegator, delAddr.String()),
+	)}, nil, nil
+}
+
+func (k Keeper) unstake(ctx sdk.Context, proxyContract sdk.AccAddress, validator sdk.ValAddress, coin sdk.Coin) error {
+	if coin.Amount.IsNil() || coin.Amount.IsZero() || coin.Amount.IsNegative() {
+		return sdkerrors.ErrInvalidRequest.Wrap("amount")
+	}
+
+	// Ensure staking constraints
+	bondDenom := k.stakingKeeper.BondDenom(ctx)
+	if coin.Denom != bondDenom {
+		return sdkerrors.ErrInvalidRequest.Wrapf("invalid coin denomination: got %s, expected %s", coin.Denom, bondDenom)
+	}
+
+	validatorInfo, found := k.stakingKeeper.GetValidator(ctx, validator)
+	if !found {
+		return sdkerrors.ErrNotFound.Wrapf("can not found validator with address: %s", validator.String())
+	}
+
+	shares, err := k.stakingKeeper.ValidateUnbondAmount(ctx, proxyContract, validator, coin.Amount)
+	if err == stakingtypes.ErrNoDelegation {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	if validatorInfo.IsBonded() {
+		_, err = k.stakingKeeper.Undelegate(ctx, proxyContract, validator, shares)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	_, err = k.InstantUndelegate(ctx, proxyContract, validatorInfo, shares)
+	return err
+}
+
+func (k Keeper) InstantUndelegate(ctx sdk.Context, delAddr sdk.AccAddress, validator stakingtypes.Validator, sharesAmount sdk.Dec) (sdk.Coin, error) {
+	returnAmount, err := k.stakingKeeper.Unbond(ctx, delAddr, validator.GetOperator(), sharesAmount)
+	if err != nil {
+		return sdk.Coin{}, err
+	}
+
+	bondDenom := k.stakingKeeper.BondDenom(ctx)
+
+	amt := sdk.NewCoin(bondDenom, returnAmount)
+	res := sdk.NewCoins(amt)
+
+	err = k.bankKeeper.UndelegateCoinsFromModuleToAccount(ctx, stakingtypes.NotBondedPoolName, delAddr, res)
+	if err != nil {
+		return sdk.Coin{}, err
+	}
+	return amt, nil
 }

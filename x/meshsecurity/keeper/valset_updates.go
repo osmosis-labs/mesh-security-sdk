@@ -7,11 +7,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-
-	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
-	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
+	gogotypes "github.com/cosmos/gogoproto/types"
 
 	outmessage "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
 // ScheduleBonded store a validator update to bonded status for the valset update report
@@ -77,7 +76,7 @@ func (k Keeper) sendAsync(ctx sdk.Context, op types.PipedValsetOperation, valAdd
 // ValsetUpdateReport aggregate all stored changes of the current block. Should be called by an end-blocker.
 // The events reported are categorized by type and not time. Conflicting events as Bonded/ Unbonded
 // are not supposed to happen within the same block
-func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, error) {
+func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (outmessage.HandleValsetUpdate, error) {
 	var innerErr error
 	appendValidator := func(set *[]wasmvmtypes.Validator, valAddr sdk.ValAddress) bool {
 		val, ok := k.Staking.GetValidator(ctx, valAddr)
@@ -90,6 +89,8 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 	}
 	slashValidator := func(set *[]outmessage.ValidatorSlash, valAddr sdk.ValAddress, power int64, infractionHeight int64,
 		infractionTime int64, slashAmount string, slashRatio string) bool {
+		isTombstoned := k.IsTombstonedStatus(ctx, valAddr)
+		k.ClearTombstonedStatus(ctx, valAddr)
 		valSlash := outmessage.ValidatorSlash{
 			ValidatorAddr:    valAddr.String(),
 			Power:            power,
@@ -99,18 +100,19 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 			Time:             ctx.BlockTime().Unix(),
 			SlashAmount:      slashAmount,
 			SlashRatio:       slashRatio,
+			IsTombstoned:     isTombstoned,
 		}
 		*set = append(*set, valSlash)
 		return false
 	}
-	r := contract.ValsetUpdate{ // init with empty slices for contract that does not handle null or omitted fields
-		Additions:  make([]contract.Validator, 0),
-		Removals:   make([]contract.ValidatorAddr, 0),
-		Updated:    make([]contract.Validator, 0),
-		Jailed:     make([]contract.ValidatorAddr, 0),
-		Unjailed:   make([]contract.ValidatorAddr, 0),
-		Tombstoned: make([]contract.ValidatorAddr, 0),
-		Slashed:    make([]contract.ValidatorSlash, 0),
+	r := outmessage.HandleValsetUpdate{ // init with empty slices for contract that does not handle null or omitted fields
+		Additions:  make([]outmessage.Validator, 0),
+		Removals:   make([]outmessage.ValidatorAddr, 0),
+		Updated:    make([]outmessage.Validator, 0),
+		Jailed:     make([]outmessage.ValidatorAddr, 0),
+		Unjailed:   make([]outmessage.ValidatorAddr, 0),
+		Tombstoned: make([]outmessage.ValidatorAddr, 0),
+		Slashed:    make([]outmessage.ValidatorSlash, 0),
 	}
 	err := k.iteratePipedValsetOperations(ctx, func(valAddr sdk.ValAddress, op types.PipedValsetOperation, slashInfo *types.SlashInfo) bool {
 		switch op {
@@ -127,7 +129,6 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		case types.ValidatorModified:
 			return appendValidator(&r.Updated, valAddr)
 		case types.ValidatorSlashed:
-			// TODO: Add / send the infraction time
 			return slashValidator(&r.Slashed, valAddr, slashInfo.Power, slashInfo.InfractionHeight, 0,
 				slashInfo.TotalSlashAmount, slashInfo.SlashFraction)
 		default:
@@ -154,6 +155,39 @@ func (k Keeper) ClearPipedValsetOperations(ctx sdk.Context) {
 	for _, k := range keys {
 		pStore.Delete(k)
 	}
+}
+
+// SetTombstonedStatus sets Tombstoned status for the given validator address in the provided store.
+func (k Keeper) SetTombstonedStatus(ctx sdk.Context, valAddr sdk.ValAddress) {
+	store := ctx.KVStore(k.storeKey)
+
+	bz := k.cdc.MustMarshal(&gogotypes.BoolValue{Value: true})
+	store.Set(types.BuildTombstoneStatusKey(valAddr), bz)
+}
+
+// IsTombstonedStatus returns whether validator is tombstoned or not
+func (k Keeper) IsTombstonedStatus(ctx sdk.Context, valAddr sdk.ValAddress) bool {
+	store := ctx.KVStore(k.storeKey)
+	key := types.BuildTombstoneStatusKey(valAddr)
+	if !store.Has(key) {
+		return false
+	}
+
+	bz := store.Get(key)
+	if bz == nil {
+		return false
+	}
+
+	var enabled gogotypes.BoolValue
+	k.cdc.MustUnmarshal(bz, &enabled)
+
+	return enabled.Value
+}
+
+// ClearTombstonedStatus delete all entries from the temporary store that contains the validator status.
+func (k Keeper) ClearTombstonedStatus(ctx sdk.Context, valAddr sdk.ValAddress) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(types.BuildTombstoneStatusKey(valAddr))
 }
 
 // iterate through all stored valset updates. Due to the storage key, there are no contract duplicates within an operation type.

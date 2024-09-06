@@ -137,6 +137,7 @@ type example struct {
 	ProviderDenom    string
 	ConsumerDenom    string
 	MyProvChainActor string
+	MaxRetrieve      uint16
 }
 
 func setupExampleChains(t *testing.T) example {
@@ -153,6 +154,7 @@ func setupExampleChains(t *testing.T) example {
 		ProviderDenom:    sdk.DefaultBondDenom,
 		ConsumerDenom:    sdk.DefaultBondDenom,
 		MyProvChainActor: provChain.SenderAccount.GetAddress().String(),
+		MaxRetrieve:      50,
 	}
 }
 
@@ -161,7 +163,7 @@ func setupMeshSecurity(t *testing.T, x example) (*TestConsumerClient, ConsumerCo
 
 	// setup contracts on both chains
 	consumerCli := NewConsumerClient(t, x.ConsumerChain)
-	consumerContracts := consumerCli.BootstrapContracts()
+	consumerContracts := consumerCli.BootstrapContracts(x)
 	converterPortID := wasmkeeper.PortIDForContract(consumerContracts.converter)
 	// add some fees so that we can distribute something
 	x.ConsumerChain.DefaultMsgFees = sdk.NewCoins(sdk.NewCoin(x.ConsumerDenom, math.NewInt(1_000_000)))
