@@ -21,7 +21,7 @@ type (
 	viewKeeper interface {
 		GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
 		GetTotalDelegated(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
-		GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.Delegation
+		GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint32) []types.Delegation
 	}
 	stakingKeeper interface {
 		BondDenom(ctx sdk.Context) string

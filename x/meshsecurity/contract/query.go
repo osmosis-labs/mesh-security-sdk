@@ -26,7 +26,7 @@ type (
 	}
 	AllDelegationsQuery struct {
 		Contract    string `json:"contract"`
-		MaxRetrieve uint16 `json:"max_retrieve"`
+		MaxRetrieve uint32 `json:"max_retrieve"`
 	}
 	AllDelegationsResponse struct {
 		Delegations []Delegation `json:"delegations"`

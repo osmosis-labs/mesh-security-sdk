@@ -167,7 +167,7 @@ func (k Keeper) GetDelegation(ctx sdk.Context, actor, delAddr sdk.AccAddress, va
 }
 
 // GetAllDelegations returns all delegations for a specific contract
-func (k Keeper) GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) (delegations []types.Delegation) {
+func (k Keeper) GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint32) (delegations []types.Delegation) {
 	delegations = make([]types.Delegation, maxRetrieve)
 	store := ctx.KVStore(k.storeKey)
 	contractPrefixKey := types.BuildDelegationsKey(actor)

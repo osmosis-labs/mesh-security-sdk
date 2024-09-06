@@ -137,7 +137,7 @@ type example struct {
 	ProviderDenom    string
 	ConsumerDenom    string
 	MyProvChainActor string
-	MaxRetrieve      uint16
+	MaxRetrieve      uint32
 }
 
 func setupExampleChains(t *testing.T) example {
