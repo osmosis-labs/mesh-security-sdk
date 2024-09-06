@@ -1,0 +1,16 @@
+{
+    "messages": [
+        {
+            "@type": "/osmosis.meshsecurityprovider.MsgUpdateParams",
+            "authority": "",
+            "params": {
+                "vault_address": "",
+                "native_staking_address": ""
+            }
+        }
+    ],
+    "metadata": "ipfs://CID",
+    "deposit": "100000000stake",
+    "title": "Update params",
+    "summary": "Update params"
+}
