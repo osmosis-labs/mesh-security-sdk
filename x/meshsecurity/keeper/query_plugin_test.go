@@ -37,7 +37,7 @@ func TestChainedCustomQuerier(t *testing.T) {
 				GetTotalDelegatedFn: func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
 					return sdk.NewCoin("ALX", math.NewInt(456))
 				},
-				GetAllDelegationsFn: func(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.Delegation {
+				GetAllDelegationsFn: func(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint32) []types.Delegation {
 					return []types.Delegation{}
 				},
 			},
@@ -91,7 +91,7 @@ var _ viewKeeper = &MockViewKeeper{}
 type MockViewKeeper struct {
 	GetMaxCapLimitFn    func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
 	GetTotalDelegatedFn func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
-	GetAllDelegationsFn func(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.Delegation
+	GetAllDelegationsFn func(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint32) []types.Delegation
 }
 
 func (m MockViewKeeper) GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
@@ -108,7 +108,7 @@ func (m MockViewKeeper) GetTotalDelegated(ctx sdk.Context, actor sdk.AccAddress)
 	return m.GetTotalDelegatedFn(ctx, actor)
 }
 
-func (m MockViewKeeper) GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.Delegation {
+func (m MockViewKeeper) GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint32) []types.Delegation {
 	if m.GetAllDelegationsFn == nil {
 		panic("not expected to be called")
 	}
