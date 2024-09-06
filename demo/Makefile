@@ -78,23 +78,30 @@ ifeq ($(OS),Windows_NT)
 	$(error mesh demo server not supported)
 	exit 1
 else
-	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILD_DIR)/$(APPNAME) ./cmd/meshd
+	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILD_DIR)/meshconsumerd ./cmd/meshconsumerd
+	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILD_DIR)/meshproviderd ./cmd/meshproviderd
 endif
 
 build-vendored:
-	go build -mod=vendor $(BUILD_FLAGS) -o $(BUILD_DIR)/$(APPNAME) ./cmd/meshd
+	go build -mod=vendor $(BUILD_FLAGS) -o $(BUILD_DIR)/meshconsumerd ./cmd/meshconsumerd
+	go build -mod=vendor $(BUILD_FLAGS) -o $(BUILD_DIR)/meshproviderd ./cmd/meshproviderd
 
 build-linux-static:
 	go mod vendor  # quick hack to make local dependencies work in Docker
 	mkdir -p $(BUILD_DIR)
-	docker build --tag osmosis/meshd:local ./
-	docker create --name meshd_temp osmosis/meshd:local
-	docker cp meshd_temp:/usr/bin/meshd $(BUILD_DIR)/
+	docker build --tag osmosis/meshconsumerd:local -f consumer.Dockerfile ./
+	docker build --tag osmosis/meshproviderd:local -f provider.Dockerfile ./
+	docker create --name meshd_temp osmosis/meshconsumerd:local
+	docker cp meshd_temp:/usr/bin/meshconsumerd $(BUILD_DIR)/
+	docker rm -f meshd_temp
+	docker create --name meshd_temp osmosis/meshproviderd:local
+	docker cp meshd_temp:/usr/bin/meshproviderd $(BUILD_DIR)/
 	docker rm -f meshd_temp
 	rm -rf vendor/
 
 install:
-	go install -mod=readonly $(BUILD_FLAGS) ./cmd/meshd
+	go install -mod=readonly $(BUILD_FLAGS) ./cmd/meshconsumerd
+	go install -mod=readonly $(BUILD_FLAGS) ./cmd/meshproviderd
 
 ########################################
 ### Testing
