@@ -7,13 +7,13 @@ home2=$HOME/.meshd/chain1/node2
 chainid=chain-1
 
 # init chain
-meshd init mesh-1 --chain-id $chainid --home=$home1
-meshd init mesh-2 --chain-id $chainid --home=$home2
+meshconsumerd init mesh-1 --chain-id $chainid --home=$home1
+meshconsumerd init mesh-2 --chain-id $chainid --home=$home2
 
 # keys add
-meshd keys add val1 --keyring-backend test --home=$home1
-meshd keys add val2 --keyring-backend test --home=$home2
-meshd keys add test1 --keyring-backend test --home=$home1
+meshconsumerd keys add val1 --keyring-backend test --home=$home1
+meshconsumerd keys add val2 --keyring-backend test --home=$home2
+meshconsumerd keys add test1 --keyring-backend test --home=$home1
 
 # Change parameter token denominations to stake
 cat $home1/config/genesis.json | jq '.app_state["staking"]["params"]["bond_denom"]="stake"' > $home1/config/tmp_genesis.json && mv $home1/config/tmp_genesis.json $home1/config/genesis.json
@@ -26,25 +26,25 @@ cat $home1/config/genesis.json | jq '.app_state["meshsecurity"]["params"]["epoch
 cat $home1/config/genesis.json | jq '.app_state["mint"]["params"]["mint_denom"]="stake"' > $home1/config/tmp_genesis.json && mv $home1/config/tmp_genesis.json $home1/config/genesis.json
 
 # Allocate genesis accounts (cosmos formatted addresses)
-val1=$(meshd keys show val1 --keyring-backend test --home=$home1 -a)
-test1=$(meshd keys show test1 --keyring-backend test --home=$home1 -a)
-val2=$(meshd keys show val2 --keyring-backend test --home=$home2 -a)
-meshd add-genesis-account $val1 1000000000000stake --keyring-backend test --home=$home1
-meshd add-genesis-account $val2 1000000000000stake --keyring-backend test --home=$home1
-meshd add-genesis-account $test1 1000000000stake --keyring-backend test --home=$home1
+val1=$(meshconsumerd keys show val1 --keyring-backend test --home=$home1 -a)
+test1=$(meshconsumerd keys show test1 --keyring-backend test --home=$home1 -a)
+val2=$(meshconsumerd keys show val2 --keyring-backend test --home=$home2 -a)
+meshconsumerd add-genesis-account $val1 1000000000000stake --keyring-backend test --home=$home1
+meshconsumerd add-genesis-account $val2 1000000000000stake --keyring-backend test --home=$home1
+meshconsumerd add-genesis-account $test1 1000000000stake --keyring-backend test --home=$home1
 cp $home1/config/genesis.json $home2/config/genesis.json
 
 # Sign genesis transaction
-meshd gentx val1 900000000000stake --keyring-backend test --chain-id $chainid --home=$home1
-meshd gentx val2 100000000000stake --keyring-backend test --chain-id $chainid --home=$home2
+meshconsumerd gentx val1 900000000000stake --keyring-backend test --chain-id $chainid --home=$home1
+meshconsumerd gentx val2 100000000000stake --keyring-backend test --chain-id $chainid --home=$home2
 cp $home2/config/gentx/*.json $home1/config/gentx/
 
 # Collect genesis tx
-meshd collect-gentxs --home=$home1
+meshconsumerd collect-gentxs --home=$home1
 cp $home1/config/genesis.json $home2/config/genesis.json
 
 # Run this to ensure everything worked and that the genesis file is setup correctly
-meshd validate-genesis --home=$home1
+meshconsumerd validate-genesis --home=$home1
 
 # change app.toml values
 VALIDATOR1_APP_TOML=$home1/config/app.toml
@@ -67,11 +67,11 @@ sed -i -E 's|allow_duplicate_ip = false|allow_duplicate_ip = true|g' $VALIDATOR2
 sed -i -E 's|prometheus = false|prometheus = true|g' $VALIDATOR2_CONFIG
 sed -i -E 's|prometheus_listen_addr = ":26660"|prometheus_listen_addr = ":26630"|g' $VALIDATOR2_CONFIG
 
-node1=$(meshd tendermint show-node-id --home=$home1)
-node2=$(meshd tendermint show-node-id --home=$home2)
+node1=$(meshconsumerd tendermint show-node-id --home=$home1)
+node2=$(meshconsumerd tendermint show-node-id --home=$home2)
 sed -i -E "s|persistent_peers = \"\"|persistent_peers = \"$node1@localhost:26656,$node2@localhost:26656\"|g" $home1/config/config.toml
 sed -i -E "s|persistent_peers = \"\"|persistent_peers = \"$node1@localhost:26656,$node2@localhost:26656\"|g" $home2/config/config.toml
 
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed)
-screen -S mesh1-node1 -t mesh1-node1 -d -m meshd start --home=$home1
-screen -S mesh1-node2 -t mesh1-node2 -d -m meshd start --home=$home2
+screen -S mesh1-node1 -t mesh1-node1 -d -m meshconsumerd start --home=$home1
+screen -S mesh1-node2 -t mesh1-node2 -d -m meshconsumerd start --home=$home2
