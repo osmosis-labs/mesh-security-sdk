@@ -35,7 +35,7 @@ chains:
             key-directory: scripts/relayer/keys/band-laozi-testnet6
             key: testnet
             chain-id: band-laozi-testnet6
-            rpc-addr: https://rpc.laozi-testnet6.bandchain.org
+            rpc-addr: https://rpc.laozi-testnet6.bandchain.org:443
             account-prefix: band
             keyring-backend: test
             gas-adjustment: 1.2
@@ -48,7 +48,7 @@ chains:
             output-format: json
             sign-mode: direct
             extra-codecs: []
-            coin-type: 118
+            coin-type: 494
             signing-algorithm: ""
             broadcast-mode: batch
             min-loop-duration: 0s
