@@ -7,22 +7,18 @@ chainid2=chain-2
 
 node1=tcp://127.0.0.1:26657
 node2=tcp://127.0.0.1:26667
-test1=$(meshd keys show test1  --keyring-backend test -a --home=$home1)
-val1=$(meshd keys show val1  --keyring-backend test -a --home=$home1)
-test2=$(meshd keys show test1  --keyring-backend test -a --home=$home2)
-val2=$(meshd keys show val1  --keyring-backend test -a --home=$home2)
+test1=$(meshconsumerd keys show test1  --keyring-backend test -a --home=$home1)
+val1=$(meshconsumerd keys show val1  --keyring-backend test -a --home=$home1)
+test2=$(meshproviderd keys show test1  --keyring-backend test -a --home=$home2)
+val2=$(meshproviderd keys show val1  --keyring-backend test -a --home=$home2)
 
 # # #=======bootstrap contract consumer
-meshd tx wasm store ./tests/testdata/mesh_simple_price_feed.wasm.gz --node $node1 --from $val1 --home=$home1  --chain-id $chainid1 --keyring-backend test --fees 1stake -y --gas 10059023
+meshconsumerd tx wasm store ./tests/testdata/mesh_virtual_staking.wasm.gz --node $node1 --from $val1 --home=$home1  --chain-id $chainid1 --keyring-backend test --fees 1stake -y --gas 10059023
 sleep 7
-meshd tx wasm store ./tests/testdata/mesh_virtual_staking.wasm.gz --node $node1 --from $val1 --home=$home1  --chain-id $chainid1 --keyring-backend test --fees 1stake -y --gas 10059023
-sleep 7
-meshd tx wasm store ./tests/testdata/mesh_converter.wasm.gz --node $node1 --from $val1 --home=$home1  --chain-id $chainid1 --keyring-backend test --fees 1stake -y --gas 10059023
-sleep 7
-meshd tx wasm instantiate 1 '{"native_per_foreign": "0.5"}' --node $node1 --label contract-pricefeed  --admin $val1 --from $val1 --home=$home1  --chain-id $chainid1 --keyring-backend test --fees 1stake -y --gas 3059023 
+meshconsumerd tx wasm store ./tests/testdata/mesh_converter.wasm.gz --node $node1 --from $val1 --home=$home1  --chain-id $chainid1 --keyring-backend test --fees 1stake -y --gas 10059023
 sleep 7
 
-price_feed=$(meshd q wasm list-contract-by-code 1 --node $node1 --output json | jq -r '.contracts[0]' )
+price_feed=$(meshconsumerd q wasm list-contract-by-code 1 --node $node1 --output json | jq -r '.contracts[0]' )
 echo "price feed contract: $price_feed"
 
 init_converter=$(cat <<EOF
@@ -36,13 +32,13 @@ init_converter=$(cat <<EOF
 }
 EOF
 )
-meshd tx wasm instantiate 3 "$init_converter" --node $node1 --label contract-converter  --admin $val1 --from $val1 --home=$home1  --chain-id $chainid1 --keyring-backend test --fees 1stake -y --gas 3059023 
+meshconsumerd tx wasm instantiate 3 "$init_converter" --node $node1 --label contract-converter  --admin $val1 --from $val1 --home=$home1  --chain-id $chainid1 --keyring-backend test --fees 1stake -y --gas 3059023 
 sleep 7
 
-virtual_staking=$(meshd q wasm list-contract-by-code 2 --node $node1 --output json | jq -r '.contracts[0]' )
+virtual_staking=$(meshconsumerd q wasm list-contract-by-code 2 --node $node1 --output json | jq -r '.contracts[0]' )
 echo "virtual staking contract: $virtual_staking"
 
-converter=$(meshd q wasm list-contract-by-code 3 --node $node1 --output json | jq -r '.contracts[0]' )
+converter=$(meshconsumerd q wasm list-contract-by-code 3 --node $node1 --output json | jq -r '.contracts[0]' )
 echo "converter contract: $converter"
 
 # 1:mesh14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9sysl6kf
@@ -50,13 +46,13 @@ echo "converter contract: $converter"
 # 3:mesh1qg5ega6dykkxc307y25pecuufrjkxkaggkkxh7nad0vhyhtuhw3stmd2jl
 
 # # #========== bootstrap contract provider
-meshd tx wasm store ./tests/testdata/mesh_vault.wasm.gz --from $val2 --home=$home2  --chain-id $chainid2 --keyring-backend test --node $node2 --fees 1stake -y --gas 10059023
+meshproviderd tx wasm store ./tests/testdata/mesh_vault.wasm.gz --from $val2 --home=$home2  --chain-id $chainid2 --keyring-backend test --node $node2 --fees 1stake -y --gas 10059023
 sleep 7
-meshd tx wasm store ./tests/testdata/mesh_native_staking_proxy.wasm.gz --from $val2 --home=$home2  --chain-id $chainid2 --keyring-backend test --node $node2 --fees 1stake -y --gas 10059023
+meshproviderd tx wasm store ./tests/testdata/mesh_native_staking_proxy.wasm.gz --from $val2 --home=$home2  --chain-id $chainid2 --keyring-backend test --node $node2 --fees 1stake -y --gas 10059023
 sleep 7
-meshd tx wasm store ./tests/testdata/mesh_native_staking.wasm.gz --from $val2 --home=$home2  --chain-id $chainid2 --keyring-backend test --node $node2 --fees 1stake -y --gas 10059023
+meshproviderd tx wasm store ./tests/testdata/mesh_native_staking.wasm.gz --from $val2 --home=$home2  --chain-id $chainid2 --keyring-backend test --node $node2 --fees 1stake -y --gas 10059023
 sleep 7
-meshd tx wasm store ./tests/testdata/mesh_external_staking.wasm.gz --from $val2 --home=$home2  --chain-id $chainid2 --keyring-backend test --node $node2 --fees 1stake -y --gas 15406929
+meshproviderd tx wasm store ./tests/testdata/mesh_external_staking.wasm.gz --from $val2 --home=$home2  --chain-id $chainid2 --keyring-backend test --node $node2 --fees 1stake -y --gas 15406929
 sleep 7
 
 msg=$(cat <<EOF
@@ -69,15 +65,15 @@ init_vault=$(cat <<EOF
     "denom": "stake", 
     "local_staking": {
         "code_id": 3, 
-        "msg": "$encode_msg"
+        "msg": "$(echo -n $encode_msg| tr -d '[:space:]')"
     }
 }
 EOF
 )
-meshd tx wasm instantiate 1 "$init_vault" --label contract-vault --admin $val2 --from $val2 --home=$home2  --chain-id $chainid2 --keyring-backend test --node $node2 --fees 1stake -y --gas 3059023 
+meshproviderd tx wasm instantiate 1 "$init_vault" --label contract-vault --admin $val2 --from $val2 --home=$home2  --chain-id $chainid2 --keyring-backend test --node $node2 --fees 1stake -y --gas 3059023 
 
 sleep 7
-vault=$(meshd q wasm list-contract-by-code 1 --output json --node $node2 | jq -r '.contracts[0]' )
+vault=$(meshproviderd q wasm list-contract-by-code 1 --output json --node $node2 | jq -r '.contracts[0]' )
 echo "vault contract: $vault"
 
 init_ext_staking=$(cat <<EOF
@@ -97,11 +93,11 @@ init_ext_staking=$(cat <<EOF
 }
 EOF
 )
-meshd tx wasm instantiate 4 "$init_ext_staking" --label contract-externalstaking --admin $val2 --from $val2 --home=$home2  --chain-id $chainid2 --keyring-backend test --node $node2 --fees 1stake -y --gas 3059023 
+meshproviderd tx wasm instantiate 4 "$init_ext_staking" --label contract-externalstaking --admin $val2 --from $val2 --home=$home2  --chain-id $chainid2 --keyring-backend test --node $node2 --fees 1stake -y --gas 3059023 
 sleep 7
 
 
-ext_staking=$(meshd q wasm list-contract-by-code 4 --output json --node $node2 | jq -r '.contracts[0]' )
+ext_staking=$(meshproviderd q wasm list-contract-by-code 4 --output json --node $node2 | jq -r '.contracts[0]' )
 echo "ext_staking contract: $ext_staking"
 
 echo "Finish instantiate steps"

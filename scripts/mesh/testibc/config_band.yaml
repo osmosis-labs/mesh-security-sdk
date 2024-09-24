@@ -7,7 +7,7 @@ chains:
     consumer:
         type: cosmos
         value:
-            key-directory: [Your directory/keys/chain-1]
+            key-directory: scripts/relayer/keys/chain-1
             key: key1
             chain-id: chain-1
             rpc-addr: http://localhost:26657
@@ -29,17 +29,17 @@ chains:
             min-loop-duration: 0s
             extension-options: []
             feegrants: null
-    provider:
+    band:
         type: cosmos
         value:
-            key-directory: [Your directory/keys/chain-2]
-            key: key2
-            chain-id: chain-2
-            rpc-addr: http://localhost:26667
-            account-prefix: mesh
+            key-directory: scripts/relayer/keys/band-laozi-testnet6
+            key: testnet
+            chain-id: band-laozi-testnet6
+            rpc-addr: https://rpc.laozi-testnet6.bandchain.org:443
+            account-prefix: band
             keyring-backend: test
             gas-adjustment: 1.2
-            gas-prices: 0.01stake
+            gas-prices: 0.01uband
             min-gas-amount: 1000000
             max-gas-amount: 0
             debug: false
@@ -48,7 +48,7 @@ chains:
             output-format: json
             sign-mode: direct
             extra-codecs: []
-            coin-type: 118
+            coin-type: 494
             signing-algorithm: ""
             broadcast-mode: batch
             min-loop-duration: 0s
