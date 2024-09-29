@@ -37,7 +37,6 @@ require (
 	github.com/cometbft/cometbft v0.37.2
 	github.com/cometbft/cometbft-db v0.8.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20230629202037-9506855d4529
-	sigs.k8s.io/yaml v1.3.0
 )
 
 require (
@@ -184,6 +183,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	nhooyr.io/websocket v1.8.6 // indirect
 	pgregory.net/rapid v0.5.5 // indirect
+	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
 replace (

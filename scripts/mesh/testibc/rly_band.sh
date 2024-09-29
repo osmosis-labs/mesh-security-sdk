@@ -68,5 +68,5 @@ rly tx channel demo-band --src-port wasm.$price_feed --dst-port oracle --order u
 
 sleep 5
 
-screen -S relayer -t relayer -d -m  rly start demo-band --home ./scripts/relayer --debug-addr localhost:5184
+screen -S relayer -t relayer -d -m  rly start demo-band --home ./scripts/relayer
 sleep 5

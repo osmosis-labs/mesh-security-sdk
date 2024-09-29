@@ -54,16 +54,4 @@ chains:
             min-loop-duration: 0s
             extension-options: []
             feegrants: null
-paths:
-    demo-osmo:
-        src:
-            chain-id: chain-1
-            client-id: 07-tendermint-8
-            connection-id: connection-5
-        dst:
-            chain-id: osmo
-            client-id: 07-tendermint-8
-            connection-id: connection-5
-        src-channel-filter:
-            rule: ""
-            channel-list: []
+paths: {}
