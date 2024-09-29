@@ -32,10 +32,10 @@ chains:
     osmo:
         type: cosmos
         value:
-            key-directory: scripts/relayer/keys/osmo
+            key-directory: scripts/relayer/keys/osmo-test-5
             key: testnet
-            chain-id: osmo
-            rpc-addr: http://localhost:26677
+            chain-id: osmo-test-5
+            rpc-addr: https://rpc.testnet.osmosis.zone:443
             account-prefix: osmo
             keyring-backend: test
             gas-adjustment: 1.2
@@ -54,16 +54,4 @@ chains:
             min-loop-duration: 0s
             extension-options: []
             feegrants: null
-paths:
-    demo-osmo:
-        src:
-            chain-id: chain-1
-            client-id: 07-tendermint-8
-            connection-id: connection-5
-        dst:
-            chain-id: osmo
-            client-id: 07-tendermint-8
-            connection-id: connection-5
-        src-channel-filter:
-            rule: ""
-            channel-list: []
+paths: {}
