@@ -42,10 +42,35 @@ func (m msgServer) SetVirtualStakingMaxCap(goCtx context.Context, req *types.Msg
 		return nil, err
 	}
 	if !m.k.HasScheduledTask(ctx, types.SchedulerTaskHandleEpoch, acc, true) {
-		if err := m.k.ScheduleRegularRebalanceTask(ctx, acc); err != nil {
+		if err := m.k.ScheduleRegularHandleEpochTask(ctx, acc); err != nil {
 			return nil, errorsmod.Wrap(err, "schedule regular rebalance task")
 		}
 		return &types.MsgSetVirtualStakingMaxCapResponse{}, nil
 	}
 	return &types.MsgSetVirtualStakingMaxCapResponse{}, nil
+}
+
+// SetPriceFeedContract sets the price feed contract to the chain to trigger handle epoch task
+func (m msgServer) SetPriceFeedContract(goCtx context.Context, req *types.MsgSetPriceFeedContract) (*types.MsgSetPriceFeedContractResponse, error) {
+	if err := req.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	if authority := m.k.GetAuthority(); authority != req.Authority {
+		return nil, govtypes.ErrInvalidSigner.Wrapf("invalid authority; expected %s, got %s", authority, req.Authority)
+	}
+
+	acc, err := sdk.AccAddressFromBech32(req.Contract)
+	if err != nil {
+		return nil, errorsmod.Wrap(err, "contract")
+	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	if !m.k.HasScheduledTask(ctx, types.SchedulerTaskHandleEpoch, acc, true) {
+		if err := m.k.ScheduleRegularHandleEpochTask(ctx, acc); err != nil {
+			return nil, errorsmod.Wrap(err, "schedule regular rebalance task")
+		}
+		return &types.MsgSetPriceFeedContractResponse{}, nil
+	} else {
+		return nil, types.ErrDuplicate
+	}
 }

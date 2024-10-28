@@ -26,6 +26,8 @@
     - [ValidatorAddress](#osmosis.meshsecurity.v1beta1.ValidatorAddress)
   
 - [osmosis/meshsecurity/v1beta1/tx.proto](#osmosis/meshsecurity/v1beta1/tx.proto)
+    - [MsgSetPriceFeedContract](#osmosis.meshsecurity.v1beta1.MsgSetPriceFeedContract)
+    - [MsgSetPriceFeedContractResponse](#osmosis.meshsecurity.v1beta1.MsgSetPriceFeedContractResponse)
     - [MsgSetVirtualStakingMaxCap](#osmosis.meshsecurity.v1beta1.MsgSetVirtualStakingMaxCap)
     - [MsgSetVirtualStakingMaxCapResponse](#osmosis.meshsecurity.v1beta1.MsgSetVirtualStakingMaxCapResponse)
   
@@ -287,6 +289,33 @@ ValidatorAddress payload data to be used with the scheduler
 
 
 
+<a name="osmosis.meshsecurity.v1beta1.MsgSetPriceFeedContract"></a>
+
+### MsgSetPriceFeedContract
+MsgSetPriceFeedContract sets the price feed contract to the chain 
+to trigger handle epoch task
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `authority` | [string](#string) |  | Authority is the address that controls the module (defaults to x/gov unless overwritten). |
+| `contract` | [string](#string) |  | Contract is the address of the price feed smart contract. |
+
+
+
+
+
+
+<a name="osmosis.meshsecurity.v1beta1.MsgSetPriceFeedContractResponse"></a>
+
+### MsgSetPriceFeedContractResponse
+MsgSetPriceFeedContractResponse returns result data.
+
+
+
+
+
+
 <a name="osmosis.meshsecurity.v1beta1.MsgSetVirtualStakingMaxCap"></a>
 
 ### MsgSetVirtualStakingMaxCap
@@ -329,6 +358,7 @@ Msg defines the wasm Msg service.
 | Method Name | Request Type | Response Type | Description | HTTP Verb | Endpoint |
 | ----------- | ------------ | ------------- | ------------| ------- | -------- |
 | `SetVirtualStakingMaxCap` | [MsgSetVirtualStakingMaxCap](#osmosis.meshsecurity.v1beta1.MsgSetVirtualStakingMaxCap) | [MsgSetVirtualStakingMaxCapResponse](#osmosis.meshsecurity.v1beta1.MsgSetVirtualStakingMaxCapResponse) | SetVirtualStakingMaxCap creates or updates a maximum cap limit for virtual staking coins | |
+| `SetPriceFeedContract` | [MsgSetPriceFeedContract](#osmosis.meshsecurity.v1beta1.MsgSetPriceFeedContract) | [MsgSetPriceFeedContractResponse](#osmosis.meshsecurity.v1beta1.MsgSetPriceFeedContractResponse) | SetPriceFeedContract sets the price feed contract to the chain to trigger handle epoch task | |
 
  <!-- end services -->
 

@@ -33,6 +33,7 @@ func SubmitProposalCmd() *cobra.Command {
 	}
 	cmd.AddCommand(
 		ProposalSetVirtualStakingMaxCapCmd(),
+		ProposalSetPriceFeedContractCmd(),
 	)
 	return cmd
 }
@@ -86,6 +87,55 @@ $ %s tx meshsecurity submit-proposal set-virtual-staking-max-cap %s1l94ptufswr6v
 	return cmd
 }
 
+func ProposalSetPriceFeedContractCmd() *cobra.Command {
+	bech32Prefix := sdk.GetConfig().GetBech32AccountAddrPrefix()
+	cmd := &cobra.Command{
+		Use:   "set-price-feed [contract_addr_bech32] --title [text] --summary [text] --authority [address]",
+		Short: "Submit a set virtual staking max cap proposal",
+		Args:  cobra.ExactArgs(1),
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a proposal to set price feed contract to chain.
+
+Example:
+$ %s tx meshsecurity submit-proposal set-price-feed %s1l94ptufswr6v7qntax4m7nvn3jgf6k4gn2rknq --title "a title" --summary "a summary" --authority %s
+`, version.AppName, bech32Prefix, DefaultGovAuthority.String())),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, proposalTitle, summary, metadata, deposit, err := getProposalInfo(cmd)
+			if err != nil {
+				return err
+			}
+			authority, err := cmd.Flags().GetString(flagAuthority)
+			if err != nil {
+				return fmt.Errorf("authority: %s", err)
+			}
+
+			if len(authority) == 0 {
+				return errors.New("authority address is required")
+			}
+
+			src, err := parseSetPriceFeedContractArgs(args, authority)
+			if err != nil {
+				return err
+			}
+
+			proposalMsg, err := v1.NewMsgSubmitProposal([]sdk.Msg{&src}, deposit, clientCtx.GetFromAddress().String(), metadata, proposalTitle, summary)
+			if err != nil {
+				return err
+			}
+			if err = proposalMsg.ValidateBasic(); err != nil {
+				return err
+			}
+
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), proposalMsg)
+		},
+		SilenceUsage: true,
+	}
+
+	// proposal flags
+	addCommonProposalFlags(cmd)
+	return cmd
+}
+
 func parseSetVirtualStakingMaxCapArgs(args []string, authority string) (types.MsgSetVirtualStakingMaxCap, error) {
 	maxCap, err := sdk.ParseCoinNormalized(args[1])
 	if err != nil {
@@ -96,6 +146,14 @@ func parseSetVirtualStakingMaxCapArgs(args []string, authority string) (types.Ms
 		Authority: authority,
 		Contract:  args[0],
 		MaxCap:    maxCap,
+	}
+	return msg, nil
+}
+
+func parseSetPriceFeedContractArgs(args []string, authority string) (types.MsgSetPriceFeedContract, error) {
+	msg := types.MsgSetPriceFeedContract{
+		Authority: authority,
+		Contract:  args[0],
 	}
 	return msg, nil
 }
