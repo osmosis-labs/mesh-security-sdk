@@ -78,3 +78,13 @@ Create channel
 ```bash
 rly tx channel {$PATH_NAME} --src-port wasm.$price_feed --dst-port oracle --order unordered --version bandchain-1 --home $relayer_home --override
 ```
+
+## Register handle epoch for price feed contract
+
+Currently, the price feed contract only allow to call handle epoch via SudoMsg. Therefore, we need to register price feed contract to the chain. 
+
+```bash
+meshconsumerd tx meshsecurity submit-proposal set-price-feed $price_feed --title "Title" --summary "Summary" --from $addr --keyring-backend test --home=$home --node $node --chain-id $chainid -y --deposit 10000000stake
+```
+
+After submitting proposal, we vote for the proposal to pass. Meshsecurity module will automatically set the handle_epoch task for price feed contract.
