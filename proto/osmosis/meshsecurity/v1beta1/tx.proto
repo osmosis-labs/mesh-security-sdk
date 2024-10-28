@@ -15,6 +15,10 @@ service Msg {
   // staking coins
   rpc SetVirtualStakingMaxCap(MsgSetVirtualStakingMaxCap)
       returns (MsgSetVirtualStakingMaxCapResponse);
+  // SetPriceFeedContract sets the price feed contract to the chain 
+  // to trigger handle epoch task
+  rpc SetPriceFeedContract(MsgSetPriceFeedContract)
+      returns (MsgSetPriceFeedContractResponse);
 }
 
 // MsgSetVirtualStakingMaxCap creates or updates a maximum cap limit for virtual
@@ -37,3 +41,20 @@ message MsgSetVirtualStakingMaxCap {
 
 // MsgSetVirtualStakingMaxCap returns result data.
 message MsgSetVirtualStakingMaxCapResponse {}
+
+// MsgSetPriceFeedContract sets the price feed contract to the chain 
+// to trigger handle epoch task
+message MsgSetPriceFeedContract {
+  option (amino.name) = "meshsecurity/MsgSetPriceFeedContract";
+  option (cosmos.msg.v1.signer) = "authority";
+
+  // Authority is the address that controls the module (defaults to x/gov unless
+  // overwritten).
+  string authority = 1;
+
+  // Contract is the address of the price feed smart contract.
+  string contract = 2;
+}
+
+// MsgSetPriceFeedContractResponse returns result data.
+message MsgSetPriceFeedContractResponse {}

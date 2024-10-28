@@ -33,6 +33,5 @@ rly tx channel demo --src-port wasm.$converter --dst-port wasm.$ext_staking --or
 
 sleep 5
 
-echo "abcxyz"
-# screen -S relayer -t relayer -d -m  rly start demo
+screen -S relayer -t relayer -d -m  rly start demo
 sleep 5

@@ -13,8 +13,8 @@ import (
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
-// ScheduleRegularRebalanceTask schedule a rebalance task for the given virtual staking contract using params defined epoch length
-func (k Keeper) ScheduleRegularRebalanceTask(ctx sdk.Context, contract sdk.AccAddress) error {
+// ScheduleRegularHandleEpochTask schedule a handle epoch task for the given virtual staking contract using params defined epoch length
+func (k Keeper) ScheduleRegularHandleEpochTask(ctx sdk.Context, contract sdk.AccAddress) error {
 	if !k.wasm.HasContractInfo(ctx, contract) {
 		return types.ErrUnknown.Wrapf("contract: %s", contract.String())
 	}
