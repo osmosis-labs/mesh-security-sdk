@@ -89,3 +89,76 @@ func TestSetVirtualStakingMaxCap(t *testing.T) {
 		})
 	}
 }
+
+func TestSetPriceFeedContract(t *testing.T) {
+	pCtx, keepers := CreateDefaultTestInput(t)
+	k := keepers.MeshKeeper
+	myContract := sdk.AccAddress(rand.Bytes(32))
+	denom := keepers.StakingKeeper.BondDenom(pCtx)
+	myAmount := sdk.NewInt64Coin(denom, 123)
+
+	k.wasm = MockWasmKeeper{HasContractInfoFn: func(ctx sdk.Context, contractAddress sdk.AccAddress) bool {
+		return contractAddress.Equals(myContract)
+	}}
+	m := NewMsgServer(k)
+
+	specs := map[string]struct {
+		src         types.MsgSetPriceFeedContract
+		setup       func(ctx sdk.Context)
+		expErr      bool
+		expLimit    sdk.Coin
+		expSchedule func(t *testing.T, ctx sdk.Context)
+	}{
+		"limit stored with scheduler for existing contract": {
+			setup: func(ctx sdk.Context) {},
+			src: types.MsgSetPriceFeedContract{
+				Authority: k.GetAuthority(),
+				Contract:  myContract.String(),
+			},
+			expLimit: myAmount,
+			expSchedule: func(t *testing.T, ctx sdk.Context) {
+				assert.True(t, k.HasScheduledTask(ctx, types.SchedulerTaskHandleEpoch, myContract, true))
+			},
+		},
+		"fails for non existing contract": {
+			setup: func(ctx sdk.Context) {},
+			src: types.MsgSetPriceFeedContract{
+				Authority: k.GetAuthority(),
+				Contract:  sdk.AccAddress(rand.Bytes(32)).String(),
+			},
+			expErr: true,
+		},
+		"unauthorized rejected": {
+			setup: func(ctx sdk.Context) {},
+			src: types.MsgSetPriceFeedContract{
+				Authority: myContract.String(),
+				Contract:  myContract.String(),
+			},
+			expErr: true,
+		},
+		"invalid data rejected": {
+			setup:  func(ctx sdk.Context) {},
+			src:    types.MsgSetPriceFeedContract{},
+			expErr: true,
+		},
+	}
+	for name, spec := range specs {
+		t.Run(name, func(t *testing.T) {
+			ctx, _ := pCtx.CacheContext()
+			spec.setup(ctx)
+
+			// when
+			gotRsp, gotErr := m.SetPriceFeedContract(sdk.WrapSDKContext(ctx), &spec.src)
+
+			// then
+			if spec.expErr {
+				require.Error(t, gotErr)
+				return
+			}
+			require.NoError(t, gotErr)
+			assert.NotNil(t, gotRsp)
+			// and scheduled
+			spec.expSchedule(t, ctx)
+		})
+	}
+}

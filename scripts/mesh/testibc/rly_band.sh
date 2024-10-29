@@ -53,6 +53,7 @@ init_band_price_feed=$(cat <<EOF
     "prepare_gas": "40000",
     "execute_gas": "300000",
     "minimum_sources": 2,
+    "epoch_in_secs": 30,
     "price_info_ttl_in_secs": 60
 }
 EOF
@@ -66,7 +67,7 @@ echo "price feed contract: $price_feed"
 
 rly tx channel demo-band --src-port wasm.$price_feed --dst-port oracle --order unordered --version bandchain-1 --home ./scripts/relayer --override
 
-sleep 5
+sleep 7
 
-screen -S relayer -t relayer -d -m  rly start demo-band --home ./scripts/relayer --debug-addr localhost:5184
+screen -S relayer-band -t relayer-band -d -m  rly start demo-band --home ./scripts/relayer
 sleep 5
