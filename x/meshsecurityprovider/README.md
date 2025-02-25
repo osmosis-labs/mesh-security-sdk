@@ -8,7 +8,7 @@ Projects that want to integrate the meshsecurityprovider module onto their Cosmo
 - [x/staking](https://github.com/cosmos/cosmos-sdk/tree/main/x/staking)
 - [x/auth](https://github.com/cosmos/cosmos-sdk/tree/main/x/auth)
 - [x/bank](https://github.com/cosmos/cosmos-sdk/tree/main/x/bank)
-- [x/wasm](github.com/CosmWasm/wasmd/x/wasm)
+- [x/wasm](https://github.com/CosmWasm/wasmd/tree/main/x/wasm)
 
 ## Configuring and Adding Module
 1. Add the mesh security package to the go.mod and install it.

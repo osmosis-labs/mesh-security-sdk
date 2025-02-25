@@ -2,7 +2,7 @@
 This document describes about how to deploy and setup mesh security for cosmos chains
 
 ## Consumer chain
-1. Integrate `meshsecurity` module by this [guide](./x/meshsecurity/README.md).
+1. Integrate `meshsecurity` module by this [guide](./meshsecurity/README.md).
 2. Deploy price feed contract:
 - Store code file `mesh_simple_price_feed.wasm`
 - Instantiate contract with parameters: `{"native_per_foreign": $token_ratio}`
@@ -21,7 +21,7 @@ type MsgSetVirtualStakingMaxCap struct {
 }
 ```
 ## Provider chain
-1. Integrate `meshsecurityprovider` module by this [guide](./x/meshsecurityprovider/README.md).
+1. Integrate `meshsecurityprovider` module by this [guide](./meshsecurityprovider/README.md).
 2. Store contract codes:
 - `mesh_vault.wasm`
 - `mesh_native_staking_proxy.wasm`
