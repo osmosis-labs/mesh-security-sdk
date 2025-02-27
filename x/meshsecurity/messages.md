@@ -74,7 +74,7 @@
 ```
 
 ## Jailed to removed
-3 differet events, unlikely at the same height
+3 different events, unlikely at the same height
 * jailed:
 ```json
 {
