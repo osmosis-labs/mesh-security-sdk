@@ -20,7 +20,7 @@ trading_pair: {
     base_asset: String,
     quote_asset: String,
 } -> Consumer chain denom is base_asset, provider chain denom is quote_asset 
-client_id: String -> Arbitary string for your request
+client_id: String -> Arbitrary string for your request
 oracle_script_id: Uint64, -> The data source's id you choose 
 ask_count: Uint64, -> The number of validator you want to ask (Recommend: 4 on testnet)
 min_count: Uint64, -> The minimum number of validator need to answer to aggregate result (Recommend: 3 on testnet)
