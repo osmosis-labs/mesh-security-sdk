@@ -8,7 +8,7 @@ meshd keys add test2 --keyring-backend test
 meshd keys add test3 --keyring-backend test 
 
 # init chain
-meshd init test-1 --chain-id testt
+meshd init test-1 --chain-id test
 
 # Change parameter token denominations to stake
 cat $HOME/.meshd/config/genesis.json | jq '.app_state["staking"]["params"]["bond_denom"]="stake"' > $HOME/.meshd/config/tmp_genesis.json && mv $HOME/.meshd/config/tmp_genesis.json $HOME/.meshd/config/genesis.json
